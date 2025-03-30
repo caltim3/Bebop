@@ -418,7 +418,7 @@ async function loadPianoSamples() {
     for (let octave of octaves) {
         for (let note of SAMPLED_NOTES) {
             const sampleName = `${note}${octave}${velocity}`;
-            const url = `./samples/${sampleName}.ogg`; // Relative path for GitHub Pages
+            const url = `https://caltim3.github.io/FretFlow/samples/${sampleName}.ogg`;
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
