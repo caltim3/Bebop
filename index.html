@@ -1334,8 +1334,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    document.addEventListener('click', initAudioContext, { once: true });
-});
+ document.addEventListener('click', initAudioContext, { once: true });
+
+function initAudioContext() {
+    if (!audioContext) {
+        console.log('Initializing AudioContext...');
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        loadSounds();
+        setupReverb();
+    }
+}
     </script>
 </body>
 </html>
