@@ -415,31 +415,29 @@ async function loadPianoSamples() {
 
     const octaves = [0, 1, 2, 3, 4, 5, 6];
     const velocity = 'v12'; // Adjust if you have multiple velocities
+
     for (let octave of octaves) {
         for (let note of SAMPLED_NOTES) {
             const sampleName = `${note}${octave}${velocity}`;
             const url = `https://caltim3.github.io/FretFlow/samples/${sampleName}.ogg`;
+
+            console.log(`Attempting to load sample: ${sampleName} from ${url}`);
+
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const arrayBuffer = await response.arrayBuffer();
                 pianoSampleBuffers[sampleName] = await audioContext.decodeAudioData(arrayBuffer);
-                console.log(`Loaded ${sampleName}`);
+
+                console.log(`Successfully loaded sample: ${sampleName}`);
             } catch (error) {
                 console.error(`Failed to load sample for ${sampleName}:`, error);
             }
         }
     }
+
     console.log('Piano samples loaded successfully!');
     return true;
-}
-
-function initAudioContext() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        loadSounds();
-        setupReverb();
-    }
 }
 
 async function setupReverb() {
@@ -490,6 +488,9 @@ function playNote(note, string, fret) {
     const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
 
     const { sampleKey, semitoneDiff } = findNearestSampledNote(targetNote, octave);
+
+    console.log(`Playing note: ${targetNote}, Octave: ${octave}, Sample Key: ${sampleKey}, Semitone Diff: ${semitoneDiff}`);
+
     if (!pianoSampleBuffers[sampleKey]) {
         console.warn(`Sample for ${sampleKey} not loaded yet.`);
         return;
@@ -509,6 +510,7 @@ function playNote(note, string, fret) {
     source.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
+    console.log(`Playing sample: ${sampleKey} at volume: ${volume}`);
     source.start();
     source.stop(audioContext.currentTime + 1);
 }
