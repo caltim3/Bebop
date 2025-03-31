@@ -1314,11 +1314,11 @@ function stopPlayback() {
 // Add at the beginning of your script
 let samplesLoaded = false;
 
-// Modify the DOMContentLoaded event listener
 document.addEventListener('DOMContentLoaded', async function() {
-    // New audio initialization code
+    // Create loading indicator immediately
     updateLoadingStatus('Initializing audio system...');
     
+    // Initialize audio system
     try {
         const testResult = await testSampleLoading();
         if (!testResult) {
@@ -1343,7 +1343,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         updateLoadingStatus('Error: Audio system initialization failed');
     }
 
-    // Initialize fretboards and UI elements
+    // Initialize drag and drop for measures
     const measures = document.querySelectorAll('#measures .measure');
     measures.forEach(measure => {
         measure.draggable = true;
