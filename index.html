@@ -416,34 +416,93 @@ const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/
 const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
 let pianoSampleBuffers = {};
 
-async function loadPianoSamples() {
-    if (!audioContext) initAudioContext();
+// Debug logging for sample loading
+async function testSampleLoading() {
+    console.log("Testing sample access...");
+    const testNote = 'A';
+    const testOctave = 4;
+    const testVelocity = 'v12';
+    const sampleName = `${testNote}${testOctave}${testVelocity}`;
+    const url = `https://raw.githubusercontent.com/caltim3/FretFlow/main/samples/${sampleName}.ogg`;
     
+    try {
+        const response = await fetch(url);
+        console.log("Sample fetch response:", response.status, response.statusText);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        console.log("Sample data received, size:", arrayBuffer.byteLength);
+        return true;
+    } catch (error) {
+        console.error("Sample loading test failed:", error);
+        return false;
+    }
+}
+        
+async function loadPianoSamples() {
+    if (!audioContext) {
+        console.log("Initializing audio context...");
+        initAudioContext();
+    }
+    
+    console.log("Starting piano sample loading...");
     const octaves = [0, 1, 2, 3, 4, 5, 6];
     const velocity = 'v12';
+    let loadedSamples = 0;
     
     for (let octave of octaves) {
         for (let note of SAMPLED_NOTES) {
             const sampleName = `${note}${octave}${velocity}`;
-            const url = `${GITHUB_RAW_BASE_URL}${sampleName}.ogg`;
+            const url = `https://raw.githubusercontent.com/caltim3/FretFlow/main/samples/${sampleName}.ogg`;
+            
             try {
+                console.log(`Loading sample: ${sampleName}`);
                 const response = await fetch(url);
                 if (!response.ok) {
-                    console.warn(`Sample ${sampleName} not found`);
+                    console.warn(`Sample ${sampleName} not found (${response.status})`);
                     continue;
                 }
                 const arrayBuffer = await response.arrayBuffer();
                 pianoSampleBuffers[sampleName] = await audioContext.decodeAudioData(arrayBuffer);
-                console.log(`Loaded ${sampleName}`);
+                loadedSamples++;
+                console.log(`Successfully loaded ${sampleName}`);
             } catch (error) {
-                console.error(`Failed to load sample for ${sampleName}:`, error);
+                console.error(`Failed to load sample ${sampleName}:`, error);
             }
         }
     }
-    console.log('Piano samples loaded successfully!');
-    return true;
+    
+    console.log(`Piano samples loading complete. Loaded ${loadedSamples} samples.`);
+    return loadedSamples > 0;
 }
 
+    function createLoadingIndicator() {
+        const indicator = document.createElement('div');
+        indicator.id = 'loading-indicator';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            border-radius: 5px;
+            z-index: 1000;
+    `;
+    document.body.appendChild(indicator);
+    return indicator;
+}
+
+function updateLoadingStatus(message) {
+    let indicator = document.getElementById('loading-indicator');
+    if (!indicator) {
+        indicator = createLoadingIndicator();
+    }
+    indicator.textContent = message;
+}
+
+        
 function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -820,12 +879,23 @@ function playMetronomeSound(volume = 1) {
 }
 
 function playChord(root, quality, time, duration) {
-    if (!audioContext || !samplesLoaded || !document.getElementById('chordsEnabled').checked) return;
-    if (!reverbNode) setupReverb();
+    if (!audioContext || !document.getElementById('chordsEnabled').checked) {
+        console.log("Playback disabled or audio context not initialized");
+        return;
+    }
 
-    const chordVolume = document.getElementById('chord-volume').value;
+    const chordVolume = parseFloat(document.getElementById('chord-volume').value);
+    console.log(`Playing chord: ${root} ${quality}, volume: ${chordVolume}`);
+
+    if (!reverbNode) {
+        console.log("Setting up reverb...");
+        setupReverb();
+    }
+
     const rootIndex = NOTES.indexOf(root);
     const chordNotes = [root];
+    
+    // Build chord notes array based on quality
     if (quality.includes('minor')) {
         chordNotes.push(NOTES[(rootIndex + 3) % 12]);
     } else {
@@ -836,6 +906,9 @@ function playChord(root, quality, time, duration) {
         chordNotes.push(NOTES[(rootIndex + (quality.includes('maj7') ? 11 : 10)) % 12]);
     }
 
+    console.log("Chord notes:", chordNotes);
+
+    // Create gain nodes
     const mainGainNode = audioContext.createGain();
     const dryGainNode = audioContext.createGain();
     const wetGainNode = audioContext.createGain();
@@ -848,17 +921,14 @@ function playChord(root, quality, time, duration) {
     dryGainNode.connect(audioContext.destination);
     wetGainNode.connect(reverbNode);
 
-    if (currentChordGain) {
-        currentChordGain.gain.setValueAtTime(currentChordGain.gain.value, time);
-        currentChordGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-    }
-    currentChordGain = mainGainNode;
-
     chordNotes.forEach((note, index) => {
         const octave = 3 + Math.floor(index / 2);
         const { sampleKey, semitoneDiff } = findNearestSampledNote(note, octave);
+        
+        console.log(`Playing note: ${note}, octave: ${octave}, using sample: ${sampleKey}`);
+        
         if (!pianoSampleBuffers[sampleKey]) {
-            console.warn(`Sample for ${sampleKey} not loaded.`);
+            console.warn(`Missing sample: ${sampleKey}`);
             return;
         }
 
@@ -1236,26 +1306,34 @@ let samplesLoaded = false;
 
 // Modify the DOMContentLoaded event listener
 document.addEventListener('DOMContentLoaded', async function() {
-    // Add a loading message to the page
-    const loadingMsg = document.createElement('div');
-    loadingMsg.id = 'loading-message';
-    loadingMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 10px; z-index: 1000;';
-    loadingMsg.textContent = 'Loading audio samples...';
-    document.body.appendChild(loadingMsg);
-
+    // New audio initialization code
+    updateLoadingStatus('Initializing audio system...');
+    
     try {
-        await loadPianoSamples();
-        samplesLoaded = true;
-        loadingMsg.remove();
+        const testResult = await testSampleLoading();
+        if (!testResult) {
+            updateLoadingStatus('Error: Cannot access audio samples');
+            console.error('Sample access test failed');
+        } else {
+            updateLoadingStatus('Loading piano samples...');
+            const samplesLoaded = await loadPianoSamples();
+            
+            if (samplesLoaded) {
+                updateLoadingStatus('Audio system ready');
+                setTimeout(() => {
+                    const indicator = document.getElementById('loading-indicator');
+                    if (indicator) indicator.remove();
+                }, 2000);
+            } else {
+                updateLoadingStatus('Error: Failed to load piano samples');
+            }
+        }
     } catch (error) {
-        loadingMsg.textContent = 'Error loading audio samples. Please refresh the page.';
-        console.error('Failed to load samples:', error);
-        return;
+        console.error('Initialization error:', error);
+        updateLoadingStatus('Error: Audio system initialization failed');
     }
 
-    // Rest of your initialization code...
-});
-
+    // Your existing fretboard initialization code
     const measures = document.querySelectorAll('#measures .measure');
     measures.forEach(measure => {
         measure.draggable = true;
@@ -1266,6 +1344,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
     updateMeasureNumbers();
 
+    // Fretboard grid initialization
     const fretboardsGrid = document.querySelector('.fretboards-grid');
     for (let i = 1; i <= 4; i++) {
         const container = createFretboardContainer(i);
@@ -1294,6 +1373,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    // Chord fretboard initialization
     const chordFretboard = document.getElementById('chord-fretboard');
     createFretboard(chordFretboard, TUNINGS.standard);
     updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
@@ -1310,8 +1390,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
+    // Beats initialization
     createBeats();
 
+    // Start/Stop button event listener
     document.getElementById('start-stop').addEventListener('click', function() {
         if (!audioContext) initAudioContext();
         if (isPlaying) {
@@ -1325,6 +1407,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
+    // Tempo control event listeners
     document.getElementById('tempo').addEventListener('input', function() {
         tempo = parseInt(this.value);
         document.getElementById('tempo-display').textContent = `${tempo} BPM`;
@@ -1342,6 +1425,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
+    // Tap tempo event listener
     document.getElementById('tap-tempo').addEventListener('click', function() {
         const now = Date.now();
         if (now - lastTapTime > 2000) {
@@ -1373,6 +1457,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
+    // Initialize audio context on first user interaction
     document.addEventListener('click', initAudioContext, { once: true });
 });
     </script>
