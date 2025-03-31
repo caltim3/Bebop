@@ -365,6 +365,10 @@
     </div>
 
     <script>
+
+        // Add at the beginning of your script
+let samplesLoaded = false;
+        
 // Musical constants
 const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const SCALES = {
@@ -406,22 +410,28 @@ const DRUM_PATTERNS = {
     '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
 };
 
+const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/samples/';
+        
 // Sample loading for Salamander Grand Piano OGGs
 const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
 let pianoSampleBuffers = {};
 
 async function loadPianoSamples() {
     if (!audioContext) initAudioContext();
-
+    
     const octaves = [0, 1, 2, 3, 4, 5, 6];
-    const velocity = 'v12'; // Adjust if you have multiple velocities
+    const velocity = 'v12';
+    
     for (let octave of octaves) {
         for (let note of SAMPLED_NOTES) {
             const sampleName = `${note}${octave}${velocity}`;
-            const url = `./samples/${sampleName}.ogg`; // Relative path for GitHub Pages
+            const url = `${GITHUB_RAW_BASE_URL}${sampleName}.ogg`;
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    console.warn(`Sample ${sampleName} not found`);
+                    continue;
+                }
                 const arrayBuffer = await response.arrayBuffer();
                 pianoSampleBuffers[sampleName] = await audioContext.decodeAudioData(arrayBuffer);
                 console.log(`Loaded ${sampleName}`);
@@ -490,10 +500,19 @@ function playNote(note, string, fret) {
     const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
 
     const { sampleKey, semitoneDiff } = findNearestSampledNote(targetNote, octave);
+    
     if (!pianoSampleBuffers[sampleKey]) {
-        console.warn(`Sample for ${sampleKey} not loaded yet.`);
+        console.warn(`Sample ${sampleKey} not loaded yet. Retrying sample loading...`);
+        loadPianoSamples().then(() => {
+            if (pianoSampleBuffers[sampleKey]) {
+                playNote(note, string, fret);
+            }
+        });
         return;
     }
+
+    // Rest of the playNote function remains the same
+}
 
     const source = audioContext.createBufferSource();
     const gainNode = audioContext.createGain();
@@ -801,7 +820,7 @@ function playMetronomeSound(volume = 1) {
 }
 
 function playChord(root, quality, time, duration) {
-    if (!audioContext || !document.getElementById('chordsEnabled').checked) return;
+    if (!audioContext || !samplesLoaded || !document.getElementById('chordsEnabled').checked) return;
     if (!reverbNode) setupReverb();
 
     const chordVolume = document.getElementById('chord-volume').value;
@@ -1212,8 +1231,30 @@ function stopPlayback() {
     }
 }
 
+// Add at the beginning of your script
+let samplesLoaded = false;
+
+// Modify the DOMContentLoaded event listener
 document.addEventListener('DOMContentLoaded', async function() {
-    await loadPianoSamples();
+    // Add a loading message to the page
+    const loadingMsg = document.createElement('div');
+    loadingMsg.id = 'loading-message';
+    loadingMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 10px; z-index: 1000;';
+    loadingMsg.textContent = 'Loading audio samples...';
+    document.body.appendChild(loadingMsg);
+
+    try {
+        await loadPianoSamples();
+        samplesLoaded = true;
+        loadingMsg.remove();
+    } catch (error) {
+        loadingMsg.textContent = 'Error loading audio samples. Please refresh the page.';
+        console.error('Failed to load samples:', error);
+        return;
+    }
+
+    // Rest of your initialization code...
+});
 
     const measures = document.querySelectorAll('#measures .measure');
     measures.forEach(measure => {
