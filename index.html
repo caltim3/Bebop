@@ -418,7 +418,7 @@ async function loadPianoSamples() {
     for (let octave of octaves) {
         for (let note of SAMPLED_NOTES) {
             const sampleName = `${note}${octave}${velocity}`;
-            const url = `/samples/${sampleName}.ogg`; // Ensure this URL is correct
+            const url = `./samples/${sampleName}.ogg`; // Relative path for GitHub Pages
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -432,6 +432,14 @@ async function loadPianoSamples() {
     }
     console.log('Piano samples loaded successfully!');
     return true;
+}
+
+function initAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        loadSounds();
+        setupReverb();
+    }
 }
 
 async function setupReverb() {
@@ -571,6 +579,22 @@ function createFretboard(container, tuning) {
 
 function updateFretboardNotes(container, rootNote, scale, tuning) {
     container.querySelectorAll('.note').forEach(note => note.remove());
+
+    if (container.id === 'chord-fretboard') {
+        const measures = document.getElementsByClassName('measure');
+        if (measures.length > 0 && currentMeasure < measures.length) {
+            const currentMeasureElement = measures[currentMeasure];
+            const chordRoot = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+            const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+            const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+            const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+
+            if (chordRoot && chordQuality && scaleRoot && scaleType) {
+                const displayText = `${scaleRoot} ${scaleType} over ${chordRoot} ${chordQuality}`;
+                document.getElementById('scale-display').textContent = displayText;
+            }
+        }
+    }
 
     const scaleIntervals = SCALES[scale];
     const scaleNotes = scaleIntervals.map(interval => {
@@ -1308,15 +1332,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    
-JavaScript
-function initAudioContext() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        loadSounds();
-        setupReverb();
-    }
-}
+    document.addEventListener('click', initAudioContext, { once: true });
+});
     </script>
 </body>
 </html>
