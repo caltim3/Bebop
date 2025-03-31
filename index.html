@@ -1315,35 +1315,7 @@ function stopPlayback() {
 let samplesLoaded = false;
 
 document.addEventListener('DOMContentLoaded', async function() {
-    // Create loading indicator immediately
-    updateLoadingStatus('Initializing audio system...');
-    
-    // Initialize audio system
-    try {
-        const testResult = await testSampleLoading();
-        if (!testResult) {
-            updateLoadingStatus('Error: Cannot access audio samples');
-            console.error('Sample access test failed');
-        } else {
-            updateLoadingStatus('Loading piano samples...');
-            const samplesLoaded = await loadPianoSamples();
-            
-            if (samplesLoaded) {
-                updateLoadingStatus('Audio system ready');
-                setTimeout(() => {
-                    const indicator = document.getElementById('loading-indicator');
-                    if (indicator) indicator.remove();
-                }, 2000);
-            } else {
-                updateLoadingStatus('Error: Failed to load piano samples');
-            }
-        }
-    } catch (error) {
-        console.error('Initialization error:', error);
-        updateLoadingStatus('Error: Audio system initialization failed');
-    }
-
-    // Initialize drag and drop for measures
+    // Initialize fretboards and UI elements first
     const measures = document.querySelectorAll('#measures .measure');
     measures.forEach(measure => {
         measure.draggable = true;
