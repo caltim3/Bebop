@@ -365,6 +365,24 @@
     </div>
 
     <script>
+
+        const availableSamples = [
+    { note: 'A', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
+    { note: 'C', octaves: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+    { note: 'D#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
+    { note: 'F#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] }
+];
+
+        samplesLoaded = loadedSamples > 0;
+        updateLoadingStatus(`Loaded ${loadedSamples} piano samples`);
+        return samplesLoaded;
+    } catch (error) {
+        console.error('Piano sample loading failed:', error);
+        updateLoadingStatus("Failed to load piano samples");
+        return false;
+    }
+}
+        
         // Musical constants
         const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         const SCALES = {
@@ -406,7 +424,7 @@
             '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
         };
 
-        const GITHUB_RAW_BASE_URL = 'https://github.com/caltim3/FretFlow/tree/2a35ea27bf8418d3d622e9335d4fb9bc3f7cce95/samples/';
+        const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/samples/';
         const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
 
         // Global state
@@ -504,47 +522,44 @@
         }
 
         // Load piano samples
-        async function loadPianoSamples() {
-            try {
-                const octaves = [0, 1, 2, 3, 4, 5, 6];
-                const velocity = 'v12';
-                let loadedSamples = 0;
+  async function loadPianoSamples() {
+    try {
+        let loadedSamples = 0; // Counter for successfully loaded samples
+        updateLoadingStatus("Loading piano samples...");
 
-                updateLoadingStatus("Loading piano samples...");
-                log("Starting piano sample loading");
+        for (const sample of availableSamples) {
+            for (const octave of sample.octaves) {
+                const sampleName = `${sample.note}${octave}v10`; // Adjusted for v10
+                const url = `${GITHUB_RAW_BASE_URL}${sampleName}.flac`;
 
-                for (let octave of octaves) {
-                    for (let note of SAMPLED_NOTES) {
-                        const sampleName = `${note}${octave}${velocity}`;
-                        const url = `${https://github.com/caltim3/FretFlow/tree/2a35ea27bf8418d3d622e9335d4fb9bc3f7cce95/samples}${sampleName}.ogg`;
+                try {
+                    console.log(`Loading sample: ${url}`);
+                    const response = await fetch(url);
 
-                        try {
-                            log(`Fetching ${sampleName} from ${url}`);
-                            const response = await fetch(url);
-                            if (!response.ok) {
-                                log(`Sample ${sampleName} fetch failed: ${response.status}`);
-                                continue;
-                            }
-                            const arrayBuffer = await response.arrayBuffer();
-                            pianoSampleBuffers[sampleName] = await audioContext.decodeAudioData(arrayBuffer);
-                            loadedSamples++;
-                            log(`Loaded ${sampleName}`);
-                        } catch (error) {
-                            log(`Error loading ${sampleName}: ${error}`);
-                        }
+                    if (!response.ok) {
+                        console.error(`Failed to load ${sampleName}: ${response.status}`);
+                        continue;
                     }
-                }
 
-                samplesLoaded = loadedSamples > 0;
-                updateLoadingStatus(samplesLoaded ? `Loaded ${loadedSamples} samples` : "No samples loaded - using fallback");
-                log(`Piano sample loading complete: ${loadedSamples} samples loaded`);
-                return samplesLoaded;
-            } catch (error) {
-                log(`Piano sample loading failed: ${error}`);
-                updateLoadingStatus("Sample loading failed");
-                return false;
+                    const arrayBuffer = await response.arrayBuffer();
+                    pianoSampleBuffers[sampleName] = await audioContext.decodeAudioData(arrayBuffer);
+                    loadedSamples++;
+                    console.log(`Successfully loaded ${sampleName}`);
+                } catch (error) {
+                    console.error(`Error loading ${sampleName}:`, error);
+                }
             }
         }
+
+        samplesLoaded = loadedSamples > 0;
+        updateLoadingStatus(`Loaded ${loadedSamples} piano samples`);
+        return samplesLoaded;
+    } catch (error) {
+        console.error('Piano sample loading failed:', error);
+        updateLoadingStatus("Failed to load piano samples");
+        return false;
+    }
+}
 
         // Find nearest sampled note
         function findNearestSampledNote(note, octave) {
