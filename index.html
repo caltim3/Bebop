@@ -439,18 +439,18 @@ async function initializeAudio() {
 
         
         
-// Global state
-let audioContext = null;
-let pianoSampleBuffers = {};
-let soundBuffers = {};
-let samplesLoaded = false;
-let isPlaying = false;
-let currentBeat = 0;
-let currentMeasure = 0;
-let intervalId = null;
-let tempo = 120;
-let tapTimes = [];
-let lastTapTime = 0;
+        // Global state
+        let audioContext = null;
+        let pianoSampleBuffers = {};
+        let soundBuffers = {};
+        let samplesLoaded = false;
+        let isPlaying = false;
+        let currentBeat = 0;
+        let currentMeasure = 0;
+        let intervalId = null;
+        let tempo = 120;
+        let tapTimes = [];
+        let lastTapTime = 0;
 
         // Debug utility
         function log(message) {
@@ -475,22 +475,20 @@ let lastTapTime = 0;
             indicator.textContent = message;
         }
 
-        // Audio context initialization
-        async function initAudioContext() {
-            if (!audioContext) {
-                try {
+        // Audio initialization with error handling
+        async function initializeAudio() {
+            try {
+                if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    await audioContext.resume(); // Ensure context is not suspended
-                    log("AudioContext initialized and resumed");
-                    updateLoadingStatus("Audio context initialized");
-                    await loadSounds(); // Load synthetic drum sounds
-                    await loadPianoSamples(); // Attempt to load piano samples
-                } catch (error) {
-                    log(`AudioContext initialization failed: ${error}`);
-                    updateLoadingStatus("Audio context failed");
+                    await audioContext.resume();
+                    console.log("Audio context initialized successfully");
+                    return true;
                 }
+                return true;
+            } catch (error) {
+                console.error("Failed to initialize audio context:", error);
+                return false;
             }
-            return audioContext;
         }
 
         // Load synthetic drum sounds
@@ -532,10 +530,7 @@ let lastTapTime = 0;
             }
             return buffer;
         }
-
-        // Load piano samples
 // Load piano samples
-// Replace the problematic code block with this corrected version:
 async function loadPianoSamples() {
     if (!await initializeAudio()) {
         return false;
@@ -568,7 +563,7 @@ async function loadPianoSamples() {
             }
         }
 
-        const samplesLoaded = loadedSamples > 0;
+        samplesLoaded = loadedSamples > 0;
         updateLoadingStatus(`Loaded ${loadedSamples} piano samples`);
         return samplesLoaded;
     } catch (error) {
@@ -577,7 +572,6 @@ async function loadPianoSamples() {
         return false;
     }
 }
-
         // Find nearest sampled note
         function findNearestSampledNote(note, octave) {
             const noteIndex = NOTES.indexOf(note);
