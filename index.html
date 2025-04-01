@@ -374,18 +374,11 @@ const availableSamples = [
     { note: 'F#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] }
 ];
 
-        samplesLoaded = loadedSamples > 0;
-        updateLoadingStatus(`Loaded ${loadedSamples} piano samples`);
-        return samplesLoaded;
-    } catch (error) {
-        console.error('Piano sample loading failed:', error);
-        updateLoadingStatus("Failed to load piano samples");
-        return false;
-    }
-}
-        
+const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/piano-samples/';
+const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
+
         // Musical constants
-        const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
         const SCALES = {
             major: [0, 2, 4, 5, 7, 9, 11],
             minor: [0, 2, 3, 5, 7, 8, 10],
@@ -412,7 +405,7 @@ const availableSamples = [
             dropD: ['E', 'B', 'G', 'D', 'A', 'D'],
             openG: ['D', 'B', 'G', 'D', 'G', 'D'],
             DADGAD: ['D', 'A', 'G', 'D', 'A', 'D'],
-            openE: ['E', 'B', 'E', 'G#', 'B', 'E']
+            openE: ['E', 'B', 'E', 'Ab', 'B', 'E']
         };
 
         const DRUM_PATTERNS = {
