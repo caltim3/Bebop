@@ -368,12 +368,12 @@
 
         // Musical constants and configurations
         const availableSamples = [
-                { note: 'A', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
-                { note: 'C', octaves: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
-                { note: 'D#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
-                { note: 'F#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] }
-
-        const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/samples/piano-samples/'; // Single declaration
+            { note: 'A', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
+            { note: 'C', octaves: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+            { note: 'D#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
+            { note: 'F#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] }
+        ];
+        const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/piano-samples/'; // Single declaration
         const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
         
         // Musical constants
@@ -417,8 +417,6 @@
             '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
         };
 
-        const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/piano-samples/';
-        const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
 
 // Audio initialization with error handling
         async function initializeAudio() {
@@ -531,6 +529,7 @@
 // Load piano samples
 async function loadPianoSamples() {
     if (!await initializeAudio()) {
+        console.error("Audio initialization failed");
         return false;
     }
 
@@ -544,9 +543,10 @@ async function loadPianoSamples() {
                 const url = `${GITHUB_RAW_BASE_URL}${sampleName}.flac`;
 
                 try {
+                    console.log(`Attempting to fetch ${url}`);
                     const response = await fetch(url);
                     if (!response.ok) {
-                        console.warn(`Failed to load ${sampleName}: ${response.status}`);
+                        console.warn(`Failed to load ${sampleName}: ${response.status} ${response.statusText}`);
                         continue;
                     }
 
@@ -556,7 +556,7 @@ async function loadPianoSamples() {
                     loadedSamples++;
                     console.log(`Loaded ${sampleName} successfully`);
                 } catch (error) {
-                    console.error(`Error loading ${sampleName}:`, error);
+                    console.error(`Error loading ${sampleName} from ${url}:`, error);
                 }
             }
         }
@@ -568,8 +568,6 @@ async function loadPianoSamples() {
         console.error('Piano sample loading failed:', error);
         updateLoadingStatus("Failed to load piano samples");
         return false;
-    }
-}
         // Find nearest sampled note
         function findNearestSampledNote(note, octave) {
             const noteIndex = NOTES.indexOf(note);
