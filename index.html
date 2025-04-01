@@ -522,7 +522,7 @@
         }
 
         // Load piano samples
-  async function loadPianoSamples() {
+async function loadPianoSamples() {
     try {
         let loadedSamples = 0; // Counter for successfully loaded samples
         updateLoadingStatus("Loading piano samples...");
@@ -530,7 +530,7 @@
         for (const sample of availableSamples) {
             for (const octave of sample.octaves) {
                 const sampleName = `${sample.note}${octave}v10`; // Adjusted for v10
-                const url = `${GITHUB_RAW_BASE_URL}${sampleName}.flac`;
+                const url = `${GITHUB_RAW_BASE_URL}${sampleName}.flac`; // Ensure proper template literal syntax
 
                 try {
                     console.log(`Loading sample: ${url}`);
