@@ -366,17 +366,16 @@
 
     <script>
 
-// Musical constants and configurations
-const availableSamples = [
-    { note: 'A', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
-    { note: 'C', octaves: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
-    { note: 'D#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
-    { note: 'F#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] }
-];
+        // Musical constants and configurations
+        const availableSamples = [
+                { note: 'A', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
+                { note: 'C', octaves: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+                { note: 'D#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
+                { note: 'F#', octaves: [0, 1, 2, 3, 4, 5, 6, 7] }
 
-const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/samples/piano-samples/';
-const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
-
+        const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/samples/piano-samples/'; // Single declaration
+        const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
+        
         // Musical constants
         const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
         const SCALES = {
@@ -422,22 +421,21 @@ const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
         const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
 
 // Audio initialization with error handling
-async function initializeAudio() {
-    try {
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            await audioContext.resume();
-            console.log("Audio context initialized successfully");
-            return true;
-        }
-        return true;
-    } catch (error) {
-        console.error("Failed to initialize audio context:", error);
-        return false;
-    }
-}
-
-        
+        async function initializeAudio() {
+                try {
+                    if (!audioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        await audioContext.resume();
+                        console.log("Audio context initialized successfully");
+                        return true;
+                    }
+                    return true;
+                } catch (error) {
+                    console.error("Failed to initialize audio context:", error);
+                    return false;
+                }
+            }
+                
         
         // Global state
         let audioContext = null;
