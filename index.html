@@ -754,12 +754,36 @@
     }
 
     // Improved metronome timing
-    function startPlayback() {
+    
+    async function startPlayback() {
         if (!audioContext) {
-            initializeAudio().then(success => {
-                if (success) {
-                    startMetronome();
-                } else {
+            try {
+                const success = await initializeAudio();
+                if (!success) {
+                    console.error("Failed to initialize audio");
+                    return;
+                }
+            } catch (error) {
+                console.error("Error initializing audio:", error);
+                return;
+            }
+        }
+
+        const timeSignature = parseInt(document.getElementById("time-signature").value);
+        const beatDuration = 60 / tempo;
+        const interval = beatDuration * 1000 / (timeSignature === 4 ? 2 : 1);
+
+        clearInterval(intervalId);
+        currentBeat = 0;
+        currentMeasure = 0;
+        isPlaying = true;
+        document.getElementById("start-stop").textContent = "Stop";
+
+        intervalId = setInterval(() => {
+            if (!isPlaying) return;
+            playBeat();
+        }, interval);
+    } else {
                     console.error("Failed to initialize audio");
                 }
             });
