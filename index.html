@@ -428,7 +428,7 @@ const availableSamples = [
         const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/piano-samples/';
         const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
 
-        // Audio initialization with error handling
+// Audio initialization with error handling
 async function initializeAudio() {
     try {
         if (!audioContext) {
@@ -446,18 +446,18 @@ async function initializeAudio() {
 
         
         
-        // Global state
-        let audioContext = null;
-        let pianoSampleBuffers = {};
-        let soundBuffers = {};
-        let samplesLoaded = false;
-        let isPlaying = false;
-        let currentBeat = 0;
-        let currentMeasure = 0;
-        let intervalId = null;
-        let tempo = 120;
-        let tapTimes = [];
-        let lastTapTime = 0;
+// Global state
+let audioContext = null;
+let pianoSampleBuffers = {};
+let soundBuffers = {};
+let samplesLoaded = false;
+let isPlaying = false;
+let currentBeat = 0;
+let currentMeasure = 0;
+let intervalId = null;
+let tempo = 120;
+let tapTimes = [];
+let lastTapTime = 0;
 
         // Debug utility
         function log(message) {
@@ -541,6 +541,7 @@ async function initializeAudio() {
         }
 
         // Load piano samples
+// Load piano samples
 async function loadPianoSamples() {
     if (!await initializeAudio()) {
         return false;
