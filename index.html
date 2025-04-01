@@ -424,7 +424,7 @@
             '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
         };
 
-        const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/samples/';
+        const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/';
         const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
 
         // Global state
@@ -577,7 +577,7 @@ async function loadPianoSamples() {
             }
 
             const semitoneDiff = noteIndex - NOTES.indexOf(nearestNote);
-            return { sampleKey: `${nearestNote}${octave}v12`, semitoneDiff };
+            return { sampleKey: `${nearestNote}${octave}v10`, semitoneDiff };
         }
 
         // Play a single note
