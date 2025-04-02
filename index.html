@@ -352,6 +352,52 @@
                         <option value="bebopPhrygian">Bebop Phrygian</option>
                     </select>
                 </div>
+                 <div class="measure" draggable="true">
+                <span class="measure-number">2</span>
+                <div class="chord-controls">
+                    <select class="root-note">
+                        <option>C</option><option>C#</option><option>D</option>
+                        <option>D#</option><option>E</option><option>F</option>
+                        <option>F#</option><option>G</option><option>G#</option>
+                        <option>A</option><option>A#</option><option>B</option>
+                    </select>
+                    <select class="chord-quality">
+                        <option value="major">Major</option>
+                        <option value="minor">Minor</option>
+                        <option value="dom7">7</option>
+                        <option value="maj7">Maj7</option>
+                        <option value="min7">Min7</option>
+                        <option value="min7b5">Min7b5 (Half Diminished)</option>
+                    </select>
+                </div>
+                <div class="scale-controls">
+                    <select class="second-key">
+                        <option>C</option><option>C#</option><option>D</option>
+                        <option>D#</option><option>E</option><option>F</option>
+                        <option>F#</option><option>G</option><option>G#</option>
+                        <option>A</option><option>A#</option><option>B</option>
+                    </select>
+                    <select class="scale-select">
+                        <option value="major">Major</option>
+                        <option value="minor">Minor</option>
+                        <option value="harmonicMinor">Harmonic Minor</option>
+                        <option value="melodicMinor">Melodic Minor</option>
+                        <option value="pentatonicMajor">Pentatonic Major</option>
+                        <option value="pentatonicMinor">Pentatonic Minor</option>
+                        <option value="blues">Blues</option>
+                        <option value="dorian">Dorian</option>
+                        <option value="phrygian">Phrygian</option>
+                        <option value="lydian">Lydian</option>
+                        <option value="mixolydian">Mixolydian</option>
+                        <option value="locrian">Locrian</option>
+                        <option value="diminished">Diminished</option>
+                        <option value="diminishedWH">Diminished WH</option>
+                        <option value="diminishedHW">Diminished HW</option>
+                        <option value="bebopDominant">Bebop Dominant</option>
+                        <option value="bebopMajor">Bebop Major</option>
+                        <option value="bebopPhrygian">Bebop Phrygian</option>
+                    </select>
+                </div>
             </div>
         </div>
         <button onclick="addMeasure()">Add Measure</button>
@@ -662,15 +708,23 @@ function playNote(note, string, fret) {
 
     // Improved metronome sound function
     function playMetronomeSound(volume = 1) {
-        if (!audioContext || !soundBuffers['click']) {
-            log("Audio context or sounds not initialized");
+        if (!audioContext || audioContext.state === 'suspended') {
+            initializeAudio().then(success => {
+                if (!success) return;
+                playMetronomeSound(volume); // Retry
+            });
             return;
         }
-
+        if (!soundBuffers['click']) {
+            console.warn("Sound buffers not loaded yet, attempting to load...");
+            loadSounds().then(() => playMetronomeSound(volume));
+            return;
+        }
+    
         try {
             const soundType = document.getElementById('sound-type').value;
             const metronomeVolume = parseFloat(document.getElementById('metronome-volume').value) || 0.7;
-
+    
             if (soundType === 'click') {
                 const source = audioContext.createBufferSource();
                 const gainNode = audioContext.createGain();
@@ -683,7 +737,7 @@ function playNote(note, string, fret) {
                 const timeSignature = document.getElementById('time-signature').value;
                 const pattern = DRUM_PATTERNS[timeSignature];
                 if (!pattern) return;
-
+    
                 ['kick', 'snare', 'hihat'].forEach(drum => {
                     if (pattern[drum][currentBeat] && soundBuffers[drum]) {
                         const source = audioContext.createBufferSource();
@@ -800,49 +854,49 @@ async function startPlayback() {
         document.querySelectorAll('.measure').forEach(measure => measure.classList.remove('active'));
     }
     // Improved beat playback
-    function playBeat() {
-        const beats = document.querySelectorAll('.beat');
-        beats.forEach(beat => beat.classList.remove('active'));
-
-        const currentBeatElement = beats[currentBeat];
-        if (currentBeatElement) {
-            currentBeatElement.classList.add('active');
-            const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
-            playMetronomeSound(volume);
-        }
-
-        const measures = document.getElementsByClassName('measure');
-        if (currentBeat === 0 && measures.length > 0) {
-            const currentMeasureElement = measures[currentMeasure];
-            if (currentMeasureElement) {
-                const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-                const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
-                const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
-                const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-
-                if (root && quality) {
-                    const chordFretboard = document.getElementById('chord-fretboard');
-                    const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
-                    updateFretboardNotes(chordFretboard, scaleRoot || root, scaleType || 'major', chordTuning);
-                    playChord(root, quality);
+        function playBeat() {
+            const beats = document.querySelectorAll('.beat');
+            beats.forEach(beat => beat.classList.remove('active'));
+        
+            const currentBeatElement = beats[currentBeat];
+            if (currentBeatElement) {
+                currentBeatElement.classList.add('active');
+                const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
+                playMetronomeSound(volume);
+            }
+        
+            const measures = document.querySelectorAll('.measure'); // Use querySelectorAll for NodeList
+            if (currentBeat === 0 && measures.length > 0) {
+                const currentMeasureElement = measures[currentMeasure];
+                if (currentMeasureElement) {
+                    const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+                    const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+                    const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+                    const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+        
+                    if (root && quality) {
+                        const chordFretboard = document.getElementById('chord-fretboard');
+                        const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
+                        updateFretboardNotes(chordFretboard, scaleRoot || root, scaleType || 'major', chordTuning);
+                        playChord(root, quality);
+                    }
                 }
             }
+        
+            if (measures.length > 0) {
+                measures.forEach((measure, index) => { // Now works with NodeList
+                    measure.classList.toggle('active', index === currentMeasure);
+                });
+            }
+        
+            const timeSignature = parseInt(document.getElementById('time-signature').value);
+            const totalBeats = timeSignature === 4 ? 8 : timeSignature;
+        
+            currentBeat = (currentBeat + 1) % totalBeats;
+            if (currentBeat === 0 && measures.length > 0) {
+                currentMeasure = (currentMeasure + 1) % measures.length;
+            }
         }
-
-        if (measures.length > 0) {
-            measures.forEach((measure, index) => {
-                measure.classList.toggle('active', index === currentMeasure);
-            });
-        }
-
-        const timeSignature = parseInt(document.getElementById('time-signature').value);
-        const totalBeats = timeSignature === 4 ? 8 : timeSignature;
-
-        currentBeat = (currentBeat + 1) % totalBeats;
-        if (currentBeat === 0 && measures.length > 0) {
-            currentMeasure = (currentMeasure + 1) % measures.length;
-        }
-    }
 
     // Improved fretboard creation and update
     function createFretboard(container, tuning) {
