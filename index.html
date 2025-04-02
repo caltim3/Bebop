@@ -424,17 +424,17 @@
     </div>
     <script>
     
-    // Piano sample configuration
-    const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/';
-    const availableSamples = [
-        { note: 'A', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },  // A0-A7 exist
-        { note: 'C', octaves: [1, 2, 3, 4, 5, 6, 7, 8] },  // C1-C8 exist, no C0
-        { note: 'D#', octaves: [1, 2, 3, 4, 5, 6, 7] },    // D#1-D#7 exist, no D#0
-        { note: 'F#', octaves: [1, 2, 3, 4, 5, 6, 7] }     // F#1-F#7 exist, no F#0
-    ];
-    const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
-    let pianoSampleBuffers = {};
-    let samplesLoaded = false;
+   // Piano sample configuration
+        const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/';
+        const availableSamples = [
+            { note: 'A', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },  // A0-A7 exist
+            { note: 'C', octaves: [1, 2, 3, 4, 5, 6, 7, 8] },  // C1-C8 exist, no C0
+            { note: 'D#', octaves: [1, 2, 3, 4, 5, 6, 7] },    // D#1-D#7 exist, no D#0
+            { note: 'F#', octaves: [1, 2, 3, 4, 5, 6, 7] }     // F#1-F#7 exist, no F#0
+        ];
+        const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
+        let pianoSampleBuffers = {};
+        let samplesLoaded = false;
 
     // Piano sample loading function
     async function loadPianoSamples() {
