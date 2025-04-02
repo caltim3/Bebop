@@ -537,20 +537,6 @@
             return false;
         }
     }
-        try {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                await audioContext.resume();
-                await loadSounds();
-                log("Audio context initialized successfully");
-                return true;
-            }
-            return true;
-        } catch (error) {
-            console.error("Failed to initialize audio context:", error);
-            return false;
-        }
-    }
 
     // Load synthetic drum sounds
     async function loadSounds() {
@@ -755,63 +741,31 @@
 
     // Improved metronome timing
     
-    async 
-    async function startPlayback() {
-        try {
-            if (!audioContext) {
-                const success = await initializeAudio();
-                if (!success) {
-                    console.error("Failed to initialize audio context");
-                    return;
-                }
-            }
-
-            const timeSignature = parseInt(document.getElementById('time-signature').value);
-            const beatDuration = 60 / tempo;
-            const interval = beatDuration * 1000 / (timeSignature === 4 ? 2 : 1);
-
-            clearInterval(intervalId);
-            currentBeat = 0;
-            currentMeasure = 0;
-            isPlaying = true;
-            document.getElementById('start-stop').textContent = 'Stop';
-
-            intervalId = setInterval(() => {
-                if (!isPlaying) return;
-                playBeat();
-            }, interval);
-        } catch (error) {
-            console.error("Error in startPlayback:", error);
-        }
-    }
-            } catch (error) {
-                console.error("Error initializing audio:", error);
+async function startPlayback() {
+    try {
+        if (!audioContext) {
+            const success = await initializeAudio();
+            if (!success) {
+                console.error("Failed to initialize audio context");
                 return;
             }
         }
-
-        const timeSignature = parseInt(document.getElementById("time-signature").value);
+        const timeSignature = parseInt(document.getElementById('time-signature').value);
         const beatDuration = 60 / tempo;
         const interval = beatDuration * 1000 / (timeSignature === 4 ? 2 : 1);
-
         clearInterval(intervalId);
         currentBeat = 0;
         currentMeasure = 0;
         isPlaying = true;
-        document.getElementById("start-stop").textContent = "Stop";
-
+        document.getElementById('start-stop').textContent = 'Stop';
         intervalId = setInterval(() => {
             if (!isPlaying) return;
             playBeat();
         }, interval);
-    } else {
-                    console.error("Failed to initialize audio");
-                }
-            });
-            return;
-        }
-        startMetronome();
+    } catch (error) {
+        console.error("Error in startPlayback:", error);
     }
+}
 
     function startMetronome() {
         const timeSignature = parseInt(document.getElementById('time-signature').value);
