@@ -524,23 +524,42 @@
     }
 
     // Audio initialization with error handling
-    async function initializeAudio() {
-        try {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                await audioContext.resume();
-                await loadSounds();
-                await loadPianoSamples();
-                log("Audio context and samples initialized successfully");
-                return true;
-            }
-            return true;
-        } catch (error) {
-            console.error("Failed to initialize audio context:", error);
-            return false;
+async function initializeAudio() {
+    try {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // Don’t resume here—wait for user gesture
+            log("AudioContext created, awaiting resume");
         }
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+            log("AudioContext resumed");
+        }
+        if (audioContext.state === 'running') {
+            await loadSounds();
+            await loadPianoSamples();
+            log("Audio context and samples initialized successfully");
+            return true;
+        }
+        return false; // Not running yet
+    } catch (error) {
+        console.error("Failed to initialize audio context:", error);
+        return false;
     }
+}
 
+        document.addEventListener('click', async function initAudioOnFirstClick() {
+        try {
+            const success = await initializeAudio();
+            if (success) {
+                document.removeEventListener('click', initAudioOnFirstClick);
+                log("Audio initialized on first click");
+            }
+        } catch (error) {
+            console.error('Failed to initialize audio on first click:', error);
+        }
+    }, { once: true });
+        
     // Load synthetic drum sounds
     async function loadSounds() {
         try {
@@ -592,8 +611,14 @@
     }
     // Play note function with improved error handling
 function playNote(note, string, fret) {
-    if (!audioContext) {
-        initializeAudio();
+    if (!audioContext || audioContext.state === 'suspended') {
+        initializeAudio().then(success => {
+            if (!success) {
+                console.error("Audio context not ready");
+                return;
+            }
+            playNote(note, string, fret); // Retry after initialization
+        });
         return;
     }
     try {
@@ -724,10 +749,10 @@ function playNote(note, string, fret) {
     
 async function startPlayback() {
     try {
-        if (!audioContext) {
+        if (!audioContext || audioContext.state === 'suspended') {
             const success = await initializeAudio();
             if (!success) {
-                console.error("Failed to initialize audio context");
+                console.error("Failed to initialize or resume audio context");
                 return;
             }
         }
@@ -964,8 +989,6 @@ async function startPlayback() {
     }
     // Event Listeners and Initialization
     document.addEventListener('DOMContentLoaded', async function() {
-        // Initialize audio context
-        await initializeAudio();
 
         // Initialize chord fretboard
         const chordFretboard = document.getElementById('chord-fretboard');
@@ -1110,15 +1133,7 @@ async function startPlayback() {
         // Add logic to load predefined chord progressions
     }
         
-    // Initialize audio context on first user interaction
-    document.addEventListener('click', async function initAudioOnFirstClick() {
-        try {
-            await initializeAudio();
-            document.removeEventListener('click', initAudioOnFirstClick);
-        } catch (error) {
-            console.error('Failed to initialize audio context:', error);
-        }
-    }, { once: true });
+
     </script>
 </body>
 </html>
