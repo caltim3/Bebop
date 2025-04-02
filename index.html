@@ -764,6 +764,10 @@ function playChord(root, quality) {
     }
 
     try {
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+
         const chordVolume = parseFloat(document.getElementById('chord-volume').value) || 0.75;
         const rootIndex = NOTES.indexOf(root);
         const chordNotes = [root];
@@ -775,10 +779,10 @@ function playChord(root, quality) {
             chordNotes.push(NOTES[(rootIndex + 4) % 12]); // Major third
         }
         chordNotes.push(NOTES[(rootIndex + 7) % 12]); // Fifth
-        if (quality.includes('7')) {
+        if (quality.includes('7') && !quality.includes('min7b5')) {
             chordNotes.push(NOTES[(rootIndex + (quality.includes('maj7') ? 11 : 10)) % 12]); // 7th
         } else if (quality.includes('min7b5')) {
-            chordNotes.push(NOTES[(rootIndex + 10) % 12]); // Flat 7th for half-diminished
+            chordNotes.push(NOTES[(rootIndex + 10) % 12]); // Flat 7th
         }
 
         log(`Playing chord: ${root} ${quality} with notes ${chordNotes}`);
@@ -792,23 +796,23 @@ function playChord(root, quality) {
                 const gainNode = audioContext.createGain();
                 source.buffer = pianoSampleBuffers[sampleKey];
                 source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
-                gainNode.gain.setValueAtTime(chordVolume * 0.25, audioContext.currentTime + index * 0.05); // Stagger
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + index * 0.05 + 2);
+                gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
                 source.connect(gainNode);
                 gainNode.connect(audioContext.destination);
-                source.start(audioContext.currentTime + index * 0.05); // Stagger by 50ms
-                source.stop(audioContext.currentTime + index * 0.05 + 2);
+                source.start(audioContext.currentTime);
+                source.stop(audioContext.currentTime + 2);
             } else {
                 const osc = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
                 osc.type = 'sine';
                 osc.frequency.value = 440 * Math.pow(2, (NOTES.indexOf(note) + octave * 12 - 69) / 12);
-                gainNode.gain.setValueAtTime(chordVolume * 0.25, audioContext.currentTime + index * 0.05);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + index * 0.05 + 2);
+                gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
                 osc.connect(gainNode);
                 gainNode.connect(audioContext.destination);
-                osc.start(audioContext.currentTime + index * 0.05);
-                osc.stop(audioContext.currentTime + index * 0.05 + 2);
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 2);
             }
         });
     } catch (error) {
