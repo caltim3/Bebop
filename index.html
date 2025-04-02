@@ -377,7 +377,7 @@
     <script>
     
     // Piano sample configuration
-    const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/samples/';
+    const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/samples/';
     const availableSamples = [
         { note: 'A', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },
         { note: 'C', octaves: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
@@ -402,7 +402,7 @@
             for (const sample of availableSamples) {
                 for (const octave of sample.octaves) {
                     const sampleName = `${sample.note}${octave}v10`;
-                    const url = `${GITHUB_RAW_BASE_URL}${sampleName}.mp3`;
+                    const url = `${GITHUB_RAW_BASE_URL}${sampleName}.flac`;
 
                     try {
                         console.log(`Fetching ${url}`);
