@@ -432,8 +432,6 @@
         { note: 'D#', octaves: [1, 2, 3, 4, 5, 6, 7] },    // D#1-D#7 exist, no D#0
         { note: 'F#', octaves: [1, 2, 3, 4, 5, 6, 7] }     // F#1-F#7 exist, no F#0
     ];
-const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
-    ];
     const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
     let pianoSampleBuffers = {};
     let samplesLoaded = false;
@@ -757,68 +755,75 @@ function playNote(note, string, fret) {
     }
 
     // Improved chord playback
-function playChord(root, quality) {
-    if (!audioContext || !document.getElementById('chordsEnabled').checked) {
-        log("Chord playback disabled or no AudioContext");
-        return;
-    }
-
-    try {
-        if (audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-
-        const chordVolume = parseFloat(document.getElementById('chord-volume').value) || 0.75;
-        const rootIndex = NOTES.indexOf(root);
-        const chordNotes = [root];
-
-        // Build chord based on quality
-        if (quality.includes('minor')) {
-            chordNotes.push(NOTES[(rootIndex + 3) % 12]); // Minor third
-        } else {
-            chordNotes.push(NOTES[(rootIndex + 4) % 12]); // Major third
-        }
-        chordNotes.push(NOTES[(rootIndex + 7) % 12]); // Fifth
-        if (quality.includes('7') && !quality.includes('min7b5')) {
-            chordNotes.push(NOTES[(rootIndex + (quality.includes('maj7') ? 11 : 10)) % 12]); // 7th
-        } else if (quality.includes('min7b5')) {
-            chordNotes.push(NOTES[(rootIndex + 10) % 12]); // Flat 7th
-        }
-
-        log(`Playing chord: ${root} ${quality} with notes ${chordNotes}`);
-
-        chordNotes.forEach((note, index) => {
-            const octave = 3 + Math.floor(index / 2); // Spread across octaves
-            const { sampleKey, semitoneDiff } = findNearestSampledNote(note, octave);
-
-            if (samplesLoaded && pianoSampleBuffers[sampleKey]) {
-                const source = audioContext.createBufferSource();
-                const gainNode = audioContext.createGain();
-                source.buffer = pianoSampleBuffers[sampleKey];
-                source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
-                gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
-                source.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                source.start(audioContext.currentTime);
-                source.stop(audioContext.currentTime + 2);
-            } else {
-                const osc = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = 440 * Math.pow(2, (NOTES.indexOf(note) + octave * 12 - 69) / 12);
-                gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
-                osc.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                osc.start(audioContext.currentTime);
-                osc.stop(audioContext.currentTime + 2);
+        function playChord(root, quality) {
+            if (!audioContext) {
+                log("No AudioContext - initializing...");
+                initializeAudio().then(success => {
+                    if (success) playChord(root, quality); // Retry
+                });
+                return;
             }
-        });
-    } catch (error) {
-        console.error("Error playing chord:", error);
-    }
-}
+        
+            if (!document.getElementById('chordsEnabled').checked) {
+                log("Chord playback disabled");
+                return;
+            }
+        
+            try {
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => log("AudioContext resumed"));
+                }
+        
+                const chordVolume = parseFloat(document.getElementById('chord-volume').value) || 0.75;
+                const rootIndex = NOTES.indexOf(root);
+                const chordNotes = [root];
+        
+                if (quality.includes('minor')) {
+                    chordNotes.push(NOTES[(rootIndex + 3) % 12]); // Minor third
+                } else {
+                    chordNotes.push(NOTES[(rootIndex + 4) % 12]); // Major third
+                }
+                chordNotes.push(NOTES[(rootIndex + 7) % 12]); // Fifth
+                if (quality.includes('7') && !quality.includes('min7b5')) {
+                    chordNotes.push(NOTES[(rootIndex + (quality.includes('maj7') ? 11 : 10)) % 12]); // 7th
+                } else if (quality.includes('min7b5')) {
+                    chordNotes.push(NOTES[(rootIndex + 10) % 12]); // Flat 7th
+                }
+        
+                log(`Playing chord: ${root} ${quality} with notes ${chordNotes}`);
+        
+                chordNotes.forEach((note, index) => {
+                    const octave = 3 + Math.floor(index / 2);
+                    const { sampleKey, semitoneDiff } = findNearestSampledNote(note, octave);
+        
+                    if (samplesLoaded && pianoSampleBuffers[sampleKey]) {
+                        const source = audioContext.createBufferSource();
+                        const gainNode = audioContext.createGain();
+                        source.buffer = pianoSampleBuffers[sampleKey];
+                        source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
+                        gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
+                        source.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        source.start(audioContext.currentTime);
+                        source.stop(audioContext.currentTime + 2);
+                    } else {
+                        const osc = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.value = 440 * Math.pow(2, (NOTES.indexOf(note) + octave * 12 - 69) / 12);
+                        gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
+                        osc.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        osc.start(audioContext.currentTime);
+                        osc.stop(audioContext.currentTime + 2);
+                    }
+                });
+            } catch (error) {
+                console.error("Error playing chord:", error);
+            }
+        }
 
     // Improved metronome timing
     
