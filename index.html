@@ -234,6 +234,9 @@
         border-radius: 5px;
         z-index: 1000;
     }
+        
+<link rel="icon" href="data:,">
+        
     </style>
 </head>
 <body>
@@ -588,71 +591,49 @@
         return buffer;
     }
     // Play note function with improved error handling
-    function playNote(note, string, fret) {
-        if (!audioContext) {
-            initializeAudio();
-            return;
-        }
+function playNote(note, string, fret) {
+    if (!audioContext) {
+        initializeAudio();
+        return;
+    }
+    try {
+        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+        const openNote = tuning[string];
+        const openNoteIndex = NOTES.indexOf(openNote);
+        const noteIndex = (openNoteIndex + fret) % 12;
+        const targetNote = NOTES[noteIndex];
+        const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
+        const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
 
-        try {
-            const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-            const openNote = tuning[string];
-            const openNoteIndex = NOTES.indexOf(openNote);
-            const noteIndex = (openNoteIndex + fret) % 12;
-            const targetNote = NOTES[noteIndex];
-            const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
-            const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
-
-            if (samplesLoaded && pianoSampleBuffers) {
-                const { sampleKey, semitoneDiff } = findNearestSampledNote(targetNote, octave);
-                if (pianoSampleBuffers[sampleKey]) {
-                    const source = audioContext.createBufferSource();
-                    const gainNode = audioContext.createGain();
-
-                    source.buffer = pianoSampleBuffers[sampleKey];
-                    source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
-                    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
-
-                    source.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    source.start();
-                    source.stop(audioContext.currentTime + 1);
-                    return;
-                }
-            }
-        if (!audioContext) {
-            initializeAudio();
-            return;
-        }
-
-        try {
-            const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-            const openNote = tuning[string];
-            const openNoteIndex = NOTES.indexOf(openNote);
-            const noteIndex = (openNoteIndex + fret) % 12;
-            const targetNote = NOTES[noteIndex];
-            const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
-            const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
-
+        if (samplesLoaded && pianoSampleBuffers && pianoSampleBuffers[findNearestSampledNote(targetNote, octave).sampleKey]) {
+            const { sampleKey, semitoneDiff } = findNearestSampledNote(targetNote, octave);
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            source.buffer = pianoSampleBuffers[sampleKey];
+            source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            source.start();
+            source.stop(audioContext.currentTime + 1);
+        } else {
             const osc = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
-
             osc.type = 'sine';
             osc.frequency.value = 440 * Math.pow(2, (NOTES.indexOf(targetNote) + octave * 12 - 69) / 12);
             gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
-
             osc.connect(gainNode);
             gainNode.connect(audioContext.destination);
             osc.start();
             osc.stop(audioContext.currentTime + 1);
-
-            log(`Playing note ${targetNote} on string ${string} fret ${fret}`);
-        } catch (error) {
-            console.error("Error playing note:", error);
         }
+        log(`Playing note ${targetNote} on string ${string} fret ${fret}`);
+    } catch (error) {
+        console.error("Error playing note:", error);
     }
+}
 
     // Improved metronome sound function
     function playMetronomeSound(volume = 1) {
@@ -766,7 +747,7 @@ async function startPlayback() {
         console.error("Error in startPlayback:", error);
     }
 }
-
+        
     function startMetronome() {
         const timeSignature = parseInt(document.getElementById('time-signature').value);
         const beatDuration = 60 / tempo;
