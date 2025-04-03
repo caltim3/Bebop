@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8"> <!--7.12-->  
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bebop Blueprint</title>
     <link rel="icon" href="data:,">
@@ -225,25 +225,18 @@
         margin: 0 10px;
     }
 
-    <div id="loading-indicator" style="display: none;">
-    <div class="loading-spinner"></div>
-        
-    .loading-indicator {
+    #loading-indicator {
         position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.8);
+        top: 20px;
+        right: 20px;
+        padding: 10px;
+        background: rgba(0,0,0,0.8);
         color: white;
-        padding: 20px;
-        border-radius: 10px;
+        border-radius: 5px;
         z-index: 1000;
     }
 
-    @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+    
     </style>
 </head>
 <body>
@@ -431,119 +424,127 @@
     </div>
     <script>
     
-   // Piano sample configuration
-// Replace the existing sample configuration with this improved version
-const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/';
-const SAMPLE_CONFIG = {
-    notes: ['A', 'C', 'D#', 'F#'],
-    octaves: {
-        'A': [0, 1, 2, 3, 4, 5, 6, 7],
-        'C': [1, 2, 3, 4, 5, 6, 7, 8],
-        'D#': [1, 2, 3, 4, 5, 6, 7],
-        'F#': [1, 2, 3, 4, 5, 6, 7]
-    }
-};
+    let audioContext = null;
 
-// Improved sample loading function
+   // Piano sample configuration
+        const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/';
+        const availableSamples = [
+            { note: 'A', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },  // A0-A7 exist
+            { note: 'C', octaves: [1, 2, 3, 4, 5, 6, 7, 8] },  // C1-C8 exist, no C0
+            { note: 'D#', octaves: [1, 2, 3, 4, 5, 6, 7] },    // D#1-D#7 exist, no D#0
+            { note: 'F#', octaves: [1, 2, 3, 4, 5, 6, 7] }     // F#1-F#7 exist, no F#0
+        ];
+        const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
+        let pianoSampleBuffers = {};
+        let samplesLoaded = false;
+
+    // Piano sample loading function
+// /c:/Users/t-cal/f2/FretFlow/index.html
 async function loadPianoSamples() {
     if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        console.error("Audio context not initialized");
+        return false;
     }
 
     try {
-        updateLoadingStatus("Loading piano samples...");
-        const loadPromises = [];
+        let loadedSamples = 0;
+        const totalSamples = availableSamples.reduce((acc, sample) => acc + sample.octaves.length, 0);
+        updateLoadingStatus(`Loading piano samples (0/${totalSamples})...`);
 
-        for (const note of SAMPLE_CONFIG.notes) {
-            const octaves = SAMPLE_CONFIG.octaves[note];
-            for (const octave of octaves) {
-                const sampleName = `${note}${octave}v10`;
-                const url = `${GITHUB_RAW_BASE_URL}${sampleName}.flac`;
-                
-                const promise = fetch(url)
-                    .then(response => {
-                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                        return response.arrayBuffer();
-                    })
-                    .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-                    .then(audioBuffer => {
-                        pianoSampleBuffers[sampleName] = audioBuffer;
-                        console.log(`Loaded ${sampleName}`);
-                    })
-                    .catch(error => console.error(`Failed to load ${sampleName}:`, error));
-                
-                loadPromises.push(promise);
+        for (const sample of availableSamples) {
+            for (const octave of sample.octaves) {
+                const sampleName = `${sample.note}${octave}v10`;
+                try {
+                    if (!pianoSampleBuffers[sampleName]) {
+                        // Try FLAC first
+                        let url = `${GITHUB_RAW_BASE_URL}${sampleName}.flac`;
+                        let response = await fetch(url);
+                        
+                        // If FLAC fails, try OGG
+                        if (!response.ok) {
+                            url = `${GITHUB_RAW_BASE_URL}${sampleName}.ogg`;
+                            response = await fetch(url);
+                        }
+                        
+                        if (!response.ok) {
+                            console.warn(`Failed to load ${url}, status: ${response.status}`);
+                            continue;
+                        }
+                        
+                        const arrayBuffer = await response.arrayBuffer();
+                        try {
+                            pianoSampleBuffers[sampleName] = await audioContext.decodeAudioData(arrayBuffer);
+                            loadedSamples++;
+                            updateLoadingStatus(`Loading piano samples (${loadedSamples}/${totalSamples})...`);
+                        } catch (decodeError) {
+                            console.warn(`Failed to decode ${sampleName}`, decodeError);
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`Failed to load ${sampleName}, using fallback`, error);
+                }
             }
         }
 
-        await Promise.allSettled(loadPromises);
-        samplesLoaded = Object.keys(pianoSampleBuffers).length > 0;
-        updateLoadingStatus(`Loaded ${Object.keys(pianoSampleBuffers).length} piano samples`);
+        samplesLoaded = loadedSamples > 0;
+        updateLoadingStatus(`Loaded ${loadedSamples}/${totalSamples} piano samples`);
         return samplesLoaded;
     } catch (error) {
         console.error('Piano sample loading failed:', error);
-        updateLoadingStatus("Failed to load piano samples");
+        updateLoadingStatus("Failed to load piano samples, using fallback sounds");
         return false;
     }
-}
-    // Add this improved pitch shifting function
-function getPitchShiftedNote(targetNote, targetOctave) {
-    const allNotes = NOTES.flatMap(note => 
-        Array.from({length: 8}, (_, i) => ({note, octave: i + 1}))
-    );
-    
-    // Find the nearest available sample
-    let nearestSample = null;
-    let minDistance = Infinity;
-    
-    for (const baseNote of SAMPLE_CONFIG.notes) {
-        const octaves = SAMPLE_CONFIG.octaves[baseNote];
-        for (const octave of octaves) {
-            const distance = Math.abs(
-                NOTES.indexOf(targetNote) + targetOctave * 12 -
-                (NOTES.indexOf(baseNote) + octave * 12)
-            );
-            
-            if (distance < minDistance) {
-                minDistance = distance;
-                nearestSample = {note: baseNote, octave};
-            }
-        }
-    }
-    
-    if (!nearestSample) return null;
-    
-    const sampleKey = `${nearestSample.note}${nearestSample.octave}v10`;
-    const semitones = 
-        NOTES.indexOf(targetNote) - NOTES.indexOf(nearestSample.note) +
-        (targetOctave - nearestSample.octave) * 12;
-    
-    return {
-        sampleKey,
-        playbackRate: Math.pow(2, semitones / 12)
-    };
-}
-
-        
-    // Helper function to find nearest sampled note
-    function findNearestSampledNote(note, octave) {
+}    // Helper function to find nearest sampled note
+// /c:/Users/t-cal/f2/FretFlow/index.html
+function findNearestSampledNote(note, octave) {
+    try {
         const noteIndex = NOTES.indexOf(note);
-        let minDistance = Infinity;
-        let nearestNote = null;
+        if (noteIndex === -1) {
+            throw new Error(`Invalid note: ${note}`);
+        }
 
-        for (let sampledNote of SAMPLED_NOTES) {
-            const sampledIndex = NOTES.indexOf(sampledNote);
-            const distance = Math.abs(noteIndex - sampledIndex);
-            if (distance < minDistance) {
-                minDistance = distance;
-                nearestNote = sampledNote;
+        // Find the nearest sample note
+        let bestDistance = Infinity;
+        let bestSample = null;
+        let bestOctave = null;
+
+        for (const sample of availableSamples) {
+            const sampleNoteIndex = NOTES.indexOf(sample.note);
+            if (sampleNoteIndex === -1) continue;
+            
+            for (const sampleOctave of sample.octaves) {
+                // Calculate semitone distance
+                const samplePitch = sampleOctave * 12 + sampleNoteIndex;
+                const targetPitch = octave * 12 + noteIndex;
+                const distance = Math.abs(targetPitch - samplePitch);
+
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestSample = sample;
+                    bestOctave = sampleOctave;
+                }
             }
         }
 
-        const semitoneDiff = noteIndex - NOTES.indexOf(nearestNote);
-        return { sampleKey: `${nearestNote}${octave}v10`, semitoneDiff };
-    }
+        if (!bestSample) {
+            throw new Error('No suitable sample found');
+        }
 
+        // Calculate the pitch shift in semitones
+        const sampleNoteIndex = NOTES.indexOf(bestSample.note);
+        const samplePitch = bestOctave * 12 + sampleNoteIndex;
+        const targetPitch = octave * 12 + noteIndex;
+        const semitoneDiff = targetPitch - samplePitch;
+
+        return {
+            sampleKey: `${bestSample.note}${bestOctave}v10`,
+            semitoneDiff: semitoneDiff
+        };
+    } catch (error) {
+        console.error('Error in findNearestSampledNote:', error);
+        throw error;
+    }
+}
     // Musical constants and configurations
     const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const SCALES = {
@@ -585,57 +586,123 @@ function getPitchShiftedNote(targetNote, targetOctave) {
         '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
     };
 
+        // Add this near your other constants
     const PROGRESSIONS = {
-         jazz_blues: {
-        scaleType: 'major',
-        chords: [
-            { degree: 'I', quality: 'dom7' }, { degree: 'I', quality: 'dom7' }, { degree: 'I', quality: 'dom7' }, { degree: 'I', quality: 'dom7' },
-            { degree: 'IV', quality: 'dom7' }, { degree: 'IV', quality: 'dom7' }, { degree: 'I', quality: 'dom7' }, { degree: 'I', quality: 'dom7' },
-            { degree: 'V', quality: 'dom7' }, { degree: 'IV', quality: 'dom7' }, { degree: 'I', quality: 'dom7' }, { degree: 'V', quality: 'dom7' }
+        jazz_blues: [
+            { root: 'C', quality: 'dom7' },
+            { root: 'F', quality: 'dom7' },
+            { root: 'C', quality: 'dom7' },
+            { root: 'C', quality: 'dom7' },
+            { root: 'F', quality: 'dom7' },
+            { root: 'F', quality: 'dom7' },
+            { root: 'C', quality: 'dom7' },
+            { root: 'A', quality: 'dom7' },
+            { root: 'D', quality: 'min7' },
+            { root: 'G', quality: 'dom7' },
+            { root: 'C', quality: 'dom7' },
+            { root: 'G', quality: 'dom7' }
+        ],
+        minor_blues: [
+            { root: 'C', quality: 'min7' },
+            { root: 'F', quality: 'min7' },
+            { root: 'C', quality: 'min7' },
+            { root: 'C', quality: 'min7' },
+            { root: 'F', quality: 'min7' },
+            { root: 'F', quality: 'min7' },
+            { root: 'C', quality: 'min7' },
+            { root: 'C', quality: 'min7' },
+            { root: 'D', quality: 'min7b5' },
+            { root: 'G', quality: 'dom7' },
+            { root: 'C', quality: 'min7' },
+            { root: 'C', quality: 'min7' }
+        ],
+        rhythm_changes: [
+            { root: 'B', quality: 'min7' },
+            { root: 'E', quality: 'dom7' },
+            { root: 'A', quality: 'min7' },
+            { root: 'D', quality: 'dom7' },
+            { root: 'G', quality: 'min7' },
+            { root: 'C', quality: 'dom7' },
+            { root: 'F', quality: 'maj7' },
+            { root: 'F', quality: 'maj7' }
+        ],
+        '2_5_1': [
+            { root: 'D', quality: 'min7' },
+            { root: 'G', quality: 'dom7' },
+            { root: 'C', quality: 'maj7' },
+            { root: 'C', quality: 'maj7' }
+        ],
+        '6_2_5_1': [
+            { root: 'A', quality: 'min7' },
+            { root: 'D', quality: 'min7' },
+            { root: 'G', quality: 'dom7' },
+            { root: 'C', quality: 'maj7' }
         ]
-    },
-    minor_blues: {
-        scaleType: 'minor',
-        chords: [
-            { degree: 'i', quality: 'min7' }, { degree: 'i', quality: 'min7' }, { degree: 'i', quality: 'min7' }, { degree: 'i', quality: 'min7' },
-            { degree: 'iv', quality: 'min7' }, { degree: 'iv', quality: 'min7' }, { degree: 'i', quality: 'min7' }, { degree: 'i', quality: 'min7' },
-            { degree: 'V', quality: 'dom7' }, { degree: 'iv', quality: 'min7' }, { degree: 'i', quality: 'min7' }, { degree: 'V', quality: 'dom7' }
-        ]
-    },
-    rhythm_changes: {
-        scaleType: 'major',
-        chords: [
-            { degree: 'I', quality: 'maj7' }, { degree: 'vi', quality: 'min7' }, { degree: 'ii', quality: 'min7' }, { degree: 'V', quality: 'dom7' },
-            { degree: 'I', quality: 'maj7' }, { degree: 'vi', quality: 'min7' }, { degree: 'ii', quality: 'min7' }, { degree: 'V', quality: 'dom7' },
-            { degree: 'I', quality: 'maj7' }, { degree: 'vi', quality: 'min7' }, { degree: 'ii', quality: 'min7' }, { degree: 'V', quality: 'dom7' },
-            { degree: 'I', quality: 'maj7' }, { degree: 'vi', quality: 'min7' }, { degree: 'ii', quality: 'min7' }, { degree: 'V', quality: 'dom7' },
-            { degree: 'III', quality: 'dom7' }, { degree: 'VI', quality: 'dom7' }, { degree: 'II', quality: 'dom7' }, { degree: 'V', quality: 'dom7' },
-            { degree: 'III', quality: 'dom7' }, { degree: 'VI', quality: 'dom7' }, { degree: 'II', quality: 'dom7' }, { degree: 'V', quality: 'dom7' },
-            { degree: 'I', quality: 'maj7' }, { degree: 'vi', quality: 'min7' }, { degree: 'ii', quality: 'min7' }, { degree: 'V', quality: 'dom7' },
-            { degree: 'I', quality: 'maj7' }, { degree: 'vi', quality: 'min7' }, { degree: 'ii', quality: 'min7' }, { degree: 'V', quality: 'dom7' }
-        ]
-    },
-    "2_5_1": {
-        scaleType: 'major',
-        chords: [
-            { degree: 'ii', quality: 'min7' },
-            { degree: 'V', quality: 'dom7' },
-            { degree: 'I', quality: 'maj7' }
-        ]
-    },
-    "6_2_5_1": {
-        scaleType: 'major',
-        chords: [
-            { degree: 'vi', quality: 'min7' },
-            { degree: 'ii', quality: 'min7' },
-            { degree: 'V', quality: 'dom7' },
-            { degree: 'I', quality: 'maj7' }
-        ]
+    };
+
+function loadProgression(progressionName) {
+    try {
+        const progression = PROGRESSIONS[progressionName];
+        if (!progression) {
+            console.error("Invalid progression name:", progressionName);
+            return;
+        }
+
+        // Clear existing measures except the first one
+        const measuresContainer = document.getElementById('measures');
+        while (measuresContainer.children.length > 1) {
+            measuresContainer.removeChild(measuresContainer.lastChild);
+        }
+
+        // Add measures for each chord in the progression
+        progression.forEach((chord, index) => {
+            if (index === 0) {
+                // Update first measure
+                const firstMeasure = measuresContainer.children[0];
+                updateMeasureChord(firstMeasure, chord);
+            } else {
+                // Add new measure
+                const newMeasure = measuresContainer.children[0].cloneNode(true);
+                newMeasure.querySelector('.measure-number').textContent = index + 1;
+                updateMeasureChord(newMeasure, chord);
+                measuresContainer.appendChild(newMeasure);
+            }
+        });
+
+        // Add event listeners to all measures
+        document.querySelectorAll('.measure').forEach(measure => {
+            measure.querySelectorAll('select').forEach(select => {
+                select.addEventListener('change', updateChordAndScale);
+            });
+        });
+
+    } catch (error) {
+        console.error("Error loading progression:", error);
     }
-};
-        
+}
+
+function updateMeasureChord(measure, chord) {
+    const rootSelect = measure.querySelector('.root-note');
+    const qualitySelect = measure.querySelector('.chord-quality');
+    
+    // Set the root note
+    for (let option of rootSelect.options) {
+        if (option.value === chord.root) {
+            option.selected = true;
+            break;
+        }
+    }
+    
+    // Set the chord quality
+    for (let option of qualitySelect.options) {
+        if (option.value === chord.quality) {
+            option.selected = true;
+            break;
+        }
+    }
+}
+
     // Global state
-    let audioContext = null;
     let soundBuffers = {};
     let isPlaying = false;
     let currentBeat = 0;
@@ -666,22 +733,24 @@ async function initializeAudio() {
     try {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            // Don’t resume here—wait for user gesture
-            log("AudioContext created, awaiting resume");
         }
+        
         if (audioContext.state === 'suspended') {
             await audioContext.resume();
-            log("AudioContext resumed");
         }
-        if (audioContext.state === 'running') {
+
+        if (!Object.keys(soundBuffers).length) {
             await loadSounds();
-            await loadPianoSamples();
-            log("Audio context and samples initialized successfully");
-            return true;
         }
-        return false; // Not running yet
+
+        if (!samplesLoaded) {
+            await loadPianoSamples();
+        }
+
+        return audioContext.state === 'running';
     } catch (error) {
         console.error("Failed to initialize audio context:", error);
+        updateLoadingStatus("Audio initialization failed. Please refresh the page.");
         return false;
     }
 }
@@ -748,17 +817,128 @@ async function initializeAudio() {
         return buffer;
     }
     // Play note function with improved error handling
-function playNote(note, string, fret) {
-    if (!audioContext || audioContext.state === 'suspended') {
-        initializeAudio().then(success => {
-            if (!success) {
-                console.error("Audio context not ready");
-                return;
+async function playNote(note, string, fret) {
+    try {
+        if (!audioContext || audioContext.state === 'suspended') {
+            await initializeAudio();
+        }
+
+        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+        const openNote = tuning[string];
+        const openNoteIndex = NOTES.indexOf(openNote);
+        const noteIndex = (openNoteIndex + fret) % 12;
+        const targetNote = NOTES[noteIndex];
+        const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
+        const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
+
+        // Try to use piano samples if available
+        if (samplesLoaded) {
+            try {
+                const { sampleKey, semitoneDiff } = findNearestSampledNote(targetNote, octave);
+                
+                if (pianoSampleBuffers[sampleKey]) {
+                    const source = audioContext.createBufferSource();
+                    const gainNode = audioContext.createGain();
+                    
+                    source.buffer = pianoSampleBuffers[sampleKey];
+                    source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
+                    
+                    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+                    
+                    source.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    source.start();
+                    source.stop(audioContext.currentTime + 1);
+                    return;
+                }
+            } catch (sampleError) {
+                console.warn("Sample playback failed, falling back to oscillator", sampleError);
             }
-            playNote(note, string, fret); // Retry after initialization
-        });
-        return;
+        }
+        
+        // Fallback to oscillator
+        const freq = 440 * Math.pow(2, (NOTES.indexOf(targetNote) + (octave - 4) * 12) / 12);
+        const osc = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+
+        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+
+        osc.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        osc.start();
+        osc.stop(audioContext.currentTime + 1);
+    } catch (error) {
+        console.error("Error playing note:", error);
     }
+}
+
+        // Get the nearest sample and required pitch shift
+        const { sampleKey, semitoneDiff } = findNearestSampledNote(targetNote, octave);
+
+        // Create audio nodes
+        const source = audioContext.createBufferSource();
+        const gainNode = audioContext.createGain();
+
+        // Load or get cached buffer
+        if (!pianoSampleBuffers[sampleKey]) {
+            const url = `${GITHUB_RAW_BASE_URL}${sampleKey}.ogg`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to load sample: ${url}`);
+            const arrayBuffer = await response.arrayBuffer();
+            pianoSampleBuffers[sampleKey] = await audioContext.decodeAudioData(arrayBuffer);
+        }
+
+        // Set up the source
+        source.buffer = pianoSampleBuffers[sampleKey];
+        source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
+
+        // Set up the gain envelope
+        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+
+        // Connect and play
+        source.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        source.start();
+        source.stop(audioContext.currentTime + 1);
+
+        console.log(`Playing note: ${targetNote}${octave} using sample: ${sampleKey} with shift: ${semitoneDiff}`);
+
+    } catch (error) {
+        console.error("Error playing note:", error);
+        // Fall back to oscillator if sample playback fails
+        playFallbackNote(note, octave, volume);
+    }
+}
+
+
+// /c:/Users/t-cal/f2/FretFlow/index.html
+async function loadAudioBuffer(url) {
+    if (pianoSampleBuffers[url]) {
+        return pianoSampleBuffers[url];
+    }
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        pianoSampleBuffers[url] = audioBuffer;
+        return audioBuffer;
+    } catch (error) {
+        console.error(`Error loading audio buffer from ${url}:`, error);
+        throw error;
+    }
+}
     try {
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
         const openNote = tuning[string];
@@ -768,35 +948,31 @@ function playNote(note, string, fret) {
         const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
         const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
 
-        if (samplesLoaded && pianoSampleBuffers && pianoSampleBuffers[findNearestSampledNote(targetNote, octave).sampleKey]) {
-            const { sampleKey, semitoneDiff } = findNearestSampledNote(targetNote, octave);
-            const source = audioContext.createBufferSource();
-            const gainNode = audioContext.createGain();
-            source.buffer = pianoSampleBuffers[sampleKey];
-            source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
-            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
-            source.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            source.start();
-            source.stop(audioContext.currentTime + 1);
-        } else {
-            const osc = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = 440 * Math.pow(2, (NOTES.indexOf(targetNote) + octave * 12 - 69) / 12);
-            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
-            osc.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            osc.start();
-            osc.stop(audioContext.currentTime + 1);
-        }
-        log(`Playing note ${targetNote} on string ${string} fret ${fret}`);
+        const { sampleKey, semitoneDiff } = findNearestSampledNote(targetNote, octave);
+        const url = `${GITHUB_RAW_BASE_URL}${sampleKey}.flac`;
+        
+        const audioBuffer = await loadAudioBuffer(url);
+        const source = audioContext.createBufferSource();
+        const gainNode = audioContext.createGain();
+
+        source.buffer = audioBuffer;
+        source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
+        
+        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+        
+        source.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        source.start();
+        source.stop(audioContext.currentTime + 1);
+        
     } catch (error) {
         console.error("Error playing note:", error);
+        // Fallback to oscillator if sample playback fails
+        playFallbackNote(note, octave, volume);
     }
-}
+
 
     // Improved metronome sound function
     function playMetronomeSound(volume = 1) {
@@ -848,150 +1024,280 @@ function playNote(note, string, fret) {
     }
 
     // Improved chord playback
-// Replace the existing playChord function
+// /c:/Users/t-cal/f2/FretFlow/index.html
 async function playChord(root, quality) {
-    if (!audioContext || !samplesLoaded) {
-        console.warn("Audio context or samples not ready");
-        return;
-    }
-
-    if (!document.getElementById('chordsEnabled').checked) return;
-
-    const chordVolume = parseFloat(document.getElementById('chord-volume').value) || 0.75;
-    const rootIndex = NOTES.indexOf(root);
-    
-    // Define chord intervals based on quality
-    const intervals = {
-        'major': [0, 4, 7],
-        'minor': [0, 3, 7],
-        'dom7': [0, 4, 7, 10],
-        'maj7': [0, 4, 7, 11],
-        'min7': [0, 3, 7, 10],
-        'min7b5': [0, 3, 6, 10]
-    }[quality] || [0, 4, 7];
-
-    // Play each note in the chord
-    intervals.forEach((interval, index) => {
-        const noteIndex = (rootIndex + interval) % 12;
-        const note = NOTES[noteIndex];
-        const octave = 3 + Math.floor(index / 2);
-        
-        const pitchData = getPitchShiftedNote(note, octave);
-        if (!pitchData || !pianoSampleBuffers[pitchData.sampleKey]) return;
-
-        const source = audioContext.createBufferSource();
-        const gainNode = audioContext.createGain();
-        
-        source.buffer = pianoSampleBuffers[pitchData.sampleKey];
-        source.playbackRate.value = pitchData.playbackRate;
-        
-        gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
-        
-        source.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        source.start();
-        source.stop(audioContext.currentTime + 2);
-    });
-}
-
-    // Improved metronome timing
-    
-async function startPlayback() {
     try {
-        if (!audioContext || audioContext.state === 'suspended') {
+        if (!audioContext) {
+            log("No AudioContext - initializing...");
             const success = await initializeAudio();
-            if (!success) {
-                console.error("Failed to initialize or resume audio context");
-                return;
+            if (!success) return;
+        }
+        
+        if (!document.getElementById('chordsEnabled').checked) {
+            log("Chord playback disabled");
+            return;
+        }
+        
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        
+        const chordVolume = parseFloat(document.getElementById('chord-volume').value) || 0.75;
+        const rootIndex = NOTES.indexOf(root);
+        if (rootIndex === -1) {
+            console.error(`Invalid root note: ${root}`);
+            return;
+        }
+        
+        const chordNotes = [root];
+        
+        if (quality.includes('minor')) {
+            chordNotes.push(NOTES[(rootIndex + 3) % 12]); // Minor third
+        } else {
+            chordNotes.push(NOTES[(rootIndex + 4) % 12]); // Major third
+        }
+        
+        chordNotes.push(NOTES[(rootIndex + 7) % 12]); // Fifth
+        
+        if (quality.includes('7') && !quality.includes('min7b5')) {
+            chordNotes.push(NOTES[(rootIndex + (quality.includes('maj7') ? 11 : 10)) % 12]); // 7th
+        } else if (quality.includes('min7b5')) {
+            chordNotes.push(NOTES[(rootIndex + 6) % 12]); // Flat 5th
+            chordNotes.push(NOTES[(rootIndex + 10) % 12]); // Flat 7th
+        }
+        
+        log(`Playing chord: ${root} ${quality} with notes ${chordNotes}`);
+        
+        for (let i = 0; i < chordNotes.length; i++) {
+            const note = chordNotes[i];
+            const octave = 3 + Math.floor(i / 3);
+            
+            try {
+                if (samplesLoaded) {
+                    const { sampleKey, semitoneDiff } = findNearestSampledNote(note, octave);
+                    
+                    if (pianoSampleBuffers[sampleKey]) {
+                        const source = audioContext.createBufferSource();
+                        const gainNode = audioContext.createGain();
+                        source.buffer = pianoSampleBuffers[sampleKey];
+                        source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
+                        gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
+                        source.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        source.start(audioContext.currentTime);
+                        source.stop(audioContext.currentTime + 2);
+                        continue;
+                    }
+                }
+                
+                // Fallback to oscillator
+                const osc = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 440 * Math.pow(2, (NOTES.indexOf(note) + octave * 12 - 69) / 12);
+                gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
+                osc.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 2);
+            } catch (noteError) {
+                console.error(`Error playing note ${note} in chord:`, noteError);
             }
         }
-        const timeSignature = parseInt(document.getElementById('time-signature').value);
-        const beatDuration = 60 / tempo;
-        const interval = beatDuration * 1000 / (timeSignature === 4 ? 2 : 1);
-        clearInterval(intervalId);
-        currentBeat = 0;
-        currentMeasure = 0;
-        isPlaying = true;
-        document.getElementById('start-stop').textContent = 'Stop';
-        intervalId = setInterval(() => {
-            if (!isPlaying) return;
-            playBeat();
-        }, interval);
     } catch (error) {
-        console.error("Error in startPlayback:", error);
+        console.error("Error playing chord:", error);
     }
 }
-        
-    function startMetronome() {
-        const timeSignature = parseInt(document.getElementById('time-signature').value);
-        const beatDuration = 60 / tempo;
-        const interval = beatDuration * 1000 / (timeSignature === 4 ? 2 : 1);
+ // Replace the existing startPlayback function with this version
+ 
+async function startPlayback() {
+    try {
+        if (!audioContext || audioContext.state !== 'running') {
+            const success = await initializeAudio();
+            if (!success) return;
+        }
 
-        clearInterval(intervalId);
+        // Clear any existing playback
+        stopPlayback();
+
+        // Initialize state
         currentBeat = 0;
         currentMeasure = 0;
         isPlaying = true;
         document.getElementById('start-stop').textContent = 'Stop';
 
-        intervalId = setInterval(() => {
-            if (!isPlaying) return;
-            playBeat();
-        }, interval);
-    }
+        // Calculate timing
+        const timeSignature = parseInt(document.getElementById('time-signature').value);
+        const beatDuration = 60.0 / tempo;
+        let nextNoteTime = audioContext.currentTime;
 
-    function stopPlayback() {
-        clearInterval(intervalId);
+        function schedule() {
+            if (!isPlaying) return;
+
+            while (nextNoteTime < audioContext.currentTime + 0.1) {
+                playBeat();
+                nextNoteTime += beatDuration;
+            }
+
+            intervalId = requestAnimationFrame(schedule);
+        }
+
+        schedule();
+    } catch (error) {
+        console.error("Error in startPlayback:", error);
+        stopPlayback();
+    }
+}
+
+        // Initialize state
+        currentBeat = 0;
+        currentMeasure = 0;
+        isPlaying = true;
+        document.getElementById('start-stop').textContent = 'Stop';
+
+        // Calculate timing
+        const timeSignature = parseInt(document.getElementById('time-signature').value);
+        const beatDuration = 60.0 / tempo;
+        let nextNoteTime = audioContext.currentTime;
+
+        function schedule() {
+            if (!isPlaying) return;
+
+            while (nextNoteTime < audioContext.currentTime + 0.1) {
+                playBeat();
+                nextNoteTime += beatDuration;
+            }
+
+            intervalId = requestAnimationFrame(schedule);
+        }
+
+        schedule();
+    } catch (error) {
+        console.error("Error in startPlayback:", error);
+        stopPlayback();
+    }
+}
+
+function stopPlayback() {
+    try {
+        // Cancel any pending animation frame
+        if (intervalId) {
+            cancelAnimationFrame(intervalId);
+            intervalId = null;
+        }
+        
+        // Reset state
         isPlaying = false;
         currentBeat = 0;
         currentMeasure = 0;
-        document.getElementById('start-stop').textContent = 'Start';
-        document.querySelectorAll('.beat').forEach(beat => beat.classList.remove('active'));
-        document.querySelectorAll('.measure').forEach(measure => measure.classList.remove('active'));
-    }
-    // Improved beat playback
-        function playBeat() {
-            const beats = document.querySelectorAll('.beat');
-            beats.forEach(beat => beat.classList.remove('active'));
         
+        
+        
+        // Remove active states
+        document.querySelectorAll('.beat').forEach(beat => 
+            beat.classList.remove('active'));
+        document.querySelectorAll('.measure').forEach(measure => 
+            measure.classList.remove('active'));
+            
+        // Stop any ongoing sounds
+        if (audioContext) {
+            const currentTime = audioContext.currentTime;
+            audioContext.getOutputTimestamp();
+        }
+    } catch (error) {
+        console.error("Error stopping playback:", error);
+    }
+}
+
+
+    // Improved beat playback
+// Replace the existing playBeat function
+function playBeat() {
+    try {
+        const beats = document.querySelectorAll('.beat');
+        beats.forEach(beat => beat.classList.remove('active'));
+        
+        if (currentBeat < beats.length) {
             const currentBeatElement = beats[currentBeat];
-            if (currentBeatElement) {
-                currentBeatElement.classList.add('active');
-                const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
+            currentBeatElement.classList.add('active');
+            
+            const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
+            if (volume > 0) {
                 playMetronomeSound(volume);
             }
+            
+            if (currentBeat === 0) {
+                updateMeasure();
+            }
+        }
         
-            const measures = document.querySelectorAll('.measure'); // Use querySelectorAll for NodeList
-            if (currentBeat === 0 && measures.length > 0) {
-                const currentMeasureElement = measures[currentMeasure];
-                if (currentMeasureElement) {
-                    const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-                    const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
-                    const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
-                    const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+        const timeSignature = parseInt(document.getElementById('time-signature').value);
+        const totalBeats = timeSignature === 4 ? 8 : timeSignature;
+        currentBeat = (currentBeat + 1) % totalBeats;
+    } catch (error) {
+        console.error("Error in playBeat:", error);
+    }
+}
+
+// Replace the existing updateMeasure function
+function updateMeasure() {
+    try {
+        const measures = document.querySelectorAll('.measure');
+        measures.forEach(m => m.classList.remove('active'));
         
-                    if (root && quality) {
-                        const chordFretboard = document.getElementById('chord-fretboard');
-                        const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
-                        updateFretboardNotes(chordFretboard, scaleRoot || root, scaleType || 'major', chordTuning);
-                        playChord(root, quality);
-                    }
+        if (measures.length > 0) {
+            const measure = measures[currentMeasure];
+            if (measure) {
+                measure.classList.add('active');
+                
+                const root = measure.querySelector('.root-note').value;
+                const quality = measure.querySelector('.chord-quality').value;
+                
+                if (document.getElementById('chordsEnabled').checked && root && quality) {
+                    playChord(root, quality);
+                }
+                
+                // Update fretboard display
+                const scaleRoot = measure.querySelector('.second-key').value;
+                const scaleType = measure.querySelector('.scale-select').value;
+                if (scaleRoot && scaleType) {
+                    const chordFretboard = document.getElementById('chord-fretboard');
+                    const tuning = TUNINGS[document.getElementById('chord-tuning').value];
+                    updateFretboardNotes(chordFretboard, scaleRoot, scaleType, tuning);
                 }
             }
-        
-            if (measures.length > 0) {
-                measures.forEach((measure, index) => { // Now works with NodeList
-                    measure.classList.toggle('active', index === currentMeasure);
-                });
+            currentMeasure = (currentMeasure + 1) % measures.length;
+        }
+    } catch (error) {
+        console.error("Error in updateMeasure:", error);
+    }
+}
+
+            // Add this helper function
+        function handleAudioError(error, context) {
+            console.error(`Audio error in ${context}:`, error);
+            updateLoadingStatus(`Error: ${error.message}. Try refreshing the page.`);
+            
+            // Attempt recovery
+            if (audioContext?.state === 'suspended') {
+                audioContext.resume().catch(e => 
+                    console.error("Failed to resume audio context:", e)
+                );
             }
-        
-            const timeSignature = parseInt(document.getElementById('time-signature').value);
-            const totalBeats = timeSignature === 4 ? 8 : timeSignature;
-        
-            currentBeat = (currentBeat + 1) % totalBeats;
-            if (currentBeat === 0 && measures.length > 0) {
-                currentMeasure = (currentMeasure + 1) % measures.length;
+        }
+
+        // Add this status update function
+        function updateLoadingStatus(message) {
+            let indicator = document.getElementById('loading-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'loading-indicator';
+                document.body.appendChild(indicator);
             }
+            indicator.textContent = message;
+            console.log("Status:", message);
         }
 
     // Improved fretboard creation and update
@@ -1137,48 +1443,80 @@ async function startPlayback() {
             container.appendChild(beat);
         }
     }
-    // Event Listeners and Initialization
-    document.addEventListener('DOMContentLoaded', async function() {
-
-        // Initialize chord fretboard
-        const chordFretboard = document.getElementById('chord-fretboard');
-        createFretboard(chordFretboard, TUNINGS.standard);
-        updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
-
-        // Initialize beats
-        createBeats();
-
-        // Add event listeners for chord tuning changes
-        document.getElementById('chord-tuning').addEventListener('change', function() {
-            const measures = document.getElementsByClassName('measure');
-            if (measures.length > 0 && currentMeasure < measures.length) {
-                const currentMeasureElement = measures[currentMeasure];
-                const root = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
-                const scale = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-                if (root && scale) {
-                    updateFretboardNotes(chordFretboard, root, scale, TUNINGS[this.value]);
-                }
+// Fix the start-stop button event listener
+// /c:/Users/t-cal/f2/FretFlow/index.html
+document.addEventListener('DOMContentLoaded', function() {
+    createBeats();
+    
+    // Initialize audio context on first user interaction
+    document.body.addEventListener('click', async function initAudioContext() {
+        if (!audioContext) {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                await loadSounds();
+                await loadPianoSamples();
+                document.body.removeEventListener('click', initAudioContext);
+            } catch (error) {
+                console.error("Failed to initialize audio:", error);
             }
-        });
+        }
+    }, { once: true });
 
-        // Start/Stop button handler
-        document.getElementById('start-stop').addEventListener('click', async function() {
+    // Initialize the first measure
+    const firstMeasure = document.querySelector('.measure');
+    if (firstMeasure) {
+        const root = firstMeasure.querySelector('.root-note').value;
+        const scale = firstMeasure.querySelector('.scale-select').value;
+        const tuning = TUNINGS[document.getElementById('chord-tuning').value];
+        updateFretboardNotes(document.getElementById('chord-fretboard'), root, scale, tuning);
+    }
+
+    // Initialize chord fretboard
+    const chordFretboard = document.getElementById('chord-fretboard');
+    createFretboard(chordFretboard, TUNINGS.standard);
+    updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
+
+    // Initialize beats
+    createBeats();
+
+    // Add event listeners for chord tuning changes
+    document.getElementById('chord-tuning').addEventListener('change', function() {
+        const measures = document.getElementsByClassName('measure');
+        if (measures.length > 0 && currentMeasure < measures.length) {
+            const currentMeasureElement = measures[currentMeasure];
+            const root = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+            const scale = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+            if (root && scale) {
+                updateFretboardNotes(chordFretboard, root, scale, TUNINGS[this.value]);
+            }
+        }
+    });
+
+    // Add the start-stop button event listener
+    document.getElementById('start-stop').addEventListener('click', async function() {
+        try {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
             if (isPlaying) {
                 stopPlayback();
+                this.textContent = 'Start';
             } else {
                 await startPlayback();
+                this.textContent = 'Stop';
             }
-        });
+        } catch (error) {
+            console.error("Start/Stop error:", error);
+            updateLoadingStatus("Audio error - please refresh the page");
+        }
+    });
+});
 
-        // Tempo control handler
-        document.getElementById('tempo').addEventListener('input', function() {
-            tempo = parseInt(this.value);
-            document.getElementById('tempo-display').textContent = `${tempo} BPM`;
-            if (isPlaying) {
-                stopPlayback();
-                startPlayback();
-            }
-        });
 
         // Time signature change handler
         document.getElementById('time-signature').addEventListener('change', function() {
@@ -1235,12 +1573,29 @@ async function startPlayback() {
         });
 
         // Progression select handler
-        document.getElementById('progression-select').addEventListener('change', function() {
-            const selected = this.value;
-            if (selected !== 'none') {
-                loadProgression(selected);
-            }
-        });
+document.getElementById('progression-select').addEventListener('change', function() {
+    const selected = this.value;
+    if (selected !== 'none') {
+        loadProgression(selected);
+        
+        // Stop playback if currently playing
+        if (isPlaying) {
+            stopPlayback();
+        }
+        
+        // Reset current measure
+        currentMeasure = 0;
+        
+        // Update the fretboard display
+        const firstMeasure = document.querySelector('.measure');
+        if (firstMeasure) {
+            const root = firstMeasure.querySelector('.root-note').value;
+            const scale = firstMeasure.querySelector('.scale-select').value;
+            const tuning = TUNINGS[document.getElementById('chord-tuning').value];
+            updateFretboardNotes(document.getElementById('chord-fretboard'), root, scale, tuning);
+        }
+    }
+});
 
         // Initialize measure event listeners
         document.querySelectorAll('.measure').forEach(measure => {
@@ -1251,8 +1606,10 @@ async function startPlayback() {
             rootSelect.addEventListener('change', updateChordAndScale);
             qualitySelect.addEventListener('change', updateChordAndScale);
             scaleSelect.addEventListener('change', updateChordAndScale);
+    
         });
-    });
+
+    
 
     // Helper function for updating chord and scale
     function updateChordAndScale() {
@@ -1271,14 +1628,14 @@ async function startPlayback() {
 function addMeasure() {
     const measures = document.getElementById('measures');
     const newMeasure = measures.children[0].cloneNode(true);
+    const measureNumber = measures.children.length + 1;
+    
+    newMeasure.querySelector('.measure-number').textContent = measureNumber;
     
     // Reset selections
     newMeasure.querySelectorAll('select').forEach(select => {
         select.selectedIndex = 0;
     });
-    
-    // Update measure number
-    newMeasure.querySelector('.measure-number').textContent = measures.children.length + 1;
     
     // Add event listeners
     newMeasure.querySelectorAll('select').forEach(select => {
@@ -1288,19 +1645,14 @@ function addMeasure() {
     measures.appendChild(newMeasure);
 }
 
+
+
 function removeMeasure() {
     const measures = document.getElementById('measures');
     if (measures.children.length > 1) {
         measures.removeChild(measures.lastChild);
     }
 }
-    
-    function loadProgression(progression) {
-        console.log(`Load Progression: ${progression} - functionality not implemented yet`);
-        // Add logic to load predefined chord progressions
-    }
-        
-
-    </script>
+</script>
 </body>
 </html>
