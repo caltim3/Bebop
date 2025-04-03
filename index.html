@@ -426,77 +426,81 @@
     
     let audioContext = null;
 
-   // Piano sample configuration
-        const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/';
-        const availableSamples = [
-            { note: 'A', octaves: [0, 1, 2, 3, 4, 5, 6, 7] },  // A0-A7 exist
-            { note: 'C', octaves: [1, 2, 3, 4, 5, 6, 7, 8] },  // C1-C8 exist, no C0
-            { note: 'D#', octaves: [1, 2, 3, 4, 5, 6, 7] },    // D#1-D#7 exist, no D#0
-            { note: 'F#', octaves: [1, 2, 3, 4, 5, 6, 7] }     // F#1-F#7 exist, no F#0
-        ];
-        const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
-        let pianoSampleBuffers = {};
-        let samplesLoaded = false;
+   // Global variables for piano samples
+let pianoSampleBuffers = {};
+let samplesLoaded = false;
+
+// Piano sample configuration
+const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/';
+const SAMPLE_CONFIG = {
+    notes: ['A', 'C', 'D#', 'F#'],
+    octaves: {
+        'A': [0, 1, 2, 3, 4, 5, 6, 7],
+        'C': [1, 2, 3, 4, 5, 6, 7, 8],
+        'D#': [1, 2, 3, 4, 5, 6, 7],
+        'F#': [1, 2, 3, 4, 5, 6, 7]
+    }
+};
 
     // Piano sample loading function
-// /c:/Users/t-cal/f2/FretFlow/index.html
 async function loadPianoSamples() {
-    if (!audioContext) {
-        console.error("Audio context not initialized");
-        return false;
-    }
-
-    try {
-        let loadedSamples = 0;
-        const totalSamples = availableSamples.reduce((acc, sample) => acc + sample.octaves.length, 0);
-        updateLoadingStatus(`Loading piano samples (0/${totalSamples})...`);
-
-        for (const sample of availableSamples) {
-            for (const octave of sample.octaves) {
-                const sampleName = `${sample.note}${octave}v10`;
-                try {
-                    if (!pianoSampleBuffers[sampleName]) {
-                        // Try FLAC first
-                        let url = `${GITHUB_RAW_BASE_URL}${sampleName}.flac`;
-                        let response = await fetch(url);
-                        
-                        // If FLAC fails, try OGG
-                        if (!response.ok) {
-                            url = `${GITHUB_RAW_BASE_URL}${sampleName}.ogg`;
-                            response = await fetch(url);
-                        }
-                        
-                        if (!response.ok) {
-                            console.warn(`Failed to load ${url}, status: ${response.status}`);
-                            continue;
-                        }
-                        
-                        const arrayBuffer = await response.arrayBuffer();
-                        try {
-                            pianoSampleBuffers[sampleName] = await audioContext.decodeAudioData(arrayBuffer);
-                            loadedSamples++;
-                            updateLoadingStatus(`Loading piano samples (${loadedSamples}/${totalSamples})...`);
-                        } catch (decodeError) {
-                            console.warn(`Failed to decode ${sampleName}`, decodeError);
-                        }
-                    }
-                } catch (error) {
-                    console.warn(`Failed to load ${sampleName}, using fallback`, error);
-                }
-            }
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        samplesLoaded = loadedSamples > 0;
-        updateLoadingStatus(`Loaded ${loadedSamples}/${totalSamples} piano samples`);
-        return samplesLoaded;
-    } catch (error) {
-        console.error('Piano sample loading failed:', error);
-        updateLoadingStatus("Failed to load piano samples, using fallback sounds");
-        return false;
+        try {
+            updateLoadingStatus("Loading piano samples...");
+            const loadPromises = [];
+
+            for (const note of SAMPLE_CONFIG.notes) {
+                const octaves = SAMPLE_CONFIG.octaves[note];
+                for (const octave of octaves) {
+                    const sampleName = `${note}${octave}v10`;
+                    const url = `${GITHUB_RAW_BASE_URL}${sampleName}.flac`;
+                    console.log(`Attempting to load: ${url}`);
+
+                    const promise = fetch(url, { mode: 'cors' })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! Status: ${response.status} for ${url}`);
+                            }
+                            console.log(`Fetched ${sampleName} successfully`);
+                            return response.arrayBuffer();
+                        })
+                        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+                        .then(audioBuffer => {
+                            pianoSampleBuffers[sampleName] = audioBuffer;
+                            console.log(`Loaded ${sampleName} into pianoSampleBuffers`);
+                        })
+                        .catch(error => {
+                            console.error(`Failed to load ${sampleName}:`, error);
+                            throw error;
+                        });
+
+                    loadPromises.push(promise);
+                }
+            }
+
+            const results = await Promise.allSettled(loadPromises);
+            samplesLoaded = Object.keys(pianoSampleBuffers).length > 0;
+            console.log(`Sample loading complete. Loaded ${Object.keys(pianoSampleBuffers).length} samples. SamplesLoaded: ${samplesLoaded}`);
+
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    console.error(`Promise ${index} failed: ${result.reason}`);
+                }
+            });
+
+            updateLoadingStatus(`Loaded ${Object.keys(pianoSampleBuffers).length} piano samples`);
+            return samplesLoaded;
+        } catch (error) {
+            console.error('Piano sample loading failed:', error);
+            updateLoadingStatus("Failed to load piano samples");
+            return false;
+        }
     }
-}    // Helper function to find nearest sampled note
-// /c:/Users/t-cal/f2/FretFlow/index.html
-function findNearestSampledNote(note, octave) {
+        
+        function findNearestSampledNote(note, octave) {
     try {
         const noteIndex = NOTES.indexOf(note);
         if (noteIndex === -1) {
@@ -702,8 +706,11 @@ function updateMeasureChord(measure, chord) {
     }
 }
 
-    // Global state
+// Global variables
+    let audioContext = null;
     let soundBuffers = {};
+    let pianoSampleBuffers = {};
+    let samplesLoaded = false;
     let isPlaying = false;
     let currentBeat = 0;
     let currentMeasure = 0;
@@ -817,12 +824,18 @@ async function initializeAudio() {
         return buffer;
     }
     // Play note function with improved error handling
-async function playNote(note, string, fret) {
+function playNote(note, string, fret) {
+    if (!audioContext || audioContext.state === 'suspended') {
+        initializeAudio().then(success => {
+            if (!success) {
+                console.error("Audio context not ready");
+                return;
+            }
+            playNote(note, string, fret);
+        });
+        return;
+    }
     try {
-        if (!audioContext || audioContext.state === 'suspended') {
-            await initializeAudio();
-        }
-
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
         const openNote = tuning[string];
         const openNoteIndex = NOTES.indexOf(openNote);
@@ -831,33 +844,88 @@ async function playNote(note, string, fret) {
         const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
         const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
 
-        // Try to use piano samples if available
-        if (samplesLoaded) {
-            try {
-                const { sampleKey, semitoneDiff } = findNearestSampledNote(targetNote, octave);
-                
-                if (pianoSampleBuffers[sampleKey]) {
-                    const source = audioContext.createBufferSource();
-                    const gainNode = audioContext.createGain();
-                    
-                    source.buffer = pianoSampleBuffers[sampleKey];
-                    source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
-                    
-                    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
-                    
-                    source.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    source.start();
-                    source.stop(audioContext.currentTime + 1);
-                    return;
-                }
-            } catch (sampleError) {
-                console.warn("Sample playback failed, falling back to oscillator", sampleError);
+        if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
+            const pitchData = getPitchShiftedNote(targetNote, octave);
+            if (pitchData && pianoSampleBuffers[pitchData.sampleKey]) {
+                const source = audioContext.createBufferSource();
+                const gainNode = audioContext.createGain();
+                source.buffer = pianoSampleBuffers[pitchData.sampleKey];
+                source.playbackRate.value = pitchData.playbackRate;
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                source.start();
+                source.stop(audioContext.currentTime + 1);
+                console.log(`Played ${targetNote}${octave} using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
+            } else {
+                console.warn(`No sample available for ${targetNote}${octave}`);
             }
+        } else {
+            console.warn("Samples not loaded, falling back to oscillator");
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = 440 * Math.pow(2, (NOTES.indexOf(targetNote) + octave * 12 - 69) / 12);
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+            osc.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            osc.start();
+            osc.stop(audioContext.currentTime + 1);
         }
-        
+    } catch (error) {
+        console.error("Error playing note:", error);
+    }
+}
+
+async function playChord(root, quality) {
+    if (!audioContext || !samplesLoaded || Object.keys(pianoSampleBuffers).length === 0) {
+        console.warn("Audio context or samples not ready");
+        return;
+    }
+
+    if (!document.getElementById('chordsEnabled').checked) return;
+
+    const chordVolume = parseFloat(document.getElementById('chord-volume').value) || 0.75;
+    const rootIndex = NOTES.indexOf(root);
+
+    const intervals = {
+        'major': [0, 4, 7],
+        'minor': [0, 3, 7],
+        'dom7': [0, 4, 7, 10],
+        'maj7': [0, 4, 7, 11],
+        'min7': [0, 3, 7, 10],
+        'min7b5': [0, 3, 6, 10]
+    }[quality] || [0, 4, 7];
+
+    intervals.forEach((interval, index) => {
+        const noteIndex = (rootIndex + interval) % 12;
+        const note = NOTES[noteIndex];
+        const octave = 3 + Math.floor(index / 2);
+
+        const pitchData = getPitchShiftedNote(note, octave);
+        if (!pitchData || !pianoSampleBuffers[pitchData.sampleKey]) {
+            console.warn(`No sample for ${note}${octave}`);
+            return;
+        }
+
+        const source = audioContext.createBufferSource();
+        const gainNode = audioContext.createGain();
+
+        source.buffer = pianoSampleBuffers[pitchData.sampleKey];
+        source.playbackRate.value = pitchData.playbackRate;
+
+        gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
+
+        source.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        source.start();
+        source.stop(audioContext.currentTime + 2);
+        console.log(`Played chord note ${note}${octave} using ${pitchData.sampleKey}`);
+    });
+}        
         // Fallback to oscillator
         const freq = 440 * Math.pow(2, (NOTES.indexOf(targetNote) + (octave - 4) * 12) / 12);
         const osc = audioContext.createOscillator();
@@ -1023,94 +1091,6 @@ async function loadAudioBuffer(url) {
         }
     }
 
-    // Improved chord playback
-// /c:/Users/t-cal/f2/FretFlow/index.html
-async function playChord(root, quality) {
-    try {
-        if (!audioContext) {
-            log("No AudioContext - initializing...");
-            const success = await initializeAudio();
-            if (!success) return;
-        }
-        
-        if (!document.getElementById('chordsEnabled').checked) {
-            log("Chord playback disabled");
-            return;
-        }
-        
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-        
-        const chordVolume = parseFloat(document.getElementById('chord-volume').value) || 0.75;
-        const rootIndex = NOTES.indexOf(root);
-        if (rootIndex === -1) {
-            console.error(`Invalid root note: ${root}`);
-            return;
-        }
-        
-        const chordNotes = [root];
-        
-        if (quality.includes('minor')) {
-            chordNotes.push(NOTES[(rootIndex + 3) % 12]); // Minor third
-        } else {
-            chordNotes.push(NOTES[(rootIndex + 4) % 12]); // Major third
-        }
-        
-        chordNotes.push(NOTES[(rootIndex + 7) % 12]); // Fifth
-        
-        if (quality.includes('7') && !quality.includes('min7b5')) {
-            chordNotes.push(NOTES[(rootIndex + (quality.includes('maj7') ? 11 : 10)) % 12]); // 7th
-        } else if (quality.includes('min7b5')) {
-            chordNotes.push(NOTES[(rootIndex + 6) % 12]); // Flat 5th
-            chordNotes.push(NOTES[(rootIndex + 10) % 12]); // Flat 7th
-        }
-        
-        log(`Playing chord: ${root} ${quality} with notes ${chordNotes}`);
-        
-        for (let i = 0; i < chordNotes.length; i++) {
-            const note = chordNotes[i];
-            const octave = 3 + Math.floor(i / 3);
-            
-            try {
-                if (samplesLoaded) {
-                    const { sampleKey, semitoneDiff } = findNearestSampledNote(note, octave);
-                    
-                    if (pianoSampleBuffers[sampleKey]) {
-                        const source = audioContext.createBufferSource();
-                        const gainNode = audioContext.createGain();
-                        source.buffer = pianoSampleBuffers[sampleKey];
-                        source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
-                        gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
-                        source.connect(gainNode);
-                        gainNode.connect(audioContext.destination);
-                        source.start(audioContext.currentTime);
-                        source.stop(audioContext.currentTime + 2);
-                        continue;
-                    }
-                }
-                
-                // Fallback to oscillator
-                const osc = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = 440 * Math.pow(2, (NOTES.indexOf(note) + octave * 12 - 69) / 12);
-                gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
-                osc.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                osc.start(audioContext.currentTime);
-                osc.stop(audioContext.currentTime + 2);
-            } catch (noteError) {
-                console.error(`Error playing note ${note} in chord:`, noteError);
-            }
-        }
-    } catch (error) {
-        console.error("Error playing chord:", error);
-    }
-}
- // Replace the existing startPlayback function with this version
  
 async function startPlayback() {
     try {
