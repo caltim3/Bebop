@@ -847,35 +847,73 @@ async function playChord(root, quality) {
     }
 
     // Playback control
-    async function startPlayback() {
-        try {
-            if (!audioContext || audioContext.state !== 'running') {
-                const success = await initializeAudio();
-                if (!success) return;
-            }
-            stopPlayback();
-            currentBeat = 0;
-            currentMeasure = 0;
-            isPlaying = true;
-            document.getElementById('start-stop').textContent = 'Stop';
-            const timeSignature = parseInt(document.getElementById('time-signature').value);
-            const beatDuration = 60.0 / tempo;
-            let nextNoteTime = audioContext.currentTime;
-
-            function schedule() {
-                if (!isPlaying) return;
-                while (nextNoteTime < audioContext.currentTime + 0.1) {
-                    playBeat();
-                    nextNoteTime += beatDuration;
-                }
-                intervalId = requestAnimationFrame(schedule);
-            }
-            schedule();
-        } catch (error) {
-            console.error("Error in startPlayback:", error);
-            stopPlayback();
+async function startPlayback() {
+    try {
+        if (!audioContext || audioContext.state !== 'running') {
+            const success = await initializeAudio();
+            if (!success) return;
         }
+        stopPlayback();
+        currentBeat = 0;
+        currentMeasure = 0;
+        isPlaying = true;
+        document.getElementById('start-stop').textContent = 'Stop';
+        const timeSignature = parseInt(document.getElementById('time-signature').value);
+        const beatDuration = 60.0 / tempo;
+        let nextNoteTime = audioContext.currentTime;
+
+        function schedule() {
+            if (!isPlaying) return;
+            while (nextNoteTime < audioContext.currentTime + 0.1) {
+                const beatInMeasure = currentBeat % timeSignature;
+                // Play metronome beat
+                const beatElement = document.querySelector(`.beat[data-beat="${beatInMeasure}"]`);
+                if (beatElement) {
+                    beatElement.classList.add('active');
+                    setTimeout(() => beatElement.classList.remove('active'), 100);
+                    playMetronomeSound(parseFloat(beatElement.dataset.volume));
+                }
+
+                // Chord playback logic
+                if (document.getElementById('chordsEnabled').checked) {
+                    const measures = document.getElementsByClassName('measure');
+                    if (measures.length > 0) {
+                        const measureIndex = Math.floor(currentBeat / timeSignature) % measures.length;
+                        const measure = measures[measureIndex];
+                        const root = measure.querySelector('.root-note').value;
+                        const quality = measure.querySelector('.chord-quality').value;
+
+                        // Highlight active measure
+                        document.querySelectorAll('.measure').forEach(m => m.classList.remove('active'));
+                        measure.classList.add('active');
+
+                        // Play chord at start and midpoint of measure
+                        if (beatInMeasure === 0) {
+                            playChord(root, quality); // Start of measure
+                        } else if (beatInMeasure === Math.floor(timeSignature / 2)) {
+                            playChord(root, quality); // Midpoint of measure
+                        }
+
+                        // Update fretboard for active measure
+                        const scaleRoot = measure.querySelector('.second-key').value;
+                        const scaleType = measure.querySelector('.scale-select').value;
+                        const tuning = TUNINGS[document.getElementById('chord-tuning').value];
+                        updateFretboardNotes(document.getElementById('chord-fretboard'), scaleRoot, scaleType, tuning);
+                    }
+                }
+
+                currentBeat++;
+                if (beatInMeasure === 0) currentMeasure++;
+                nextNoteTime += beatDuration;
+            }
+            intervalId = requestAnimationFrame(schedule);
+        }
+        schedule();
+    } catch (error) {
+        console.error("Error in startPlayback:", error);
+        stopPlayback();
     }
+}
 
     function stopPlayback() {
         if (intervalId) {
