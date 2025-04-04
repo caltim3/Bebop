@@ -721,40 +721,44 @@ async function playNote(note, string, fret) {
                 const gainNode = audioContext.createGain();
                 source.buffer = pianoSampleBuffers[pitchData.sampleKey];
                 source.playbackRate.value = pitchData.playbackRate;
+                // Sustain: Hold at full volume for 3 seconds, then fade to 0.001 over 2 seconds
                 gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 3); // Sustain for 3s
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 5); // Fade over 2s
                 source.connect(gainNode);
                 gainNode.connect(audioContext.destination);
                 source.start();
-                source.stop(audioContext.currentTime + 1);
+                source.stop(audioContext.currentTime + 5); // Total duration: 5s
                 console.log(`Played ${targetNote}${octave} using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
             } else {
                 console.warn(`No sample available for ${targetNote}${octave}, using fallback`);
-                playFallbackNote(targetNote, octave, volume);
+                playFallbackNote(targetNote, octave, volume, 5); // Pass sustain duration to fallback
             }
         } else {
             console.warn("Samples not loaded, falling back to oscillator");
-            playFallbackNote(targetNote, octave, volume);
+            playFallbackNote(targetNote, octave, volume, 5);
         }
     } catch (error) {
         console.error("Error playing note:", error);
-        playFallbackNote(note, octave, volume);
+        playFallbackNote(note, octave, volume, 5);
     }
 }
 
-    function playFallbackNote(note, octave, volume) {
-        const osc = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = 440 * Math.pow(2, (NOTES.indexOf(note) + octave * 12 - 69) / 12);
-        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
-        osc.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        osc.start();
-        osc.stop(audioContext.currentTime + 1);
-    }
-
+function playFallbackNote(note, octave, volume, duration = 1) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const noteIndex = NOTES.indexOf(note);
+    const frequency = 440 * Math.pow(2, (octave * 12 + noteIndex - 57) / 12); // A4 = 440Hz, MIDI note 69
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + duration - 0.5); // Sustain until last 0.5s
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration); // Fade out
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + duration);
+}
     // Play chord
 async function playChord(root, quality) {
     if (!audioContext || !samplesLoaded || Object.keys(pianoSampleBuffers).length === 0) {
@@ -781,16 +785,18 @@ async function playChord(root, quality) {
             const gainNode = audioContext.createGain();
             source.buffer = pianoSampleBuffers[pitchData.sampleKey];
             source.playbackRate.value = pitchData.playbackRate;
+            // Sustain: Hold at 0.3 volume for 3 seconds, then fade to 0.001 over 2 seconds
             gainNode.gain.setValueAtTime(chordVolume * 0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
+            gainNode.gain.linearRampToValueAtTime(chordVolume * 0.3, audioContext.currentTime + 3); // Sustain for 3s
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 5); // Fade over 2s
             source.connect(gainNode);
             gainNode.connect(audioContext.destination);
             source.start();
-            source.stop(audioContext.currentTime + 2);
+            source.stop(audioContext.currentTime + 5); // Total duration: 5s
             console.log(`Played chord note ${note}${octave} using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
         } else {
             console.warn(`No sample for ${note}${octave}, using fallback`);
-            playFallbackNote(note, octave, chordVolume * 0.3);
+            playFallbackNote(note, octave, chordVolume * 0.3, 5); // Pass sustain duration to fallback
         }
     });
 }
@@ -884,44 +890,52 @@ async function playChord(root, quality) {
         document.querySelectorAll('.measure').forEach(measure => measure.classList.remove('active'));
     }
 
-    function playBeat() {
-        const beats = document.querySelectorAll('.beat');
-        beats.forEach(beat => beat.classList.remove('active'));
-        if (currentBeat < beats.length) {
-            const currentBeatElement = beats[currentBeat];
-            currentBeatElement.classList.add('active');
-            const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
-            if (volume > 0) playMetronomeSound(volume);
-            if (currentBeat === 0) updateMeasure();
-        }
-        const timeSignature = parseInt(document.getElementById('time-signature').value);
-        const totalBeats = timeSignature === 4 ? 8 : timeSignature;
-        currentBeat = (currentBeat + 1) % totalBeats;
+function playBeat(beat) {
+    const beatSounds = {
+        1: 'kick',
+        2: 'hihat',
+        3: 'snare',
+        4: 'hihat'
+    };
+    const sound = beatSounds[beat] || 'click';
+    if (drumBuffers[sound]) {
+        const source = audioContext.createBufferSource();
+        source.buffer = drumBuffers[sound];
+        source.connect(audioContext.destination);
+        source.start(audioContext.currentTime);
     }
+}
 
-    function updateMeasure() {
-        const measures = document.querySelectorAll('.measure');
-        measures.forEach(m => m.classList.remove('active'));
-        if (measures.length > 0) {
-            const measure = measures[currentMeasure];
-            if (measure) {
-                measure.classList.add('active');
-                const root = measure.querySelector('.root-note').value;
-                const quality = measure.querySelector('.chord-quality').value;
-                if (document.getElementById('chordsEnabled').checked && root && quality) {
-                    playChord(root, quality);
-                }
-                const scaleRoot = measure.querySelector('.second-key').value;
-                const scaleType = measure.querySelector('.scale-select').value;
-                if (scaleRoot && scaleType) {
-                    const chordFretboard = document.getElementById('chord-fretboard');
-                    const tuning = TUNINGS[document.getElementById('chord-tuning').value];
-                    updateFretboardNotes(chordFretboard, scaleRoot, scaleType, tuning);
-                }
-            }
-            currentMeasure = (currentMeasure + 1) % measures.length;
+function updateMeasure() {
+    const progression = document.getElementById('chord-progression').value.split(' ').filter(Boolean);
+    const chordsEnabled = document.getElementById('chordsEnabled').checked;
+    if (!chordsEnabled || !progression.length) return;
+
+    const currentMeasure = Math.floor(beatCount / beatsPerMeasure);
+    const chordIndex = currentMeasure % progression.length;
+    const [root, quality] = parseChord(progression[chordIndex]);
+
+    // Play chord at start of measure
+    playChord(root, quality);
+
+    // Play chord again at midpoint of measure (e.g., beat 3 in 4/4)
+    const beatsPerMeasure = parseInt(document.getElementById('beats-per-measure').value) || 4;
+    const midpointTime = audioContext.currentTime + (60 / bpm) * (beatsPerMeasure / 2);
+    audioContext.createBufferSource().start(midpointTime); // Dummy source to schedule
+    setTimeout(() => playChord(root, quality), (beatsPerMeasure / 2) * (60000 / bpm));
+}
+
+function schedule() {
+    while (nextBeatTime < audioContext.currentTime + 0.1) {
+        playBeat((beatCount % beatsPerMeasure) + 1);
+        if (beatCount % beatsPerMeasure === 0) {
+            updateMeasure();
         }
+        beatCount++;
+        nextBeatTime += 60 / bpm;
     }
+    timeoutId = setTimeout(schedule, 25);
+}
 
     // Fretboard management
     function createFretboard(container, tuning) {
