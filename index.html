@@ -617,7 +617,7 @@
             for (const note of SAMPLE_CONFIG.notes) {
                 const octaves = SAMPLE_CONFIG.octaves[note];
                 for (const octave of octaves) {
-                    const sampleName = `${note}${octave}v10`;
+                    const sampleName = `${note}${octave}v8`;
                     const url = `${GITHUB_RAW_BASE_URL}${sampleName}.wav`;
                     console.log(`Attempting to load: ${url}`);
                     const promise = fetch(url, { mode: 'cors' })
@@ -671,7 +671,7 @@ function getPitchShiftedNote(note, octave) {
         if (distance < minDistance) {
             minDistance = distance;
             closestSample = {
-                sampleKey: sampleKey, // e.g., 'A3v10'
+                sampleKey: sampleKey, // e.g., 'A3v8'
                 semitoneDiff: targetPitch - samplePitch
             };
         }
