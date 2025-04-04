@@ -618,7 +618,7 @@
                 const octaves = SAMPLE_CONFIG.octaves[note];
                 for (const octave of octaves) {
                     const sampleName = `${note}${octave}v10`;
-                    const url = `${GITHUB_RAW_BASE_URL}${sampleName}.flac`;
+                    const url = `${GITHUB_RAW_BASE_URL}${sampleName}.wav`;
                     console.log(`Attempting to load: ${url}`);
                     const promise = fetch(url, { mode: 'cors' })
                         .then(response => {
