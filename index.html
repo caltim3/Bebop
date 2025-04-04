@@ -436,14 +436,14 @@
     let lastTapTime = 0;
 
     // Piano sample configuration
-    const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/samples/';
+    const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/';
     const SAMPLE_CONFIG = {
         notes: ['A', 'C', 'D#', 'F#'],
         octaves: {
-            'A': [0, 1, 2, 3, 4, 5, 6, 7],
-            'C': [1, 2, 3, 4, 5, 6, 7, 8],
-            'D#': [1, 2, 3, 4, 5, 6, 7],
-            'F#': [1, 2, 3, 4, 5, 6, 7]
+            'A': [2, 3, 4, 5, 6],
+            'C': [2, 3, 4, 5, 6],
+            'D#': [2, 3, 4, 5, 6],
+            'F#': [2, 3, 4, 5, 6]
         }
     };
 
@@ -667,7 +667,7 @@
                 if (distance < minDistance) {
                     minDistance = distance;
                     closestSample = {
-                        sampleKey: `${sampleNote}${sampleOctave}v10`,
+                        sampleKey: `${sampleNote}${sampleOctave}v8`,
                         semitoneDiff: targetPitch - samplePitch
                     };
                 }
