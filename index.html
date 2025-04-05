@@ -395,19 +395,18 @@
     </div>
 
     <script>
-        // Global variables (from index 16)
-  
+        // Global state
         let audioContext = null;
-        let soundBuffers = {};
-        let pianoSampleBuffers = {};
-        let samplesLoaded = false;
-        let isPlaying = false;
+        let isPlaying = false;  // Add this line
         let currentBeat = 0;
         let currentMeasure = 0;
         let intervalId = null;
         let tempo = 120;
         let tapTimes = [];
         let lastTapTime = 0;
+        let currentChordGain = null;
+        let soundBuffers = {};
+        let reverbNode = null;
 
         // Piano sample configuration (from index 16)
         const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/';
@@ -819,7 +818,7 @@
         }
 
         // Playback control (updated from index 16 to handle eighth notes in 4/4)
-       function startPlayback() {
+    function startPlayback() {
     if (!audioContext) initAudioContext();
     const timeSignature = parseInt(document.getElementById('time-signature').value);
     const measures = document.getElementsByClassName('measure');
@@ -850,15 +849,13 @@
             const chordFretboard = document.getElementById('chord-fretboard');
             const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
             updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
-            document.getElementById('scale-display').textContent = 
-                `${scaleRoot} ${scaleType} over ${root} ${quality}`;
-            playChord(root, quality, audioContext.currentTime, (60 / tempo) * 4);
+            playChord(root, quality, audioContext.currentTime, (60 / tempo) * 2);
         }
     }
 
     intervalId = setInterval(playBeat, interval);
 }
-
+        
 function playBeat() {
     const beats = document.querySelectorAll('.beat');
     beats.forEach(beat => beat.classList.remove('active'));
@@ -908,17 +905,17 @@ function playBeat() {
     }
 }
 
-        function stopPlayback() {
-            clearInterval(intervalId);
-            currentBeat = 0;
-            currentMeasure = 0;
-            document.querySelectorAll('.beat').forEach(beat => beat.classList.remove('active'));
-            document.querySelectorAll('.measure').forEach(measure => measure.classList.remove('active'));
-            if (currentChordGain) {
-                currentChordGain.gain.setValueAtTime(currentChordGain.gain.value, audioContext.currentTime);
-                currentChordGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
-            }
+           function stopPlayback() {
+        clearInterval(intervalId);
+        currentBeat = 0;
+        currentMeasure = 0;
+        document.querySelectorAll('.beat').forEach(beat => beat.classList.remove('active'));
+        document.querySelectorAll('.measure').forEach(measure => measure.classList.remove('active'));
+        if (currentChordGain) {
+            currentChordGain.gain.setValueAtTime(currentChordGain.gain.value, audioContext.currentTime);
+            currentChordGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
         }
+    }
 
         // Fretboard management (from index 16)
         function createFretboard(container, tuning) {
@@ -1184,13 +1181,17 @@ function playBeat() {
         }
 
         // Event listeners (merged from both)
-        document.getElementById('start-stop
-
-        document.getElementById('time-signature').addEventListener('change', createBeats);
-        document.getElementById('sound-type').addEventListener('change', () => {});
-        document.getElementById('tempo').addEventListener('input', (e) => {
-            tempo = parseInt(e.target.value);
-            document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+        document.getElementById('start-stop').addEventListener('click', function() {
+            if (!audioContext) initAudioContext();
+            if (isPlaying) {
+                isPlaying = false;
+                this.textContent = 'Start';
+                stopPlayback();
+            } else {
+                isPlaying = true;
+                this.textContent = 'Stop';
+                startPlayback();
+            }
         });
 
         document.getElementById('tap-tempo').addEventListener('click', () => {
