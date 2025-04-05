@@ -396,6 +396,7 @@
 
     <script>
         // Global variables (from index 16)
+  
         let audioContext = null;
         let soundBuffers = {};
         let pianoSampleBuffers = {};
@@ -908,16 +909,15 @@ function playBeat() {
 }
 
         function stopPlayback() {
-            if (intervalId) {
-                cancelAnimationFrame(intervalId);
-                intervalId = null;
-            }
-            isPlaying = false;
+            clearInterval(intervalId);
             currentBeat = 0;
             currentMeasure = 0;
-            document.getElementById('start-stop').textContent = 'Start';
             document.querySelectorAll('.beat').forEach(beat => beat.classList.remove('active'));
             document.querySelectorAll('.measure').forEach(measure => measure.classList.remove('active'));
+            if (currentChordGain) {
+                currentChordGain.gain.setValueAtTime(currentChordGain.gain.value, audioContext.currentTime);
+                currentChordGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+            }
         }
 
         // Fretboard management (from index 16)
@@ -1184,10 +1184,7 @@ function playBeat() {
         }
 
         // Event listeners (merged from both)
-        document.getElementById('start-stop').addEventListener('click', () => {
-            if (isPlaying) stopPlayback();
-            else startPlayback();
-        });
+        document.getElementById('start-stop
 
         document.getElementById('time-signature').addEventListener('change', createBeats);
         document.getElementById('sound-type').addEventListener('change', () => {});
