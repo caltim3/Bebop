@@ -409,6 +409,7 @@
         let reverbNode = null;
         let pianoSampleBuffers = {};
         let samplesLoaded = false;
+        let tempo = parseInt(document.getElementById('tempo').value) || 120;
         
         // Piano sample configuration
         const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/';
@@ -539,6 +540,23 @@
             }
         }, { once: true });
 
+            document.getElementById('tempo').addEventListener('input', function() {
+        tempo = parseInt(this.value);
+        document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+        if (isPlaying) {
+            stopPlayback();
+            startPlayback();
+        }
+    });
+
+        document.getElementById('time-signature').addEventListener('change', function() {
+    createBeats();
+    if (isPlaying) {
+        stopPlayback();
+        startPlayback();
+    }
+});
+        
         // Load synthetic drum sounds (from index 16)
         async function loadSounds() {
             try {
@@ -820,8 +838,8 @@
         }
 
         // Playback control (updated from index 16 to handle eighth notes in 4/4)
-        function startPlayback() {
-    if (!audioContext) initAudioContext();
+function startPlayback() {
+    if (!audioContext) initializeAudio();
     const timeSignature = parseInt(document.getElementById('time-signature').value);
     const measures = document.getElementsByClassName('measure');
     
@@ -831,7 +849,7 @@
     }
     
     // Calculate interval based on tempo and time signature
-    let interval = (60 / tempo) * 1000; // Base interval for quarter notes
+    let interval = (60 / tempo) * 1000; // Convert tempo to milliseconds
     if (timeSignature === 4) {
         interval = interval / 2; // Half the interval for eighth notes in 4/4
     }
@@ -839,6 +857,8 @@
     currentBeat = 0;
     currentMeasure = 0;
     clearInterval(intervalId);
+    intervalId = setInterval(playBeat, interval);
+}
     
     // Update the label immediately when starting playback
     const currentMeasureElement = measures[currentMeasure];
