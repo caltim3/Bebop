@@ -820,25 +820,27 @@
         }
 
         // Playback control (updated from index 16 to handle eighth notes in 4/4)
-    function startPlayback() {
-    if (!audioContext) initAudioContext();
-    const timeSignature = parseInt(document.getElementById('time-signature').value);
-    const measures = document.getElementsByClassName('measure');
-
-    if (measures.length === 0) {
-        console.warn('No measures defined. Please add at least one measure.');
-        return;
-    }
-
-    let interval = (60 / tempo) * 1000;
-    if (timeSignature === 4) {
-        interval = interval / 2;
-    }
-
-    currentBeat = 0;
-    currentMeasure = 0;
-    clearInterval(intervalId);
-
+        function startPlayback() {
+            if (!audioContext) initAudioContext();
+            const timeSignature = parseInt(document.getElementById('time-signature').value);
+            const measures = document.getElementsByClassName('measure');
+        
+            if (measures.length === 0) {
+                console.warn('No measures defined. Please add at least one measure.');
+                return;
+            }
+        
+            // Calculate interval based on tempo and time signature
+            let interval = (60 / tempo) * 1000; // Base interval for quarter notes
+            if (timeSignature === 4) {
+                interval = interval / 2; // Half the interval for eighth notes in 4/4
+            }
+        
+            currentBeat = 0;
+            currentMeasure = 0;
+            clearInterval(intervalId);
+            intervalId = setInterval(playBeat, interval);
+        }
     // Update the label immediately when starting playback
     const currentMeasureElement = measures[currentMeasure];
     if (currentMeasureElement) {
@@ -1016,15 +1018,20 @@ function playBeat() {
 }
 
         // Beats creation (merged from winner drums work.html for eighth notes and clickable states)
-        function createBeats() {
+              function createBeats() {
             const container = document.querySelector('.beats-container');
             container.innerHTML = '';
             const timeSignature = parseInt(document.getElementById('time-signature').value);
-            const totalBeats = timeSignature === 4 ? 8 : timeSignature; // 8 beats for 4/4
+        
+            // Only use 8 beats (eighth notes) for 4/4 time signature
+            const totalBeats = timeSignature === 4 ? 8 : timeSignature;
+        
             for (let i = 0; i < totalBeats; i++) {
                 const beat = document.createElement('div');
                 beat.className = 'beat';
                 beat.dataset.beat = i;
+        
+                // Special handling for 4/4 time with eighth notes
                 if (timeSignature === 4) {
                     const isEighth = i % 2 === 1;
                     beat.textContent = `${Math.floor(i/2 + 1)}${isEighth ? '&' : ''}`;
@@ -1039,10 +1046,29 @@ function playBeat() {
                         beat.style.backgroundColor = '#9E9E9E';
                     }
                 } else {
+                    // For all other time signatures, use quarter notes
                     beat.textContent = i + 1;
-                    beat.dataset.volume = i === 0 ? '1' : '0.3';
-                    beat.style.backgroundColor = i === 0 ? '#2196F3' : '#4CAF50';
+                    
+                    // Set accent patterns for different time signatures
+                    if (timeSignature === 6) {
+                        // 6/8 time: Accent beats 1 and 4
+                        beat.dataset.volume = (i === 0 || i === 3) ? '1' : '0.3';
+                        beat.style.backgroundColor = (i === 0 || i === 3) ? '#2196F3' : '#4CAF50';
+                    } else if (timeSignature === 7) {
+                        // 7/8 time: Accent beats 1 and 5
+                        beat.dataset.volume = (i === 0 || i === 4) ? '1' : '0.3';
+                        beat.style.backgroundColor = (i === 0 || i === 4) ? '#2196F3' : '#4CAF50';
+                    } else if (timeSignature === 12) {
+                        // 12/8 time: Accent every third beat
+                        beat.dataset.volume = (i % 3 === 0) ? '1' : '0.3';
+                        beat.style.backgroundColor = (i % 3 === 0) ? '#2196F3' : '#4CAF50';
+                    } else {
+                        // All other time signatures: Accent first beat only
+                        beat.dataset.volume = i === 0 ? '1' : '0.3';
+                        beat.style.backgroundColor = i === 0 ? '#2196F3' : '#4CAF50';
+                    }
                 }
+        
                 beat.addEventListener('click', function() {
                     const states = [
                         { volume: '1', color: '#2196F3' },
@@ -1055,10 +1081,10 @@ function playBeat() {
                     this.dataset.volume = nextState.volume;
                     this.style.backgroundColor = nextState.color;
                 });
+        
                 container.appendChild(beat);
             }
         }
-
             // Progression management (from index 16, completed)
         function loadProgression(progressionName) {
             const progression = PROGRESSIONS[progressionName];
