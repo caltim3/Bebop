@@ -395,7 +395,7 @@
     </div>
 
     <script>
-        // Global state
+               // Global state
         let audioContext = null;
         let isPlaying = false;
         let currentBeat = 0;
@@ -407,10 +407,10 @@
         let currentChordGain = null;
         let soundBuffers = {};
         let reverbNode = null;
-        let pianoSampleBuffers = {};  // Add this line
-        let samplesLoaded = false;    // Add this line
-
-        // Piano sample configuration (from index 16)
+        let pianoSampleBuffers = {};
+        let samplesLoaded = false;
+        
+        // Piano sample configuration
         const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/';
         const SAMPLE_CONFIG = {
             notes: ['A', 'C', 'D#', 'F#'],
@@ -821,26 +821,25 @@
 
         // Playback control (updated from index 16 to handle eighth notes in 4/4)
         function startPlayback() {
-            if (!audioContext) initAudioContext();
-            const timeSignature = parseInt(document.getElementById('time-signature').value);
-            const measures = document.getElementsByClassName('measure');
-        
-            if (measures.length === 0) {
-                console.warn('No measures defined. Please add at least one measure.');
-                return;
-            }
-        
-            // Calculate interval based on tempo and time signature
-            let interval = (60 / tempo) * 1000; // Base interval for quarter notes
-            if (timeSignature === 4) {
-                interval = interval / 2; // Half the interval for eighth notes in 4/4
-            }
-        
-            currentBeat = 0;
-            currentMeasure = 0;
-            clearInterval(intervalId);
-            intervalId = setInterval(playBeat, interval);
-        }
+    if (!audioContext) initAudioContext();
+    const timeSignature = parseInt(document.getElementById('time-signature').value);
+    const measures = document.getElementsByClassName('measure');
+    
+    if (measures.length === 0) {
+        console.warn('No measures defined. Please add at least one measure.');
+        return;
+    }
+    
+    // Calculate interval based on tempo and time signature
+    let interval = (60 / tempo) * 1000; // Base interval for quarter notes
+    if (timeSignature === 4) {
+        interval = interval / 2; // Half the interval for eighth notes in 4/4
+    }
+    
+    currentBeat = 0;
+    currentMeasure = 0;
+    clearInterval(intervalId);
+    
     // Update the label immediately when starting playback
     const currentMeasureElement = measures[currentMeasure];
     if (currentMeasureElement) {
@@ -853,10 +852,10 @@
             const chordFretboard = document.getElementById('chord-fretboard');
             const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
             updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
-            playChord(root, quality, audioContext.currentTime, (60 / tempo) * 2);
+            playChord(root, quality);
         }
     }
-
+    
     intervalId = setInterval(playBeat, interval);
 }
         
@@ -1269,17 +1268,15 @@ function playBeat() {
             }
         });
 
-        // Initialization
+        // Initialize everything when the page loads
         window.onload = () => {
             createFretboard(document.getElementById('chord-fretboard'), TUNINGS.standard);
             updateFretboardNotes(document.getElementById('chord-fretboard'), 'C', 'major', TUNINGS.standard);
             createBeats();
             initializeDragAndDrop();
             initializeStaticFretboards();
-            updateLoadingStatus("Initializing...");
             initializeAudio().then(() => {
-                updateLoadingStatus("Ready");
-                setTimeout(() => document.getElementById('loading-indicator')?.remove(), 2000);
+                console.log("Audio initialized");
             });
         };
     </script>
