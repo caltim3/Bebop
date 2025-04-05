@@ -818,72 +818,91 @@
         }
 
         // Playback control (updated from index 16 to handle eighth notes in 4/4)
-        async function startPlayback() {
-            try {
-                if (!audioContext || audioContext.state !== 'running') {
-                    const success = await initializeAudio();
-                    if (!success) return;
-                }
-                stopPlayback();
-                currentBeat = 0;
-                currentMeasure = 0;
-                isPlaying = true;
-                document.getElementById('start-stop').textContent = 'Stop';
-                const timeSignature = parseInt(document.getElementById('time-signature').value);
-                const totalBeats = timeSignature === 4 ? 8 : timeSignature; // 8 beats for 4/4 (eighth notes)
-                const beatDuration = (60.0 / tempo) / (timeSignature === 4 ? 2 : 1); // Half duration for 4/4
-                let nextNoteTime = audioContext.currentTime;
+       function startPlayback() {
+    if (!audioContext) initAudioContext();
+    const timeSignature = parseInt(document.getElementById('time-signature').value);
+    const measures = document.getElementsByClassName('measure');
 
-                function schedule() {
-                    if (!isPlaying) return;
-                    while (nextNoteTime < audioContext.currentTime + 0.1) {
-                        const beatInMeasure = currentBeat % totalBeats;
-                        const beatElement = document.querySelector(`.beat[data-beat="${beatInMeasure}"]`);
-                        if (beatElement) {
-                            beatElement.classList.add('active');
-                            setTimeout(() => beatElement.classList.remove('active'), 100);
-                            playMetronomeSound(parseFloat(beatElement.dataset.volume));
-                        }
+    if (measures.length === 0) {
+        console.warn('No measures defined. Please add at least one measure.');
+        return;
+    }
 
-                        // Chord playback logic (adjusted for eighth-note timing in 4/4)
-                        if (document.getElementById('chordsEnabled').checked) {
-                            const measures = document.getElementsByClassName('measure');
-                            if (measures.length > 0) {
-                                const measureIndex = Math.floor(currentBeat / (timeSignature === 4 ? 8 : timeSignature)) % measures.length;
-                                const measure = measures[measureIndex];
-                                const root = measure.querySelector('.root-note').value;
-                                const quality = measure.querySelector('.chord-quality').value;
+    let interval = (60 / tempo) * 1000;
+    if (timeSignature === 4) {
+        interval = interval / 2;
+    }
 
-                                document.querySelectorAll('.measure').forEach(m => m.classList.remove('active'));
-                                measure.classList.add('active');
+    currentBeat = 0;
+    currentMeasure = 0;
+    clearInterval(intervalId);
 
-                                // Play chord at start and midpoint (adjusted for eighth notes)
-                                const beatsPerMeasure = timeSignature === 4 ? 8 : timeSignature;
-                                if (beatInMeasure === 0) {
-                                    playChord(root, quality); // Start of measure
-                                } else if (beatInMeasure === Math.floor(beatsPerMeasure / 2)) {
-                                    playChord(root, quality); // Midpoint of measure
-                                }
+    // Update the label immediately when starting playback
+    const currentMeasureElement = measures[currentMeasure];
+    if (currentMeasureElement) {
+        const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+        const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+        const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+        const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
 
-                                const scaleRoot = measure.querySelector('.second-key').value;
-                                const scaleType = measure.querySelector('.scale-select').value;
-                                const tuning = TUNINGS[document.getElementById('chord-tuning').value];
-                                updateFretboardNotes(document.getElementById('chord-fretboard'), scaleRoot, scaleType, tuning);
-                            }
-                        }
+        if (root && quality && scaleRoot && scaleType) {
+            const chordFretboard = document.getElementById('chord-fretboard');
+            const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
+            updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
+            document.getElementById('scale-display').textContent = 
+                `${scaleRoot} ${scaleType} over ${root} ${quality}`;
+            playChord(root, quality, audioContext.currentTime, (60 / tempo) * 4);
+        }
+    }
 
-                        currentBeat++;
-                        if (beatInMeasure === 0) currentMeasure++;
-                        nextNoteTime += beatDuration;
-                    }
-                    intervalId = requestAnimationFrame(schedule);
-                }
-                schedule();
-            } catch (error) {
-                console.error("Error in startPlayback:", error);
-                stopPlayback();
+    intervalId = setInterval(playBeat, interval);
+}
+
+function playBeat() {
+    const beats = document.querySelectorAll('.beat');
+    beats.forEach(beat => beat.classList.remove('active'));
+
+    const currentBeatElement = beats[currentBeat];
+    if (currentBeatElement) {
+        currentBeatElement.classList.add('active');
+        const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
+        playMetronomeSound(volume);
+    }
+
+    const measures = document.getElementsByClassName('measure');
+    if (currentBeat === 0 && measures.length > 0) {
+        const currentMeasureElement = measures[currentMeasure];
+        if (currentMeasureElement) {
+            const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+            const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+            const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+            const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+
+            if (root && quality && scaleRoot && scaleType) {
+                const chordFretboard = document.getElementById('chord-fretboard');
+                const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
+                updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
+                playChord(root, quality, audioContext.currentTime, (60 / tempo) * 4);
+            } else {
+                console.error('Missing chord or scale data for measure', currentMeasure);
             }
         }
+    }
+
+    if (measures.length > 0) {
+        document.querySelectorAll('.measure').forEach((measure, index) => {
+            measure.classList.toggle('active', index === currentMeasure);
+        });
+    }
+
+    const timeSignature = parseInt(document.getElementById('time-signature').value);
+    const totalBeats = timeSignature === 4 ? 8 : timeSignature;
+
+    currentBeat = (currentBeat + 1) % totalBeats;
+    if (currentBeat === 0 && measures.length > 0) {
+        currentMeasure = (currentMeasure + 1) % measures.length;
+    }
+}
 
         function stopPlayback() {
             if (intervalId) {
@@ -922,46 +941,66 @@
             }
         }
 
-        function updateFretboardNotes(container, rootNote, scale, tuning) {
-            container.querySelectorAll('.note').forEach(note => note.remove());
-            if (container.id === 'chord-fretboard') {
-                const measures = document.getElementsByClassName('measure');
-                if (measures.length > 0 && currentMeasure < measures.length) {
-                    const currentMeasureElement = measures[currentMeasure];
-                    const chordRoot = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-                    const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
-                    const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
-                    const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-                    if (chordRoot && chordQuality && scaleRoot && scaleType) {
-                        document.getElementById('scale-display').textContent = 
-                            `${scaleRoot} ${scaleType} over ${chordRoot} ${chordQuality}`;
-                    }
-                }
-            }
-            const scaleIntervals = SCALES[scale];
-            const scaleNotes = scaleIntervals.map(interval => NOTES[(NOTES.indexOf(rootNote) + interval) % 12]);
-            for (let string = 0; string < 6; string++) {
-                const openNote = tuning[string];
-                const openNoteIndex = NOTES.indexOf(openNote);
-                for (let fret = 0; fret <= 12; fret++) {
-                    const noteIndex = (openNoteIndex + fret) % 12;
-                    const currentNote = NOTES[noteIndex];
-                    if (scaleNotes.includes(currentNote)) {
-                        const noteElement = document.createElement('div');
-                        noteElement.className = 'note';
-                        noteElement.textContent = currentNote;
-                        const fretOffset = fret === 0 ? 0 : ((fret - 0.5) / 12) * 100;
-                        noteElement.style.left = `${fretOffset}%`;
-                        noteElement.style.top = `${(string / 5) * 100}%`;
-                        const degree = scaleNotes.indexOf(currentNote);
-                        noteElement.style.backgroundColor = currentNote === rootNote ? '#BD2031' : 
-                            [2, 4, 6].includes(degree) ? '#006400' : '#4CAF50';
-                        noteElement.addEventListener('click', () => playNote(currentNote, string, fret));
-                        container.appendChild(noteElement);
-                    }
-                }
+     function updateFretboardNotes(container, rootNote, scale, tuning) {
+    container.querySelectorAll('.note').forEach(note => note.remove());
+    
+    if (container.id === 'chord-fretboard') {
+        const measures = document.getElementsByClassName('measure');
+        if (measures.length > 0 && currentMeasure < measures.length) {
+            const currentMeasureElement = measures[currentMeasure];
+            const chordRoot = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+            const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+            const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+            const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+
+            if (chordRoot && chordQuality && scaleRoot && scaleType) {
+                const displayText = `${scaleRoot} ${scaleType} over ${chordRoot} ${chordQuality}`;
+                document.getElementById('scale-display').textContent = displayText;
             }
         }
+    }
+
+    const scaleIntervals = SCALES[scale];
+    const scaleNotes = scaleIntervals.map(interval => {
+        const noteIndex = (NOTES.indexOf(rootNote) + interval) % 12;
+        return NOTES[noteIndex];
+    });
+
+    for (let string = 0; string < 6; string++) {
+        const openNote = tuning[string];
+        const openNoteIndex = NOTES.indexOf(openNote);
+
+        for (let fret = 0; fret <= 12; fret++) {
+            const noteIndex = (openNoteIndex + fret) % 12;
+            const currentNote = NOTES[noteIndex];
+
+            if (scaleNotes.includes(currentNote)) {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'note';
+                noteElement.textContent = currentNote;
+
+                const fretOffset = fret === 0 ? 0 : ((fret - 0.5) / 12) * 100;
+                noteElement.style.left = `${fretOffset}%`;
+                noteElement.style.top = `${(string / 5) * 100}%`;
+
+                const degree = scaleNotes.indexOf(currentNote);
+                if (currentNote === rootNote) {
+                    noteElement.style.backgroundColor = '#BD2031';
+                } else if ([2, 4, 6].includes(degree)) {
+                    noteElement.style.backgroundColor = '#006400';
+                } else {
+                    noteElement.style.backgroundColor = '#4CAF50';
+                }
+
+                noteElement.addEventListener('click', () => {
+                    playNote(currentNote, string, fret);
+                });
+
+                container.appendChild(noteElement);
+            }
+        }
+    }
+}
 
         // Beats creation (merged from winner drums work.html for eighth notes and clickable states)
         function createBeats() {
