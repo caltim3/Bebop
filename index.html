@@ -838,7 +838,7 @@
         }
 
         // Playback control (updated from index 16 to handle eighth notes in 4/4)
-function startPlayback() {
+function function startPlayback() {
     if (!audioContext) initializeAudio();
     const timeSignature = parseInt(document.getElementById('time-signature').value);
     const measures = document.getElementsByClassName('measure');
@@ -857,25 +857,6 @@ function startPlayback() {
     currentBeat = 0;
     currentMeasure = 0;
     clearInterval(intervalId);
-    
-    // Update the label immediately when starting playback
-    const currentMeasureElement = measures[currentMeasure];
-    if (currentMeasureElement) {
-        const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-        const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
-        const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
-        const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-
-        if (root && quality && scaleRoot && scaleType) {
-            const chordFretboard = document.getElementById('chord-fretboard');
-            const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
-            updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
-            playChord(root, quality);
-        }
-    }
-    
-    intervalId = setInterval(playBeat, interval);
-}
     
     // Update the label immediately when starting playback
     const currentMeasureElement = measures[currentMeasure];
@@ -1255,110 +1236,125 @@ function playBeat() {
             document.getElementById(`static-scale-display-${index}`).textContent = `${key} ${scale}`;
         }
 
-        // Event listeners (merged from both)
-        // Keep only one set of these event listeners
-       // Keep only these event listeners (remove all other duplicates)
-document.getElementById('startStopButton').addEventListener('click', () => {
-    if (isPlaying) {
-        stopPlayback();
-        document.getElementById('startStopButton').textContent = 'Start';
-    } else {
-        startPlayback();
-        document.getElementById('startStopButton').textContent = 'Stop';
-    }
-    isPlaying = !isPlaying;
-});
+document.addEventListener('DOMContentLoaded', function() {
+    const measures = document.querySelectorAll('#measures .measure');
+    measures.forEach(measure => {
+        measure.draggable = true;
+        measure.addEventListener('dragstart', dragStart);
+        measure.addEventListener('dragover', dragOver);
+        measure.addEventListener('drop', drop);
+        measure.addEventListener('dragend', dragEnd);
+    });
+    updateMeasureNumbers();
 
-document.getElementById('tempo').addEventListener('input', (event) => {
-    tempo = parseInt(event.target.value, 10);
-    document.getElementById('tempo-display').textContent = `${tempo} BPM`;
-    if (isPlaying) {
-        stopPlayback();
-        startPlayback();
-    }
-});
+    const fretboardsGrid = document.querySelector('.fretboards-grid');
+    for (let i = 1; i <= 4; i++) {
+        const container = createFretboardContainer(i);
+        fretboardsGrid.appendChild(container);
+        const fretboard = container.querySelector('.fretboard');
+        createFretboard(fretboard, TUNINGS.standard);
+        updateFretboardNotes(fretboard, 'C', 'major', TUNINGS.standard);
 
-document.getElementById('time-signature').addEventListener('change', (event) => {
-    createBeats();
-    if (isPlaying) {
-        stopPlayback();
-        startPlayback();
-    }
-});
-        // Event Listeners Section
-document.getElementById('startStopButton').addEventListener('click', () => {
-    if (isPlaying) {
-        stopPlayback();
-        document.getElementById('startStopButton').textContent = 'Start';
-    } else {
-        startPlayback();
-        document.getElementById('startStopButton').textContent = 'Stop';
-    }
-    isPlaying = !isPlaying;
-});
+        container.querySelector('.tuning-select').addEventListener('change', function() {
+            const tuning = TUNINGS[this.value];
+            const key = container.querySelector(`#key-${i}`).value;
+            const scale = container.querySelector(`#scale-${i}`).value;
+            updateFretboardNotes(fretboard, key, scale, tuning);
+        });
 
-document.getElementById('tempo').addEventListener('input', (event) => {
-    tempo = parseInt(event.target.value, 10);
-    document.getElementById('tempo-display').textContent = `${tempo} BPM`;
-    if (isPlaying) {
-        stopPlayback();
-        startPlayback();
-    }
-});
+        container.querySelector(`#key-${i}`).addEventListener('change', function() {
+            const tuning = TUNINGS[container.querySelector('.tuning-select').value];
+            const scale = container.querySelector(`#scale-${i}`).value;
+            updateFretboardNotes(fretboard, this.value, scale, tuning);
+        });
 
-document.getElementById('time-signature').addEventListener('change', (event) => {
-    createBeats();
-    if (isPlaying) {
-        stopPlayback();
-        startPlayback();
+        container.querySelector(`#scale-${i}`).addEventListener('change', function() {
+            const tuning = TUNINGS[container.querySelector('.tuning-select').value];
+            const key = container.querySelector(`#key-${i}`).value;
+            updateFretboardNotes(fretboard, key, this.value, tuning);
+        });
     }
-});
 
-        // Event Listeners Section
-document.getElementById('startStopButton').addEventListener('click', () => {
-    if (isPlaying) {
-        stopPlayback();
-        document.getElementById('startStopButton').textContent = 'Start';
-    } else {
-        startPlayback();
-        document.getElementById('startStopButton').textContent = 'Stop';
-    }
-    isPlaying = !isPlaying;
-});
+    const chordFretboard = document.getElementById('chord-fretboard');
+    createFretboard(chordFretboard, TUNINGS.standard);
+    updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
 
-document.getElementById('tempo').addEventListener('input', (event) => {
-    tempo = parseInt(event.target.value, 10);
-    document.getElementById('tempo-display').textContent = `${tempo} BPM`;
-    if (isPlaying) {
-        stopPlayback();
-        startPlayback();
-    }
-});
-
-document.getElementById('time-signature').addEventListener('change', (event) => {
-    createBeats();
-    if (isPlaying) {
-        stopPlayback();
-        startPlayback();
-    }
-});
-
-// Add event listeners for chord and scale changes
-document.addEventListener('change', (event) => {
-    if (event.target.matches('.chord-select, .root-note, .chord-quality, .second-key, .scale-select')) {
-        const measureIndex = parseInt(event.target.closest('.measure')?.querySelector('.measure-number')?.textContent, 10) - 1;
-        if (measureIndex === currentMeasure) {
-            const root = event.target.closest('.measure').querySelector('.root-note').value;
-            const quality = event.target.closest('.measure').querySelector('.chord-quality').value;
-            const scaleRoot = event.target.closest('.measure').querySelector('.second-key').value;
-            const scaleType = event.target.closest('.measure').querySelector('.scale-select').value;
-            
-            const chordFretboard = document.getElementById('chord-fretboard');
-            const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
-            updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
-            if (isPlaying) playChord(root, quality);
+    document.getElementById('chord-tuning').addEventListener('change', function() {
+        const measures = document.getElementsByClassName('measure');
+        if (measures.length > 0 && currentMeasure < measures.length) {
+            const currentMeasureElement = measures[currentMeasure];
+            const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+            const scale = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+            if (root && scale) {
+                updateFretboardNotes(chordFretboard, root, scale, TUNINGS[this.value]);
+            }
         }
-    }
+    });
+
+    createBeats();
+
+    document.getElementById('start-stop').addEventListener('click', function() {
+        if (!audioContext) initAudioContext();
+        if (isPlaying) {
+            isPlaying = false;
+            this.textContent = 'Start';
+            stopPlayback();
+        } else {
+            isPlaying = true;
+            this.textContent = 'Stop';
+            startPlayback();
+        }
+    });
+
+    document.getElementById('tempo').addEventListener('input', function() {
+        tempo = parseInt(this.value);
+        document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+        if (isPlaying) {
+            stopPlayback();
+            startPlayback();
+        }
+    });
+
+    document.getElementById('time-signature').addEventListener('change', function() {
+        createBeats();
+        if (isPlaying) {
+            stopPlayback();
+            startPlayback();
+        }
+    });
+
+    document.getElementById('tap-tempo').addEventListener('click', function() {
+        const now = Date.now();
+        if (now - lastTapTime > 2000) {
+            tapTimes = [];
+        }
+        tapTimes.push(now);
+        lastTapTime = now;
+
+        if (tapTimes.length > 4) {
+            tapTimes.shift();
+        }
+
+        if (tapTimes.length > 1) {
+            const intervals = [];
+            for (let i = 1; i < tapTimes.length; i++) {
+                intervals.push(tapTimes[i] - tapTimes[i-1]);
+            }
+            const averageInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+            tempo = Math.round(60000 / averageInterval);
+            tempo = Math.min(Math.max(tempo, 40), 220);
+
+            document.getElementById('tempo').value = tempo;
+            document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+
+            if (isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        }
+    });
+
+    document.addEventListener('click', initAudioContext, { once: true });
 });
         // Initialize everything when the page loads
         window.onload = async () => {
