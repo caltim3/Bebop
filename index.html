@@ -396,19 +396,20 @@
 
     <script>
                // Global state
-        let audioContext = null;
-        let isPlaying = false;
-        let currentBeat = 0;
-        let currentMeasure = 0;
-        let intervalId = null;
-        let tempo = 120;
-        let tapTimes = [];
-        let lastTapTime = 0;
-        let currentChordGain = null;
-        let soundBuffers = {};
-        let reverbNode = null;
-        let pianoSampleBuffers = {};
-        let samplesLoaded = false;
+                // Global state
+                let audioContext = null;
+                let isPlaying = false;
+                let currentBeat = 0;
+                let currentMeasure = 0;
+                let intervalId = null;
+                let tempo = 120;
+                let tapTimes = [];
+                let lastTapTime = 0;
+                let currentChordGain = null;
+                let soundBuffers = {};
+                let reverbNode = null;
+                let pianoSampleBuffers = {};
+                let samplesLoaded = false;
         
         // Piano sample configuration
         const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/';
@@ -1256,52 +1257,34 @@ function playBeat() {
 
         // Event listeners (merged from both)
         // Keep only one set of these event listeners
-        document.getElementById('startStopButton').addEventListener('click', () => {
-            if (isPlaying) {
-                stopPlayback();
-                document.getElementById('startStopButton').textContent = 'Start';
-            } else {
-                startPlayback();
-                document.getElementById('startStopButton').textContent = 'Stop';
-            }
-            isPlaying = !isPlaying;
-        });
+       // Keep only these event listeners (remove all other duplicates)
+document.getElementById('startStopButton').addEventListener('click', () => {
+    if (isPlaying) {
+        stopPlayback();
+        document.getElementById('startStopButton').textContent = 'Start';
+    } else {
+        startPlayback();
+        document.getElementById('startStopButton').textContent = 'Stop';
+    }
+    isPlaying = !isPlaying;
+});
 
-        document.getElementById('tap-tempo').addEventListener('click', () => {
-            const now = Date.now();
-            if (lastTapTime) {
-                tapTimes.push(now - lastTapTime);
-                if (tapTimes.length > 4) tapTimes.shift();
-                const avgInterval = tapTimes.reduce((a, b) => a + b, 0) / tapTimes.length;
-                tempo = Math.round(60000 / avgInterval);
-                document.getElementById('tempo').value = tempo;
-                document.getElementById('tempo-display').textContent = `${tempo} BPM`;
-            }
-            lastTapTime = now;
-        });
+document.getElementById('tempo').addEventListener('input', (event) => {
+    tempo = parseInt(event.target.value, 10);
+    document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+    if (isPlaying) {
+        stopPlayback();
+        startPlayback();
+    }
+});
 
-        document.getElementById('progression-select').addEventListener('change', (e) => {
-            if (e.target.value === 'none') {
-                const measures = document.getElementById('measures');
-                measures.innerHTML = '';
-                addMeasure();
-                addMeasure('E', 'minor', 'E', 'minor');
-            } else {
-                loadProgression(e.target.value);
-            }
-        });
-
-        document.getElementById('chord-tuning').addEventListener('change', () => {
-            const tuning = TUNINGS[document.getElementById('chord-tuning').value];
-            createFretboard(document.getElementById('chord-fretboard'), tuning);
-            const measures = document.getElementsByClassName('measure');
-            if (measures.length > 0) {
-                const measure = measures[currentMeasure % measures.length];
-                const scaleRoot = measure.querySelector('.second-key').value;
-                const scaleType = measure.querySelector('.scale-select').value;
-                updateFretboardNotes(document.getElementById('chord-fretboard'), scaleRoot, scaleType, tuning);
-            }
-        });
+document.getElementById('time-signature').addEventListener('change', (event) => {
+    createBeats();
+    if (isPlaying) {
+        stopPlayback();
+        startPlayback();
+    }
+});
         // Event Listeners Section
 document.getElementById('startStopButton').addEventListener('click', () => {
     if (isPlaying) {
