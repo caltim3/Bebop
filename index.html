@@ -870,7 +870,10 @@ function playBeat() {
     }
 
     const measures = document.getElementsByClassName('measure');
-    if (currentBeat === 0 && measures.length > 0) {
+    const timeSignature = parseInt(document.getElementById('time-signature').value);
+
+    // Play chord on beats 1 and 3 (currentBeat 0 and 4) in 4/4 time
+    if ((currentBeat === 0 || (timeSignature === 4 && currentBeat === 4)) && measures.length > 0) {
         const currentMeasureElement = measures[currentMeasure];
         if (currentMeasureElement) {
             const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
@@ -882,7 +885,8 @@ function playBeat() {
                 const chordFretboard = document.getElementById('chord-fretboard');
                 const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
                 updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
-                playChord(root, quality, audioContext.currentTime, (60 / tempo) * 4);
+                // Play chord for 2 beats duration instead of 4
+                playChord(root, quality, audioContext.currentTime, (60 / tempo) * 2);
             } else {
                 console.error('Missing chord or scale data for measure', currentMeasure);
             }
@@ -895,7 +899,6 @@ function playBeat() {
         });
     }
 
-    const timeSignature = parseInt(document.getElementById('time-signature').value);
     const totalBeats = timeSignature === 4 ? 8 : timeSignature;
 
     currentBeat = (currentBeat + 1) % totalBeats;
