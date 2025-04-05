@@ -257,7 +257,7 @@
             <input type="range" id="tempo" min="40" max="220" value="120">
             <span id="tempo-display">120 BPM</span>
             <button id="tap-tempo">Tap Tempo</button>
-            <button id="start-stop">Start</button>
+            <button id="startStopButton">Start</button>
         </div>
         <div class="beats-container">
             <!-- Beats will be generated dynamically -->
@@ -395,6 +395,15 @@
     </div>
 
     <script>
+
+        // Initialize audio context
+        let audioContext = null;
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioContext;
+        }
                // Global state
         let audioContext = null;
         let isPlaying = false;
@@ -409,7 +418,6 @@
         let reverbNode = null;
         let pianoSampleBuffers = {};
         let samplesLoaded = false;
-        let tempo = parseInt(document.getElementById('tempo').value) || 120;
         
         // Piano sample configuration
         const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/';
@@ -1287,18 +1295,97 @@ function playBeat() {
                 updateFretboardNotes(document.getElementById('chord-fretboard'), scaleRoot, scaleType, tuning);
             }
         });
+        // Event Listeners Section
+document.getElementById('startStopButton').addEventListener('click', () => {
+    if (isPlaying) {
+        stopPlayback();
+        document.getElementById('startStopButton').textContent = 'Start';
+    } else {
+        startPlayback();
+        document.getElementById('startStopButton').textContent = 'Stop';
+    }
+    isPlaying = !isPlaying;
+});
 
+document.getElementById('tempo').addEventListener('input', (event) => {
+    tempo = parseInt(event.target.value, 10);
+    document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+    if (isPlaying) {
+        stopPlayback();
+        startPlayback();
+    }
+});
+
+document.getElementById('time-signature').addEventListener('change', (event) => {
+    createBeats();
+    if (isPlaying) {
+        stopPlayback();
+        startPlayback();
+    }
+});
+
+        // Event Listeners Section
+document.getElementById('startStopButton').addEventListener('click', () => {
+    if (isPlaying) {
+        stopPlayback();
+        document.getElementById('startStopButton').textContent = 'Start';
+    } else {
+        startPlayback();
+        document.getElementById('startStopButton').textContent = 'Stop';
+    }
+    isPlaying = !isPlaying;
+});
+
+document.getElementById('tempo').addEventListener('input', (event) => {
+    tempo = parseInt(event.target.value, 10);
+    document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+    if (isPlaying) {
+        stopPlayback();
+        startPlayback();
+    }
+});
+
+document.getElementById('time-signature').addEventListener('change', (event) => {
+    createBeats();
+    if (isPlaying) {
+        stopPlayback();
+        startPlayback();
+    }
+});
+
+// Add event listeners for chord and scale changes
+document.addEventListener('change', (event) => {
+    if (event.target.matches('.chord-select, .root-note, .chord-quality, .second-key, .scale-select')) {
+        const measureIndex = parseInt(event.target.closest('.measure')?.querySelector('.measure-number')?.textContent, 10) - 1;
+        if (measureIndex === currentMeasure) {
+            const root = event.target.closest('.measure').querySelector('.root-note').value;
+            const quality = event.target.closest('.measure').querySelector('.chord-quality').value;
+            const scaleRoot = event.target.closest('.measure').querySelector('.second-key').value;
+            const scaleType = event.target.closest('.measure').querySelector('.scale-select').value;
+            
+            const chordFretboard = document.getElementById('chord-fretboard');
+            const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
+            updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
+            if (isPlaying) playChord(root, quality);
+        }
+    }
+});
         // Initialize everything when the page loads
-        window.onload = () => {
+        window.onload = async () => {
+            await initializeAudio();
             createFretboard(document.getElementById('chord-fretboard'), TUNINGS.standard);
             updateFretboardNotes(document.getElementById('chord-fretboard'), 'C', 'major', TUNINGS.standard);
             createBeats();
             initializeDragAndDrop();
             initializeStaticFretboards();
-            initializeAudio().then(() => {
-                console.log("Audio initialized");
-            });
-        };
+            
+            // Add initial measures if none exist
+            const measures = document.getElementById('measures');
+            if (measures.children.length === 0) {
+                addMeasure('C', 'major', 'C', 'major');
+                addMeasure('G', 'dom7', 'G', 'mixolydian');
+            }
+};
     </script>
 </body>
 </html>
