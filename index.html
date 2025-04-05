@@ -395,15 +395,6 @@
     </div>
 
     <script>
-
-        // Initialize audio context
-        let audioContext = null;
-        function initAudioContext() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            return audioContext;
-        }
                // Global state
         let audioContext = null;
         let isPlaying = false;
@@ -865,6 +856,23 @@ function startPlayback() {
     currentBeat = 0;
     currentMeasure = 0;
     clearInterval(intervalId);
+    
+    // Update the label immediately when starting playback
+    const currentMeasureElement = measures[currentMeasure];
+    if (currentMeasureElement) {
+        const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+        const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+        const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+        const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+
+        if (root && quality && scaleRoot && scaleType) {
+            const chordFretboard = document.getElementById('chord-fretboard');
+            const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
+            updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
+            playChord(root, quality);
+        }
+    }
+    
     intervalId = setInterval(playBeat, interval);
 }
     
@@ -1247,17 +1255,16 @@ function playBeat() {
         }
 
         // Event listeners (merged from both)
-        document.getElementById('start-stop').addEventListener('click', function() {
-            if (!audioContext) initAudioContext();
+        // Keep only one set of these event listeners
+        document.getElementById('startStopButton').addEventListener('click', () => {
             if (isPlaying) {
-                isPlaying = false;
-                this.textContent = 'Start';
                 stopPlayback();
+                document.getElementById('startStopButton').textContent = 'Start';
             } else {
-                isPlaying = true;
-                this.textContent = 'Stop';
                 startPlayback();
+                document.getElementById('startStopButton').textContent = 'Stop';
             }
+            isPlaying = !isPlaying;
         });
 
         document.getElementById('tap-tempo').addEventListener('click', () => {
