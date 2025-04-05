@@ -397,7 +397,7 @@
     <script>
         // Global state
         let audioContext = null;
-        let isPlaying = false;  // Add this line
+        let isPlaying = false;
         let currentBeat = 0;
         let currentMeasure = 0;
         let intervalId = null;
@@ -407,6 +407,8 @@
         let currentChordGain = null;
         let soundBuffers = {};
         let reverbNode = null;
+        let pianoSampleBuffers = {};  // Add this line
+        let samplesLoaded = false;    // Add this line
 
         // Piano sample configuration (from index 16)
         const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/';
