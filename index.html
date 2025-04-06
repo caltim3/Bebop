@@ -1263,8 +1263,8 @@ function playBeat() {
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize measures drag and drop
-    const measures = document.querySelectorAll('#measures .measure');
-    measures.forEach(measure => {
+    const measuresElements = document.querySelectorAll('#measures .measure');
+    measuresElements.forEach(measure => {
         measure.draggable = true;
         measure.addEventListener('dragstart', dragStart);
         measure.addEventListener('dragover', dragOver);
@@ -1278,8 +1278,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeStaticFretboards();
     
     // Add initial measures if none exist
-    const measures = document.getElementById('measures');
-    if (measures.children.length === 0) {
+    const measuresContainer = document.getElementById('measures');
+    if (measuresContainer.children.length === 0) {
         addMeasure('C', 'major', 'C', 'major');
         addMeasure('G', 'dom7', 'G', 'mixolydian');
     }
