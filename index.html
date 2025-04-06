@@ -412,7 +412,7 @@
 
     // Piano sample configuration
     const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/';
-    const SAMPLED_NOTES = ['A', 'C', 'F#', 'D#']; // The notes we have samples for
+    const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
     const PIANO_CONFIG = {
         octaves: {
             'A': [2, 3, 4, 5, 6],
@@ -633,40 +633,28 @@ async function setupReverb() {
         return buffer;
     }
 
-   async function loadPianoSamples(audioContext) {
-    try {
-        console.log('[FretFlow Debug] Starting piano sample loading...');
-        
-        for (const note of SAMPLED_NOTES) {
-            pianoSampleBuffers[note] = {};
-            
-            for (const octave of PIANO_CONFIG.octaves[note]) {
-                pianoSampleBuffers[note][octave] = {};
-                
-                for (const velocity of PIANO_CONFIG.velocities) {
-                    const fileName = `${note}${octave}v${velocity}.${PIANO_CONFIG.fileFormat}`;
-                    const url = `${GITHUB_RAW_BASE_URL}samples/${fileName}`;
-                    
-                    try {
-                        const response = await fetch(url);
-                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                        const arrayBuffer = await response.arrayBuffer();
-                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                        pianoSampleBuffers[note][octave][velocity] = audioBuffer;
-                        console.log(`[FretFlow Debug] Loaded sample: ${fileName}`);
-                    } catch (error) {
-                        console.error(`Failed to load sample ${fileName}:`, error);
-                    }
-                }
+   async function loadPianoSamples() {
+    console.log('[FretFlow Debug] Starting piano sample loading...');
+    if (!audioContext) initAudioContext();
+
+    const octaves = [2, 3, 4, 5, 6]; // Adjust range as needed
+    for (let octave of octaves) {
+        for (let note of SAMPLED_NOTES) {
+            const sampleName = `${note}${octave}v12`;
+            const url = `https://raw.githubusercontent.com/caltim3/FretFlow/main/samples/${sampleName}.wav`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const arrayBuffer = await response.arrayBuffer();
+                pianoSampleBuffers[sampleName] = await audioContext.decodeAudioData(arrayBuffer);
+                console.log(`Loaded ${sampleName}`);
+            } catch (error) {
+                console.error(`Failed to load sample ${sampleName}:`, error);
             }
         }
-        console.log('[FretFlow Debug] Piano sample loading completed');
-    } catch (error) {
-        console.error('Piano sample loading failed:', error);
-        throw error;
     }
+    console.log('[FretFlow Debug] Piano sample loading completed');
 }
-
     function getPitchShiftedNote(note, octave) {
         const noteIndex = NOTES.indexOf(note);
         const targetPitch = octave * 12 + noteIndex;
