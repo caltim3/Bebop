@@ -411,7 +411,6 @@
     let samplesLoaded = false;
 
     // Piano sample configuration
-    const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/bebop/main/';
     const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
     const PIANO_CONFIG = {
         octaves: {
@@ -696,22 +695,6 @@ async function setupReverb() {
     if (!samplesLoaded) {
         log('No samples loaded, will use fallback oscillator');
         updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
-    }
-}
-    const results = await Promise.all(loadPromises);
-    results.forEach(result => {
-        if (result) {
-            pianoSampleBuffers[result.name] = result.buffer;
-        }
-    });
-
-    samplesLoaded = Object.keys(pianoSampleBuffers).length > 0;
-    console.log('[FretFlow Debug] Piano sample loading completed');
-    console.log('[FretFlow Debug] Loaded samples:', Object.keys(pianoSampleBuffers));
-
-    // If no samples loaded, fall back to oscillator
-    if (!samplesLoaded) {
-        console.warn('[FretFlow Debug] No samples loaded, will use fallback oscillator');
     }
 }
        
@@ -1434,14 +1417,14 @@ function createFretboard(container, tuning) {
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Initialize audio context on first user interaction
-    document.addEventListener('click', async () => {
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            console.log('[FretFlow Debug] Audio initialized on first click');
-            await loadPianoSamples(audioContext);
-        }
+    document.addEventListener('click', async function initAudioOnFirstClick() {
+    const success = await initializeAudio();
+    if (success) {
+        document.removeEventListener('click', initAudioOnFirstClick);
+        console.log("Audio initialized on first click");
+    }
     }, { once: true });
-
+    
     const measures = document.querySelectorAll('#measures .measure');
     measures.forEach(measure => {
         measure.draggable = true;
