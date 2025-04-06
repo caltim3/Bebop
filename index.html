@@ -257,7 +257,7 @@
             <input type="range" id="tempo" min="40" max="220" value="120">
             <span id="tempo-display">120 BPM</span>
             <button id="tap-tempo">Tap Tempo</button>
-            <button id="startStopButton">Start</button>
+            <button id="start-stop">Start</button>
         </div>
         <div class="beats-container">
             <!-- Beats will be generated dynamically -->
@@ -409,8 +409,7 @@
                 let soundBuffers = {};
                 let reverbNode = null;
                 let pianoSampleBuffers = {};
-                let samplesLoaded = false;
-        
+                let samplesLoaded = false;        
         // Piano sample configuration
         const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/';
         const SAMPLE_CONFIG = {
@@ -838,7 +837,7 @@
         }
 
         // Playback control (updated from index 16 to handle eighth notes in 4/4)
-function function startPlayback() {
+function startPlayback() {
     if (!audioContext) initializeAudio();
     const timeSignature = parseInt(document.getElementById('time-signature').value);
     const measures = document.getElementsByClassName('measure');
