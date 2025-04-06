@@ -416,8 +416,8 @@
     const PIANO_CONFIG = {
         octaves: {
             'A': [2, 3, 4, 5, 6],
-            'C': [2, 3, 4, 5, 6],  // Added comma
-            'F#': [2, 3, 4, 5, 6], // Added comma
+            'C': [2, 3, 4, 5, 6],
+            'F#': [2, 3, 4, 5, 6],
             'D#': [2, 3, 4, 5, 6]
         },
         velocities: [12],
@@ -634,32 +634,85 @@ async function setupReverb() {
     }
 
    async function loadPianoSamples() {
-    console.log('[FretFlow Debug] Starting piano sample loading...');
-    if (!audioContext) initializeAudio();
+    log('Starting piano sample loading...');
+    if (!audioContext) await initializeAudio();
 
-    const octaves = [2, 3, 4, 5, 6]; // Adjust range as needed
-    for (let octave of octaves) {
-        for (let note of SAMPLED_NOTES) {
+    // First, try to load a single sample to test if files are accessible
+    const testSampleName = 'A4v12';
+    const testUrl = `${testSampleName}.wav`;
+    try {
+        const testResponse = await fetch(testUrl);
+        if (!testResponse.ok) {
+            log(`Test sample load failed. Please check if ${testUrl} exists in the same directory as the HTML file.`);
+            return;
+        }
+    } catch (error) {
+        log(`Error loading test sample: ${error.message}`);
+        return;
+    }
+
+    const loadPromises = [];
+    
+    for (let note of SAMPLED_NOTES) {
+        for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
-            const url = `https://raw.githubusercontent.com/caltim3/FretFlow/main/samples/${sampleName}.wav`;
-            console.log(`[FretFlow Debug] Attempting to load: ${url}`);
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    console.error(`[FretFlow Debug] Failed to load ${sampleName}: ${response.status} ${response.statusText}`);
-                    continue;
+            const url = `${sampleName}.wav`;
+            
+            const loadPromise = (async () => {
+                try {
+                    log(`Attempting to load: ${url}`);
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        log(`Failed to load ${sampleName}: ${response.status}`);
+                        return null;
+                    }
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    log(`Successfully loaded ${sampleName}`);
+                    return { name: sampleName, buffer: audioBuffer };
+                } catch (error) {
+                    log(`Error loading ${sampleName}: ${error.message}`);
+                    return null;
                 }
-                const arrayBuffer = await response.arrayBuffer();
-                pianoSampleBuffers[sampleName] = await audioContext.decodeAudioData(arrayBuffer);
-                console.log(`[FretFlow Debug] Successfully loaded ${sampleName}`);
-            } catch (error) {
-                console.error(`[FretFlow Debug] Error loading ${sampleName}:`, error);
-            }
+            })();
+            
+            loadPromises.push(loadPromise);
         }
     }
-    samplesLoaded = true;
+
+    const results = await Promise.all(loadPromises);
+    results.forEach(result => {
+        if (result) {
+            pianoSampleBuffers[result.name] = result.buffer;
+        }
+    });
+
+    samplesLoaded = Object.keys(pianoSampleBuffers).length > 0;
+    log('Piano sample loading completed');
+    log(`Loaded samples: ${Object.keys(pianoSampleBuffers).join(', ')}`);
+
+    if (!samplesLoaded) {
+        log('No samples loaded, will use fallback oscillator');
+        updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
+    }
+}
+    const results = await Promise.all(loadPromises);
+    results.forEach(result => {
+        if (result) {
+            pianoSampleBuffers[result.name] = result.buffer;
+        }
+    });
+
+    samplesLoaded = Object.keys(pianoSampleBuffers).length > 0;
     console.log('[FretFlow Debug] Piano sample loading completed');
     console.log('[FretFlow Debug] Loaded samples:', Object.keys(pianoSampleBuffers));
+
+    // If no samples loaded, fall back to oscillator
+    if (!samplesLoaded) {
+        console.warn('[FretFlow Debug] No samples loaded, will use fallback oscillator');
+    }
 }
        
     function getPitchShiftedNote(note, octave) {
