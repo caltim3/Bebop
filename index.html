@@ -922,8 +922,49 @@
         }
     }
 
-    function createFretboard(container, tuning) {
+function createFretboard(container, tuning) {
     container.innerHTML = '';
+
+    // Create fret markers container
+    const markersContainer = document.createElement('div');
+    markersContainer.style.position = 'absolute';
+    markersContainer.style.width = '100%';
+    markersContainer.style.height = '100%';
+    markersContainer.style.pointerEvents = 'none'; // So it doesn't interfere with note clicks
+    container.appendChild(markersContainer);
+
+    // Add position markers
+    [3, 5, 7, 9, 12].forEach(fret => {
+        const marker = document.createElement('div');
+        marker.className = 'fret-marker';
+        marker.style.position = 'absolute';
+        marker.style.width = '12px';
+        marker.style.height = '12px';
+        marker.style.backgroundColor = '#333';
+        marker.style.borderRadius = '50%';
+        marker.style.left = `${((fret - 0.5) / 12) * 100}%`;
+        
+        // Position between 3rd and 4th strings
+        marker.style.top = '50%';
+        marker.style.transform = 'translate(-50%, -50%)';
+        
+        // Special handling for 12th fret (double dot)
+        if (fret === 12) {
+            // First dot above center
+            const marker1 = marker.cloneNode();
+            marker1.style.top = '40%';
+            markersContainer.appendChild(marker1);
+            
+            // Second dot below center
+            const marker2 = marker.cloneNode();
+            marker2.style.top = '60%';
+            markersContainer.appendChild(marker2);
+        } else {
+            markersContainer.appendChild(marker);
+        }
+    });
+
+    // Create fret lines
     for (let i = 0; i <= 12; i++) {
         const fretLine = document.createElement('div');
         fretLine.className = 'fret-line';
@@ -934,15 +975,12 @@
             const fretNumber = document.createElement('div');
             fretNumber.className = 'fret-number';
             fretNumber.textContent = i;
-
-            // Calculate the position as the midpoint between the previous fret and current fret
-            const prevFret = i - 1;
-            const fretPosition = ((prevFret + (i - prevFret) / 2) / 12) * 100;
-            fretNumber.style.left = `${fretPosition}%`;
-
+            fretNumber.style.left = `${(i / 12) * 100}%`;
             container.appendChild(fretNumber);
         }
     }
+
+    // Create strings
     for (let i = 0; i < 6; i++) {
         const stringLine = document.createElement('div');
         stringLine.className = 'string-line';
