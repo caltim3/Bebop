@@ -1430,8 +1430,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Initialize audio context on first click
-    document.addEventListener('click', initAudioContext, { once: true });
-});
+    document.addEventListener('DOMContentLoaded', function() {
+        const success = await initializeAudio();
+        if (success) {
+            document.removeEventListener('click', initAudioOnFirstClick);
+            log("Audio initialized on first click");
+        }
+    }, { once: true });
         
    function createFretboardContainer(index) {
     const container = document.createElement('div');
@@ -1536,20 +1541,18 @@ document.getElementById('tap-tempo').addEventListener('click', function() {
 });
         // Initialize everything when the page loads
         window.onload = async () => {
-            await initializeAudio();
             createFretboard(document.getElementById('chord-fretboard'), TUNINGS.standard);
             updateFretboardNotes(document.getElementById('chord-fretboard'), 'C', 'major', TUNINGS.standard);
             createBeats();
             initializeDragAndDrop();
             initializeStaticFretboards();
-            
-            // Add initial measures if none exist
-            const measures = document.getElementById('measures');
-            if (measures.children.length === 0) {
-                addMeasure('C', 'major', 'C', 'major');
-                addMeasure('G', 'dom7', 'G', 'mixolydian');
-            }
-};
+
+        const measures = document.getElementById('measures');
+        if (measures.children.length === 0) {
+            addMeasure('C', 'major', 'C', 'major');
+            addMeasure('G', 'dom7', 'G', 'mixolydian');
+        }
+    };
     </script>
 </body>
 </html>
