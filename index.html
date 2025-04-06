@@ -635,26 +635,33 @@ async function setupReverb() {
 
    async function loadPianoSamples() {
     console.log('[FretFlow Debug] Starting piano sample loading...');
-    if (!audioContext) initAudioContext();
+    if (!audioContext) initializeAudio();
 
     const octaves = [2, 3, 4, 5, 6]; // Adjust range as needed
     for (let octave of octaves) {
         for (let note of SAMPLED_NOTES) {
             const sampleName = `${note}${octave}v12`;
             const url = `https://raw.githubusercontent.com/caltim3/FretFlow/main/samples/${sampleName}.wav`;
+            console.log(`[FretFlow Debug] Attempting to load: ${url}`);
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    console.error(`[FretFlow Debug] Failed to load ${sampleName}: ${response.status} ${response.statusText}`);
+                    continue;
+                }
                 const arrayBuffer = await response.arrayBuffer();
                 pianoSampleBuffers[sampleName] = await audioContext.decodeAudioData(arrayBuffer);
-                console.log(`Loaded ${sampleName}`);
+                console.log(`[FretFlow Debug] Successfully loaded ${sampleName}`);
             } catch (error) {
-                console.error(`Failed to load sample ${sampleName}:`, error);
+                console.error(`[FretFlow Debug] Error loading ${sampleName}:`, error);
             }
         }
     }
+    samplesLoaded = true;
     console.log('[FretFlow Debug] Piano sample loading completed');
+    console.log('[FretFlow Debug] Loaded samples:', Object.keys(pianoSampleBuffers));
 }
+       
     function getPitchShiftedNote(note, octave) {
         const noteIndex = NOTES.indexOf(note);
         const targetPitch = octave * 12 + noteIndex;
