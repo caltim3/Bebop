@@ -1271,10 +1271,28 @@ document.addEventListener('DOMContentLoaded', function() {
         measure.addEventListener('drop', drop);
         measure.addEventListener('dragend', dragEnd);
     });
-    updateMeasureNumbers();
     
-    // Create initial beats
+    updateMeasureNumbers();
     createBeats();
+    initializeDragAndDrop();
+    initializeStaticFretboards();
+    
+    // Add initial measures if none exist
+    const measures = document.getElementById('measures');
+    if (measures.children.length === 0) {
+        addMeasure('C', 'major', 'C', 'major');
+        addMeasure('G', 'dom7', 'G', 'mixolydian');
+    }
+    
+    // Single audio context initialization
+    document.addEventListener('click', async function initAudioOnFirstClick() {
+        const success = await initializeAudio();
+        if (success) {
+            document.removeEventListener('click', initAudioOnFirstClick);
+            log("Audio initialized on first click");
+        }
+    }, { once: true });
+});
     
     // Set up tempo and time signature handlers
     document.getElementById('tempo').addEventListener('input', function() {
@@ -1372,38 +1390,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    document.getElementById('tap-tempo').addEventListener('click', function() {
-        const now = Date.now();
-        if (now - lastTapTime > 2000) {
-            tapTimes = [];
+document.getElementById('tap-tempo').addEventListener('click', function() {
+    const now = Date.now();
+    if (now - lastTapTime > 2000) {
+        tapTimes = [];
+    }
+    tapTimes.push(now);
+    lastTapTime = now;
+
+    if (tapTimes.length > 4) {
+        tapTimes.shift();
+    }
+
+    if (tapTimes.length > 1) {
+        const intervals = [];
+        for (let i = 1; i < tapTimes.length; i++) {
+            intervals.push(tapTimes[i] - tapTimes[i-1]);
         }
-        tapTimes.push(now);
-        lastTapTime = now;
+        const averageInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+        tempo = Math.round(60000 / averageInterval);
+        tempo = Math.min(Math.max(tempo, 40), 220);
 
-        if (tapTimes.length > 4) {
-            tapTimes.shift();
+        document.getElementById('tempo').value = tempo;
+        document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+
+        if (isPlaying) {
+            stopPlayback();
+            startPlayback();
         }
-
-        if (tapTimes.length > 1) {
-            const intervals = [];
-            for (let i = 1; i < tapTimes.length; i++) {
-                intervals.push(tapTimes[i] - tapTimes[i-1]);
-            }
-            const averageInterval = intervals.reduce((a, b) => a + b) / intervals.length;
-            tempo = Math.round(60000 / averageInterval);
-            tempo = Math.min(Math.max(tempo, 40), 220);
-
-            document.getElementById('tempo').value = tempo;
-            document.getElementById('tempo-display').textContent = `${tempo} BPM`;
-
-            if (isPlaying) {
-                stopPlayback();
-                startPlayback();
-            }
-        }
-    });
-
-    document.addEventListener('click', initAudioContext, { once: true });
+    }
 });
         // Initialize everything when the page loads
         window.onload = async () => {
