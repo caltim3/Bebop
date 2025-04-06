@@ -1023,7 +1023,7 @@
                 beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
                 if (i === 0 || i === 4) {
                     beat.dataset.volume = '1';
-                    beat.style.backgroundColor = '#2196F3';
+                    beat.style.backgroundColor = '#1F618D';
                 } else if (i % 2 === 0) {
                     beat.dataset.volume = '0.3';
                     beat.style.backgroundColor = '#4CAF50';
@@ -1035,22 +1035,22 @@
                 beat.textContent = i + 1;
                 if (timeSignature === 6) {
                     beat.dataset.volume = (i === 0 || i === 3) ? '1' : '0.3';
-                    beat.style.backgroundColor = (i === 0 || i === 3) ? '#2196F3' : '#4CAF50';
+                    beat.style.backgroundColor = (i === 0 || i === 3) ? '#1F618D' : '#4CAF50';
                 } else if (timeSignature === 7) {
                     beat.dataset.volume = (i === 0 || i === 4) ? '1' : '0.3';
-                    beat.style.backgroundColor = (i === 0 || i === 4) ? '#2196F3' : '#4CAF50';
+                    beat.style.backgroundColor = (i === 0 || i === 4) ? '#1F618D' : '#4CAF50';
                 } else if (timeSignature === 12) {
                     beat.dataset.volume = (i % 3 === 0) ? '1' : '0.3';
-                    beat.style.backgroundColor = (i % 3 === 0) ? '#2196F3' : '#4CAF50';
+                    beat.style.backgroundColor = (i % 3 === 0) ? '#1F618D' : '#4CAF50';
                 } else {
                     beat.dataset.volume = i === 0 ? '1' : '0.3';
-                    beat.style.backgroundColor = i === 0 ? '#2196F3' : '#4CAF50';
+                    beat.style.backgroundColor = i === 0 ? '#1F618D' : '#4CAF50';
                 }
             }
 
             beat.addEventListener('click', function() {
                 const states = [
-                    { volume: '1', color: '#2196F3' },
+                    { volume: '1', color: '#1F618D' },
                     { volume: '0.3', color: '#4CAF50' },
                     { volume: '0', color: '#9E9E9E' }
                 ];
