@@ -723,6 +723,24 @@
         oscillator.stop(audioContext.currentTime + duration);
     }
 
+    async function setupReverb() {
+    if (!audioContext) initAudioContext();
+    reverbNode = audioContext.createConvolver();
+    const sampleRate = audioContext.sampleRate;
+    const length = sampleRate * 2.5;
+    const impulse = audioContext.createBuffer(2, length, sampleRate);
+
+    for (let channel = 0; channel < 2; channel++) {
+        const channelData = impulse.getChannelData(channel);
+        for (let i = 0; i < length; i++) {
+            channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+        }
+    }
+
+    reverbNode.buffer = impulse;
+    reverbNode.connect(audioContext.destination);
+}
+       
    function playChord(root, quality, time, duration, isInversion = false) {
     if (!audioContext || !document.getElementById('chordsEnabled').checked) return;
     if (!reverbNode) setupReverb();
@@ -884,7 +902,98 @@
         intervalId = setInterval(playBeat, interval);
     }
 
-    function playBeat() {
+async function setupReverb() {
+    if (!audioContext) initAudioContext();
+    reverbNode = audioContext.createConvolver();
+    const sampleRate = audioContext.sampleRate;
+    const length = sampleRate * 2.5;
+    const impulse = audioContext.createBuffer(2, length, sampleRate);
+
+    for (let channel = 0; channel < 2; channel++) {
+        const channelData = impulse.getChannelData(channel);
+        for (let i = 0; i < length; i++) {
+            channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+        }
+    }
+
+    reverbNode.buffer = impulse;
+    reverbNode.connect(audioContext.destination);
+}
+
+function playChord(root, quality, time, duration, isInversion = false) {
+    if (!audioContext || !document.getElementById('chordsEnabled').checked) return;
+    if (!reverbNode) setupReverb();
+
+    const chordVolume = document.getElementById('chord-volume').value;
+    const rootIndex = NOTES.indexOf(root);
+    let chordNotes = [root];
+    
+    // Build the basic chord
+    if (quality.includes('minor')) {
+        chordNotes.push(NOTES[(rootIndex + 3) % 12]); // Minor third
+    } else {
+        chordNotes.push(NOTES[(rootIndex + 4) % 12]); // Major third
+    }
+    chordNotes.push(NOTES[(rootIndex + 7) % 12]); // Perfect fifth
+    if (quality.includes('7')) {
+        chordNotes.push(NOTES[(rootIndex + (quality.includes('maj7') ? 11 : 10)) % 12]); // Maj7 or Dom7
+    }
+
+    // If it's an inversion, rotate the array to create first inversion
+    if (isInversion) {
+        chordNotes = [...chordNotes.slice(1), chordNotes[0]];
+    }
+
+    const mainGainNode = audioContext.createGain();
+    const dryGainNode = audioContext.createGain();
+    const wetGainNode = audioContext.createGain();
+
+    dryGainNode.gain.value = 0.7;
+    wetGainNode.gain.value = 0.3;
+
+    mainGainNode.connect(dryGainNode);
+    mainGainNode.connect(wetGainNode);
+    dryGainNode.connect(audioContext.destination);
+    wetGainNode.connect(reverbNode);
+
+    if (currentChordGain) {
+        currentChordGain.gain.setValueAtTime(currentChordGain.gain.value, time);
+        currentChordGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    }
+    currentChordGain = mainGainNode;
+
+    // Adjust base octave based on whether it's an inversion
+    const baseOctave = isInversion ? 4 : 3;
+
+    chordNotes.forEach((note, index) => {
+        const octave = baseOctave + Math.floor(index / 2);
+        const { sampleKey, semitoneDiff } = findNearestSampledNote(note, octave);
+        if (!pianoSampleBuffers[sampleKey]) {
+            console.warn(`Sample for ${sampleKey} not loaded.`);
+            return;
+        }
+
+        const source = audioContext.createBufferSource();
+        const oscGain = audioContext.createGain();
+
+        source.buffer = pianoSampleBuffers[sampleKey];
+        source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
+
+        oscGain.gain.setValueAtTime(0, time);
+        oscGain.gain.linearRampToValueAtTime(chordVolume * 0.25, time + 0.08);
+        oscGain.gain.linearRampToValueAtTime(chordVolume * 0.25 * 0.7, time + 0.23);
+        oscGain.gain.setValueAtTime(chordVolume * 0.25 * 0.7, time + duration - 0.4);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+        source.connect(oscGain);
+        oscGain.connect(mainGainNode);
+
+        source.start(time);
+        source.stop(time + duration);
+    });
+}
+
+function playBeat() {
     const beats = document.querySelectorAll('.beat');
     beats.forEach(beat => beat.classList.remove('active'));
 
