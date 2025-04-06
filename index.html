@@ -412,13 +412,20 @@
 
     // Piano sample configuration
     const GITHUB_RAW_BASE_URL = 'https://raw.githubusercontent.com/caltim3/FretFlow/main/';
-    const SAMPLED_NOTES = ['A', 'C']; // The notes we have samples for
-    const PIANO_CONFIG = {  // Added this line
+    const SAMPLED_NOTES = ['A', 'C', 'F#', 'D#']; // The notes we have samples for
+    const PIANO_CONFIG = {
         octaves: {
             'A': [2, 3, 4, 5, 6],
             'C': [2, 3, 4, 5, 6]
-        }
+            'F#': [2, 3, 4, 5, 6]
+            'D#': [2, 3, 4, 5, 6]
+        },
+        velocities: [12], // Add this if not already present
+        fileFormat: 'wav' // Add this if not already present
     };
+
+       // Initialize piano buffers object
+    const pianoSampleBuffers = {};
 
     // Musical constants
     const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -629,49 +636,39 @@ async function setupReverb() {
         return buffer;
     }
 
-    async function loadPianoSamples() {
-        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        try {
-            updateLoadingStatus("Loading piano samples...");
-            const loadPromises = [];
-            for (const note of SAMPLE_CONFIG.notes) {
-                const octaves = SAMPLE_CONFIG.octaves[note];
-                for (const octave of octaves) {
-                    const sampleName = `${note}${octave}v12`;
-                    const url = `${GITHUB_RAW_BASE_URL}${sampleName}.wav`;
-                    console.log(`Attempting to load: ${url}`);
-                    const promise = fetch(url, { mode: 'cors' })
-                        .then(response => {
-                            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status} for ${url}`);
-                            console.log(`Fetched ${sampleName} successfully`);
-                            return response.arrayBuffer();
-                        })
-                        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-                        .then(audioBuffer => {
-                            pianoSampleBuffers[sampleName] = audioBuffer;
-                            console.log(`Loaded ${sampleName} into pianoSampleBuffers`);
-                        })
-                        .catch(error => {
-                            console.error(`Failed to load ${sampleName}:`, error);
-                            throw error;
-                        });
-                    loadPromises.push(promise);
+   async function loadPianoSamples(audioContext) {
+    try {
+        console.log('[FretFlow Debug] Starting piano sample loading...');
+        
+        for (const note of SAMPLED_NOTES) {
+            pianoSampleBuffers[note] = {};
+            
+            for (const octave of PIANO_CONFIG.octaves[note]) {
+                pianoSampleBuffers[note][octave] = {};
+                
+                for (const velocity of PIANO_CONFIG.velocities) {
+                    const fileName = `${note}${octave}v${velocity}.${PIANO_CONFIG.fileFormat}`;
+                    const url = `${GITHUB_RAW_BASE_URL}samples/${fileName}`;
+                    
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const arrayBuffer = await response.arrayBuffer();
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                        pianoSampleBuffers[note][octave][velocity] = audioBuffer;
+                        console.log(`[FretFlow Debug] Loaded sample: ${fileName}`);
+                    } catch (error) {
+                        console.error(`Failed to load sample ${fileName}:`, error);
+                    }
                 }
             }
-            const results = await Promise.allSettled(loadPromises);
-            samplesLoaded = Object.keys(pianoSampleBuffers).length > 0;
-            console.log(`Sample loading complete. Loaded ${Object.keys(pianoSampleBuffers).length} samples. SamplesLoaded: ${samplesLoaded}`);
-            results.forEach((result, index) => {
-                if (result.status === 'rejected') console.error(`Promise ${index} failed: ${result.reason}`);
-            });
-            updateLoadingStatus(`Loaded ${Object.keys(pianoSampleBuffers).length} piano samples`);
-            return samplesLoaded;
-        } catch (error) {
-            console.error('Piano sample loading failed:', error);
-            updateLoadingStatus("Failed to load piano samples");
-            return false;
         }
+        console.log('[FretFlow Debug] Piano sample loading completed');
+    } catch (error) {
+        console.error('Piano sample loading failed:', error);
+        throw error;
     }
+}
 
     function getPitchShiftedNote(note, octave) {
         const noteIndex = NOTES.indexOf(note);
@@ -1408,24 +1405,33 @@ function createFretboard(container, tuning) {
         this.classList.remove('dragging');
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const measures = document.querySelectorAll('#measures .measure');
-        measures.forEach(measure => {
-            measure.draggable = true;
-            measure.addEventListener('dragstart', dragStart);
-            measure.addEventListener('dragover', dragOver);
-            measure.addEventListener('drop', drop);
-            measure.addEventListener('dragend', dragEnd);
-        });
-        updateMeasureNumbers();
+document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize audio context on first user interaction
+    document.addEventListener('click', async () => {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            console.log('[FretFlow Debug] Audio initialized on first click');
+            await loadPianoSamples(audioContext);
+        }
+    }, { once: true });
 
-        const fretboardsGrid = document.querySelector('.fretboards-grid');
-        for (let i = 1; i <= 4; i++) {
-            const container = createFretboardContainer(i);
-            fretboardsGrid.appendChild(container);
-            const fretboard = container.querySelector('.fretboard');
-            createFretboard(fretboard, TUNINGS.standard);
-            updateFretboardNotes(fretboard, 'C', 'major', TUNINGS.standard);
+    const measures = document.querySelectorAll('#measures .measure');
+    measures.forEach(measure => {
+        measure.draggable = true;
+        measure.addEventListener('dragstart', dragStart);
+        measure.addEventListener('dragover', dragOver);
+        measure.addEventListener('drop', drop);
+        measure.addEventListener('dragend', dragEnd);
+    });
+    updateMeasureNumbers();
+
+    const fretboardsGrid = document.querySelector('.fretboards-grid');
+    for (let i = 1; i <= 4; i++) {
+        const container = createFretboardContainer(i);
+        fretboardsGrid.appendChild(container);
+        const fretboard = container.querySelector('.fretboard');
+        createFretboard(fretboard, TUNINGS.standard);
+        updateFretboardNotes(fretboard, 'C', 'major', TUNINGS.standard);
 
             container.querySelector('.tuning-select').addEventListener('change', function() {
                 const tuning = TUNINGS[this.value];
@@ -1446,7 +1452,6 @@ function createFretboard(container, tuning) {
                 updateFretboardNotes(fretboard, key, this.value, tuning);
             });
         }
-
         const chordFretboard = document.getElementById('chord-fretboard');
         createFretboard(chordFretboard, TUNINGS.standard);
         updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
