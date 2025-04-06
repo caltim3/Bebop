@@ -424,10 +424,6 @@
         fileFormat: 'wav'
     };
 
-        velocities: [12], // Add this if not already present
-        fileFormat: 'wav' // Add this if not already present
-    };
-
     // Musical constants
     const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const SCALES = {
@@ -938,25 +934,7 @@ async function setupReverb() {
 
         intervalId = setInterval(playBeat, interval);
     }
-
-async function setupReverb() {
-    if (!audioContext) initAudioContext();
-    reverbNode = audioContext.createConvolver();
-    const sampleRate = audioContext.sampleRate;
-    const length = sampleRate * 2.5;
-    const impulse = audioContext.createBuffer(2, length, sampleRate);
-
-    for (let channel = 0; channel < 2; channel++) {
-        const channelData = impulse.getChannelData(channel);
-        for (let i = 0; i < length; i++) {
-            channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
-        }
-    }
-
-    reverbNode.buffer = impulse;
-    reverbNode.connect(audioContext.destination);
-}
-
+       
 function playBeat() {
     const beats = document.querySelectorAll('.beat');
     beats.forEach(beat => beat.classList.remove('active'));
