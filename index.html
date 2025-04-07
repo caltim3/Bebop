@@ -1233,90 +1233,75 @@ function createFretboard(container, tuning) {
         }
     }
 
-   function loadProgression(progressionKey, loadKey = 'C') {
-    const progression = predefinedProgressions[progressionKey];
+  function loadProgression(progressionKey) {
+    const progression = PROGRESSIONS[progressionKey];
     if (!progression) return;
-    currentProgression = progressionKey;
-    const scaleType = progression.scaleType;
-
+    
     const measuresDiv = document.getElementById('measures');
     measuresDiv.innerHTML = '';
-
-    progression.chords.forEach((chordDef, index) => {
-        const root = getNoteFromDegree(loadKey, chordDef.degree, scaleType);
+    
+    progression.forEach((chordDef, index) => {
+        const root = chordDef.root;
         const quality = chordDef.quality;
-
+        
         const newMeasure = document.createElement('div');
         newMeasure.className = 'measure';
         newMeasure.draggable = true;
         newMeasure.innerHTML = `
-        <span class="measure-number">${index + 1}</span>
-        <div class="chord-controls">
-            <select class="root-note">
-                ${NOTES.map(note => `<option>${note}</option>`).join('')}
-            </select>
-            <select class="chord-quality">
-                <option value="major">Major</option>
-                <option value="minor">Minor</option>
-                <option value="dom7">7</option>
-                <option value="maj7">Maj7</option>
-                <option value="min7">Min7</option>
-                <option value="min7b5">Min7b5 (Half Diminished)</option>
-            </select>
-        </div>
-        <div class="scale-controls">
-            <select class="second-key">
-                ${NOTES.map(note => `<option>${note}</option>`).join('')}
-            </select>
-            <select class="scale-select">
-                ${Object.keys(SCALES).map(scale => 
-                    `<option value="${scale}">${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`
-                ).join('')}
-            </select>
-        </div>
+            <span class="measure-number">${index + 1}</span>
+            <div class="chord-controls">
+                <select class="root-note">
+                    ${NOTES.map(note => `<option>${note}</option>`).join('')}
+                </select>
+                <select class="chord-quality">
+                    <option value="major">Major</option>
+                    <option value="minor">Minor</option>
+                    <option value="dom7">7</option>
+                    <option value="maj7">Maj7</option>
+                    <option value="min7">Min7</option>
+                    <option value="min7b5">Min7b5 (Half Diminished)</option>
+                </select>
+            </div>
+            <div class="scale-controls">
+                <select class="second-key">
+                    ${NOTES.map(note => `<option>${note}</option>`).join('')}
+                </select>
+                <select class="scale-select">
+                    ${Object.keys(SCALES).map(scale => 
+                        `<option value="${scale}">${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`
+                    ).join('')}
+                </select>
+            </div>
         `;
-
+        
         const rootNoteSelect = newMeasure.querySelector('.root-note');
         const chordQualitySelect = newMeasure.querySelector('.chord-quality');
         const secondKeySelect = newMeasure.querySelector('.second-key');
         const scaleSelect = newMeasure.querySelector('.scale-select');
-
+        
         rootNoteSelect.value = root;
         chordQualitySelect.value = quality;
         secondKeySelect.value = root;
-
+        
+        // Set appropriate scale based on chord quality
         if (quality === 'major' || quality === 'maj7') scaleSelect.value = 'major';
         else if (quality === 'minor' || quality === 'min7') scaleSelect.value = 'dorian';
         else if (quality === 'dom7') scaleSelect.value = 'mixolydian';
         else if (quality === 'min7b5') scaleSelect.value = 'locrian';
-
+        
         rootNoteSelect.addEventListener('change', function() {
-            const selectedRoot = this.value;
-            secondKeySelect.value = selectedRoot;
-            const currentQuality = chordQualitySelect.value;
-            scaleSelect.value = currentQuality === 'major' || currentQuality === 'maj7' ? 'major' :
-                currentQuality === 'minor' || currentQuality === 'min7' ? 'dorian' :
-                currentQuality === 'dom7' ? 'mixolydian' : 'locrian';
+            secondKeySelect.value = this.value;
         });
-
-        chordQualitySelect.addEventListener('change', function() {
-            const currentQuality = this.value;
-            scaleSelect.value = currentQuality === 'major' || currentQuality === 'maj7' ? 'major' :
-                currentQuality === 'minor' || currentQuality === 'min7' ? 'dorian' :
-                currentQuality === 'dom7' ? 'mixolydian' : 'locrian';
-        });
-
+        
         newMeasure.addEventListener('dragstart', dragStart);
         newMeasure.addEventListener('dragover', dragOver);
         newMeasure.addEventListener('drop', drop);
         newMeasure.addEventListener('dragend', dragEnd);
-
+        
         measuresDiv.appendChild(newMeasure);
     });
-
+    
     updateMeasureNumbers();
-
-    // Call addFirstChordListener after loading the progression
     addFirstChordListener();
 }
 
@@ -1525,6 +1510,13 @@ document.addEventListener('DOMContentLoaded', function () {
         addMeasure('G', 'dom7', 'G', 'mixolydian');
     }
 
+    document.getElementById('progression-select').addEventListener('change', function() {
+        const selectedProgression = this.value;
+        if (selectedProgression !== 'none') {
+            loadProgression(selectedProgression);
+        }
+    });
+    
     document.getElementById('start-stop').addEventListener('click', function () {
         if (!audioContext) initAudioContext();
         if (isPlaying) {
