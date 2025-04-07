@@ -646,23 +646,15 @@ async function loadPianoSamples() {
 
     const loadPromises = [];
     
-    // Use a different CORS proxy
-    const corsProxy = "https://api.allorigins.win/raw?url=";
-    const baseUrl = "https://github.com/caltim3/bebop/raw/main/";
+    // Use relative path if files are in the same repository
+    const baseUrl = "./";
 
     for (let note of SAMPLED_NOTES) {
         for (let octave of PIANO_CONFIG.octaves[note]) {
-            // Handle special characters in note names
             const sampleName = `${note}${octave}v12`;
-            const fileName = sampleName + '.ogg';
-            
-            // Properly encode the URL, especially for notes with # in them
-            let encodedFileName = fileName;
-            if (note.includes('#')) {
-                encodedFileName = fileName.replace('#', '%23');
-            }
-            
-            const url = `${corsProxy}${encodeURIComponent(baseUrl + encodedFileName)}`;
+            // Handle special characters like # in note names
+            const fileName = `${sampleName}.ogg`;
+            const url = baseUrl + fileName;
 
             const loadPromise = (async () => {
                 try {
@@ -670,7 +662,7 @@ async function loadPianoSamples() {
                     const response = await fetch(url);
 
                     if (!response.ok) {
-                        log(`Failed to load ${sampleName}: ${response.status}`);
+                        log(`Failed to load ${sampleName}: ${response.status} ${response.statusText}`);
                         return null;
                     }
 
