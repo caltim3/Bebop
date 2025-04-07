@@ -410,12 +410,13 @@
     let pianoSampleBuffers = {};
     let samplesLoaded = false;
 
-    function initAudioContext() {
+async function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        loadSounds();
-        setupReverb();
+        await loadSounds();
+        await setupReverb();
     }
+    return audioContext;
 }
        
     // Piano sample configuration
@@ -550,27 +551,28 @@
     }
 
     // Audio initialization
-    async function initializeAudio() {
-        try {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioContext.state === 'suspended') {
-                await audioContext.resume();
-            }
-            if (!Object.keys(soundBuffers).length) {
-                await loadSounds();
-            }
-            if (!samplesLoaded) {
-                await loadPianoSamples();
-            }
-            return audioContext.state === 'running';
-        } catch (error) {
-            console.error("Failed to initialize audio context:", error);
-            updateLoadingStatus("Audio initialization failed. Please refresh the page.");
-            return false;
+   // Update this function to be async
+async function initializeAudio() {
+    try {
+        if (!audioContext) {
+            audioContext = await initAudioContext();
         }
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        if (!Object.keys(soundBuffers).length) {
+            await loadSounds();
+        }
+        if (!samplesLoaded) {
+            await loadPianoSamples();
+        }
+        return audioContext.state === 'running';
+    } catch (error) {
+        console.error("Failed to initialize audio context:", error);
+        updateLoadingStatus("Audio initialization failed. Please refresh the page.");
+        return false;
     }
+}
 
     document.addEventListener('click', async function initAudioOnFirstClick() {
         const success = await initializeAudio();
@@ -599,7 +601,7 @@
 
 // Add this new function
 async function setupReverb() {
-    if (!audioContext) initAudioContext();
+    if (!audioContext) audioContext = await initAudioContext();
     if (!reverbNode) {
         reverbNode = audioContext.createConvolver();
         const sampleRate = audioContext.sampleRate;
