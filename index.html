@@ -672,8 +672,16 @@ async function loadPianoSamples() {
         for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
             
-            // No need for special URL encoding now since we're using % instead of #
-            const fileName = `${sampleName}.ogg`;
+            // Create a clean filename - replace % with actual characters for the URL
+            let fileName;
+            if (note === 'D%') {
+                fileName = `Ds${octave}v12.ogg`;  // Use Ds instead of D%
+            } else if (note === 'F%') {
+                fileName = `Fs${octave}v12.ogg`;  // Use Fs instead of F%
+            } else {
+                fileName = `${note}${octave}v12.ogg`;
+            }
+            
             const url = baseUrl + fileName;
 
             const loadPromise = (async () => {
@@ -699,7 +707,6 @@ async function loadPianoSamples() {
             loadPromises.push(loadPromise);
         }
     }
-
 
     const results = await Promise.all(loadPromises);
     results.forEach(result => {
