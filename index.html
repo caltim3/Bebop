@@ -534,7 +534,18 @@ async function initAudioContext() {
                                                nearestNote === 'D%' ? 'D#' : nearestNote) + 12) % 12
     };
 }
-       
+       function getPitchShiftedNote(note, octave) {
+    const nearest = findNearestSampledNote(note, octave);
+    
+    // Calculate the playback rate based on semitone difference
+    // Each semitone is approximately a 5.9% change in frequency (2^(1/12))
+    const playbackRate = Math.pow(2, nearest.semitoneDiff / 12);
+    
+    return {
+        sampleKey: nearest.sampleKey,
+        playbackRate: playbackRate
+    };
+}
     // Utility functions
     function log(message) {
         console.log(`[FretFlow Debug] ${message}`);
@@ -689,24 +700,6 @@ async function loadPianoSamples() {
         }
     }
 
-    const results = await Promise.all(loadPromises);
-    results.forEach(result => {
-        if (result) {
-            pianoSampleBuffers[result.name] = result.buffer;
-        }
-    });
-
-    samplesLoaded = Object.keys(pianoSampleBuffers).length > 0;
-    log('Piano sample loading completed');
-    log(`Loaded samples: ${Object.keys(pianoSampleBuffers).join(', ')}`);
-
-    if (!samplesLoaded) {
-        log('No samples loaded, will use fallback oscillator');
-        updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
-    } else {
-        updateLoadingStatus('Piano samples loaded successfully.');
-    }
-}
 
     const results = await Promise.all(loadPromises);
     results.forEach(result => {
