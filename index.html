@@ -419,13 +419,13 @@
 }
        
     // Piano sample configuration
-    const SAMPLED_NOTES = ['A', 'C', 'D#', 'F#'];
+    const SAMPLED_NOTES = ['A', 'C', 'D%', 'F%'];
     const PIANO_CONFIG = {
         octaves: {
             'A': [2, 3, 4, 5, 6],
             'C': [2, 3, 4, 5, 6],
-            'F#': [2, 3, 4, 5, 6],
-            'D#': [2, 3, 4, 5, 6]
+            'F%': [2, 3, 4, 5, 6],
+            'D%': [2, 3, 4, 5, 6]
         },
         velocities: [12],
         fileFormat: 'ogg'
@@ -505,9 +505,14 @@
     let nearestNote = null;
     let nearestOctave = octave;
 
+    // Handle the special case where we're looking for F# or D#
+    if (note === 'F#') note = 'F%';
+    if (note === 'D#') note = 'D%';
+
     const noteIndex = NOTES.indexOf(note);
     for (let sampledNote of SAMPLED_NOTES) {
-        const sampledIndex = NOTES.indexOf(sampledNote);
+        const sampledIndex = NOTES.indexOf(sampledNote === 'F%' ? 'F#' : 
+                                          sampledNote === 'D%' ? 'D#' : sampledNote);
         const distance = Math.abs(noteIndex - sampledIndex);
         if (distance < minDistance) {
             minDistance = distance;
@@ -524,19 +529,8 @@
 
     return {
         sampleKey: `${nearestNote}${nearestOctave}v12`,
-        semitoneDiff: (noteIndex - NOTES.indexOf(nearestNote) + 12) % 12
-    };
-}
-    function getPitchShiftedNote(note, octave) {
-    const { sampleKey, semitoneDiff } = findNearestSampledNote(note, octave);
-    
-    // Calculate playback rate based on semitone difference
-    // Each semitone is approximately a 5.9% change in frequency (2^(1/12))
-    const playbackRate = Math.pow(2, semitoneDiff / 12);
-    
-    return {
-        sampleKey: sampleKey,
-        playbackRate: playbackRate
+        semitoneDiff: (noteIndex - NOTES.indexOf(nearestNote === 'F%' ? 'F#' : 
+                                               nearestNote === 'D%' ? 'D#' : nearestNote) + 12) % 12
     };
 }
        
@@ -665,21 +659,13 @@ async function loadPianoSamples() {
         for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
             
-            // Handle special characters in filenames
-            let fileName;
-            if (note.includes('#')) {
-                // Replace # with its URL-encoded equivalent %23
-                const encodedNote = note.replace('#', '%23');
-                fileName = `${encodedNote}${octave}v12.ogg`;
-            } else {
-                fileName = `${sampleName}.ogg`;
-            }
-            
+            // No need for special URL encoding now since we're using % instead of #
+            const fileName = `${sampleName}.ogg`;
             const url = baseUrl + fileName;
 
             const loadPromise = (async () => {
                 try {
-                    log(`Attempting to load: ${sampleName}.ogg`);
+                    log(`Attempting to load: ${fileName}`);
                     const response = await fetch(url);
 
                     if (!response.ok) {
@@ -700,6 +686,25 @@ async function loadPianoSamples() {
             loadPromises.push(loadPromise);
         }
     }
+
+    const results = await Promise.all(loadPromises);
+    results.forEach(result => {
+        if (result) {
+            pianoSampleBuffers[result.name] = result.buffer;
+        }
+    });
+
+    samplesLoaded = Object.keys(pianoSampleBuffers).length > 0;
+    log('Piano sample loading completed');
+    log(`Loaded samples: ${Object.keys(pianoSampleBuffers).join(', ')}`);
+
+    if (!samplesLoaded) {
+        log('No samples loaded, will use fallback oscillator');
+        updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
+    } else {
+        updateLoadingStatus('Piano samples loaded successfully.');
+    }
+}
 
     const results = await Promise.all(loadPromises);
     results.forEach(result => {
@@ -941,21 +946,31 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
 }
        
     // Add this function near other utility functions
+// Replace your current addFirstChordListener function with this:
 function addFirstChordListener() {
     const measures = document.getElementsByClassName('measure');
     if (measures.length > 0) {
-        const firstRootSelect = measures[0].querySelector('.root-note');
-        firstRootSelect.addEventListener('change', function() {
-            updateProgressionKey(this.value);
-        });
+        const firstMeasure = measures[0];
+        const firstRootSelect = firstMeasure.querySelector('.root-note');
+        
+        // Remove any existing listeners to prevent duplicates
+        firstRootSelect.removeEventListener('change', firstChordChangeHandler);
+        
+        // Add the event listener
+        firstRootSelect.addEventListener('change', firstChordChangeHandler);
+        
+        console.log("Added first chord listener to:", firstRootSelect);
     }
 }
+
+// Replace your current firstChordChangeHandler function with this:
 function firstChordChangeHandler() {
-    console.log(`First chord changed to: ${this.value}`);
-    updateProgressionKey(this.value);
+    const newKey = this.value;
+    console.log(`First chord changed to: ${newKey}`);
+    updateProgressionKey(newKey);
 }
 
-       
+// Replace your current updateProgressionKey function with this:
 function updateProgressionKey(newKey) {
     const measures = document.getElementsByClassName('measure');
     if (measures.length <= 1) return;
@@ -965,12 +980,14 @@ function updateProgressionKey(newKey) {
     const originalKey = firstMeasure.querySelector('.root-note').value;
     
     // Calculate semitone shift from original key to new key
-    const semitoneShift = (NOTES.indexOf(newKey) - NOTES.indexOf(originalKey) + 12) % 12;
+    const originalKeyIndex = NOTES.indexOf(originalKey);
+    const newKeyIndex = NOTES.indexOf(newKey);
+    const semitoneShift = (newKeyIndex - originalKeyIndex + 12) % 12;
     
     console.log(`Transposing from ${originalKey} to ${newKey} (shift: ${semitoneShift} semitones)`);
     
     // Update all measures except the first one (which was already changed by the user)
-    Array.from(measures).slice(1).forEach(measure => {
+    Array.from(measures).slice(1).forEach((measure, index) => {
         const rootNote = measure.querySelector('.root-note');
         const secondKey = measure.querySelector('.second-key');
         
@@ -981,7 +998,7 @@ function updateProgressionKey(newKey) {
         const newRootIndex = (currentRootIndex + semitoneShift) % 12;
         const newRoot = NOTES[newRootIndex];
         
-        console.log(`Transposing chord from ${currentRoot} to ${newRoot}`);
+        console.log(`Transposing chord ${index+2} from ${currentRoot} to ${newRoot}`);
         
         // Update both the chord root and scale key
         rootNote.value = newRoot;
