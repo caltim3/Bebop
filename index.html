@@ -645,14 +645,13 @@ async function loadPianoSamples() {
     if (!audioContext) await initializeAudio();
 
     const loadPromises = [];
-    const corsProxy = "https://corsproxy.io/?";
-    const baseUrl = corsProxy + encodeURIComponent("https://github.com/caltim3/bebop/raw/main/");
+    // Use relative paths instead of absolute URLs
+    const baseUrl = "./"; // or whatever folder they're in
 
     for (let note of SAMPLED_NOTES) {
         for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
-            const encodedName = encodeURIComponent(sampleName);
-            const url = `${baseUrl}${encodedName}.ogg`;
+            const url = `${baseUrl}${sampleName}.ogg`;
 
             const loadPromise = (async () => {
                 try {
