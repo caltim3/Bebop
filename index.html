@@ -847,7 +847,7 @@ async function setupReverb() {
     }
     currentChordGain = mainGainNode;
 
-    const baseOctave = isInversion ? 4 : 3;
+    const baseOctave = 3;
 
     chordNotes.forEach((note, index) => {
         const octave = baseOctave + Math.floor(index / 2);
@@ -865,9 +865,9 @@ async function setupReverb() {
         source.playbackRate.value = Math.pow(2, semitoneDiff / 12);
 
         oscGain.gain.setValueAtTime(0, time);
-        oscGain.gain.linearRampToValueAtTime(chordVolume * 0.25, time + 0.08);
-        oscGain.gain.linearRampToValueAtTime(chordVolume * 0.25 * 0.7, time + 0.23);
-        oscGain.gain.setValueAtTime(chordVolume * 0.25 * 0.7, time + duration - 0.4);
+        oscGain.gain.linearRampToValueAtTime(chordVolume * 0.4, time + 0.08);  // Increased from 0.25
+        oscGain.gain.linearRampToValueAtTime(chordVolume * 0.4 * 0.7, time + 0.23);
+        oscGain.gain.setValueAtTime(chordVolume * 0.4 * 0.7, time + duration - 0.4);
         oscGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
         source.connect(oscGain);
