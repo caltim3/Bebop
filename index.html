@@ -1583,6 +1583,7 @@ document.addEventListener('DOMContentLoaded', function () {
     createBeats();
     initializeStaticFretboards();
     initializeDragAndDrop();
+    addFirstChordListener();
 
     const measures = document.getElementById('measures');
     if (measures.children.length === 0) {
@@ -1655,19 +1656,20 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-    window.onload = () => {
+        window.onload = () => {
         createFretboard(document.getElementById('chord-fretboard'), TUNINGS.standard);
         updateFretboardNotes(document.getElementById('chord-fretboard'), 'C', 'major', TUNINGS.standard);
         createBeats();
         initializeDragAndDrop();
         initializeStaticFretboards();
-
+        addFirstChordListener();
+    
         const measures = document.getElementById('measures');
         if (measures.children.length === 0) {
             addMeasure('C', 'major', 'C', 'major');
             addMeasure('G', 'dom7', 'G', 'mixolydian');
         }
-    };
+};
 </script>
 </body>
 </html>
