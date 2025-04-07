@@ -781,11 +781,10 @@ async function loadPianoSamples() {
     }
 
      
-  function playChord(root, quality, time = audioContext.currentTime, duration = 1) {
+function playChord(root, quality, time = audioContext.currentTime, duration = 1) {
     if (!audioContext || !document.getElementById('chordsEnabled').checked) return;
     if (!reverbNode) setupReverb();
 
-    const baseFreq = 440 * Math.pow(2, (NOTES.indexOf(root) - 9) / 12);
     const chordVolume = parseFloat(document.getElementById('chord-volume').value) || 0.5;
 
     if (isNaN(chordVolume) || isNaN(time)) {
@@ -812,41 +811,133 @@ async function loadPianoSamples() {
 
     currentChordGain = mainGainNode;
 
-    const frequencies = [baseFreq];
-    if (quality.includes('minor')) {
-        frequencies.push(baseFreq * 1.189207115); // Minor third
-    } else {
-        frequencies.push(baseFreq * 1.259921049); // Major third
-    }
-    frequencies.push(baseFreq * 1.498307077); // Perfect fifth
-
+    // Define chord notes based on root and quality
+    const chordNotes = [root]; // Root note
+    
+    // Add third
+    const rootIndex = NOTES.indexOf(root);
+    const thirdIndex = quality.includes('minor') ? 
+        (rootIndex + 3) % 12 : // Minor third
+        (rootIndex + 4) % 12;  // Major third
+    chordNotes.push(NOTES[thirdIndex]);
+    
+    // Add fifth
+    const fifthIndex = (rootIndex + 7) % 12;
+    chordNotes.push(NOTES[fifthIndex]);
+    
+    // Add seventh if needed
     if (quality.includes('7')) {
-        frequencies.push(baseFreq * (quality.includes('maj7') ? 1.887748625 : 1.781797436)); // Maj7 or Dom7
+        const seventhIndex = quality.includes('maj7') ? 
+            (rootIndex + 11) % 12 : // Major seventh
+            (rootIndex + 10) % 12;  // Dominant seventh
+        chordNotes.push(NOTES[seventhIndex]);
     }
+    
+    // Play each note in the chord using piano samples
+    const octave = 3; // Middle octave for chord
+    const attackTime = 0.08;
+    const decayTime = 0.15;
+    const sustainLevel = 0.7;
+    const releaseTime = 0.4;
+    
+    if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
+        // Use piano samples
+        chordNotes.forEach((note, index) => {
+            // Use different octaves for better voicing
+            const noteOctave = octave + (index === 0 ? -1 : 0); // Root note one octave lower
+            
+            const pitchData = getPitchShiftedNote(note, noteOctave);
+            if (pitchData && pianoSampleBuffers[pitchData.sampleKey]) {
+                const source = audioContext.createBufferSource();
+                const noteGain = audioContext.createGain();
+                
+                source.buffer = pianoSampleBuffers[pitchData.sampleKey];
+                source.playbackRate.value = pitchData.playbackRate;
+                
+                noteGain.gain.setValueAtTime(0, time);
+                noteGain.gain.linearRampToValueAtTime(chordVolume * 0.25, time + attackTime);
+                noteGain.gain.linearRampToValueAtTime(chordVolume * 0.25 * sustainLevel, time + attackTime + decayTime);
+                noteGain.gain.setValueAtTime(chordVolume * 0.25 * sustainLevel, time + duration - releaseTime);
+                noteGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+                
+                source.connect(noteGain);
+                noteGain.connect(mainGainNode);
+                
+                source.start(time);
+                source.stop(time + duration);
+                
+                console.log(`Played chord note ${note}${noteOctave} using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
+            } else {
+                // Fallback to oscillator if sample not available
+                playFallbackChordNote(note, noteOctave, chordVolume * 0.25, time, duration, mainGainNode);
+            }
+        });
+    } else {
+        // Fallback to oscillators if samples not loaded
+        const baseFreq = 440 * Math.pow(2, (NOTES.indexOf(root) - 9) / 12);
+        const frequencies = [baseFreq];
+        
+        if (quality.includes('minor')) {
+            frequencies.push(baseFreq * 1.189207115); // Minor third
+        } else {
+            frequencies.push(baseFreq * 1.259921049); // Major third
+        }
+        
+        frequencies.push(baseFreq * 1.498307077); // Perfect fifth
+        
+        if (quality.includes('7')) {
+            frequencies.push(baseFreq * (quality.includes('maj7') ? 1.887748625 : 1.781797436)); // Maj7 or Dom7
+        }
+        
+        frequencies.forEach((freq) => {
+            const osc = audioContext.createOscillator();
+            const oscGain = audioContext.createGain();
+            
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            
+            oscGain.gain.setValueAtTime(0, time);
+            oscGain.gain.linearRampToValueAtTime(chordVolume * 0.25, time + attackTime);
+            oscGain.gain.linearRampToValueAtTime(chordVolume * 0.25 * sustainLevel, time + attackTime + decayTime);
+            oscGain.gain.setValueAtTime(chordVolume * 0.25 * sustainLevel, time + duration - releaseTime);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+            
+            osc.connect(oscGain);
+            oscGain.connect(mainGainNode);
+            
+            osc.start(time);
+            osc.stop(time + duration);
+        });
+    }
+}
 
-    frequencies.forEach((freq) => {
-        const osc = audioContext.createOscillator();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-
-        const oscGain = audioContext.createGain();
-        const attackTime = 0.08;
-        const decayTime = 0.15;
-        const sustainLevel = 0.7;
-        const releaseTime = 0.4;
-
-        oscGain.gain.setValueAtTime(0, time);
-        oscGain.gain.linearRampToValueAtTime(chordVolume * 0.25, time + attackTime);
-        oscGain.gain.linearRampToValueAtTime(chordVolume * 0.25 * sustainLevel, time + attackTime + decayTime);
-        oscGain.gain.setValueAtTime(chordVolume * 0.25 * sustainLevel, time + duration - releaseTime);
-        oscGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-
-        osc.connect(oscGain);
-        oscGain.connect(mainGainNode);
-
-        osc.start(time);
-        osc.stop(time + duration);
-    });
+function playFallbackChordNote(note, octave, volume, time, duration, outputNode) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const noteIndex = NOTES.indexOf(note);
+    const frequency = 440 * Math.pow(2, (octave * 12 + noteIndex - 57) / 12);
+    
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(frequency, time);
+    
+    const attackTime = 0.08;
+    const decayTime = 0.15;
+    const sustainLevel = 0.7;
+    const releaseTime = 0.4;
+    
+    gainNode.gain.setValueAtTime(0, time);
+    gainNode.gain.linearRampToValueAtTime(volume, time + attackTime);
+    gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, time + attackTime + decayTime);
+    gainNode.gain.setValueAtTime(volume * sustainLevel, time + duration - releaseTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(outputNode);
+    
+    oscillator.start(time);
+    oscillator.stop(time + duration);
+    
+    console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
 }
        
     // Add this function near other utility functions
