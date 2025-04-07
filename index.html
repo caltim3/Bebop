@@ -956,15 +956,43 @@ function addFirstChordListener() {
         const firstRootSelect = firstMeasure.querySelector('.root-note');
         
         // Remove any existing listeners to prevent duplicates
-        firstRootSelect.removeEventListener('change', firstChordChangeHandler);
+        const oldListener = firstRootSelect._changeHandler;
+        if (oldListener) {
+            firstRootSelect.removeEventListener('change', oldListener);
+        }
         
-        // Add the event listener
-        firstRootSelect.addEventListener('change', firstChordChangeHandler);
+        // Create new handler function
+        const changeHandler = function(event) {
+            const newKey = event.target.value;
+            console.log(`First chord changed to: ${newKey}`);
+            
+            // Update the scale key to match the root
+            const firstScaleKey = firstMeasure.querySelector('.second-key');
+            if (firstScaleKey) {
+                firstScaleKey.value = newKey;
+            }
+            
+            // Store the current chord quality
+            const currentQuality = firstMeasure.querySelector('.chord-quality').value;
+            
+            // Update the rest of the progression
+            updateProgressionKey(newKey);
+            
+            // Log the complete change
+            console.log(`Progression transposed to ${newKey} ${currentQuality}`);
+        };
         
-        console.log("Added first chord listener to:", firstRootSelect);
+        // Store the handler reference for future removal
+        firstRootSelect._changeHandler = changeHandler;
+        
+        // Add the new listener
+        firstRootSelect.addEventListener('change', changeHandler);
+        
+        console.log("First chord listener added successfully");
+    } else {
+        console.warn("No measures found to add first chord listener");
     }
 }
-
 // Replace your current firstChordChangeHandler function with this:
 function firstChordChangeHandler() {
     const newKey = this.value;
@@ -972,10 +1000,12 @@ function firstChordChangeHandler() {
     updateProgressionKey(newKey);
 }
 
-// Replace your current updateProgressionKey function with this:
 function updateProgressionKey(newKey) {
     const measures = document.getElementsByClassName('measure');
-    if (measures.length <= 1) return;
+    if (measures.length <= 1) {
+        console.log("Not enough measures to update progression");
+        return;
+    }
 
     // Get the first measure's root note (original key)
     const firstMeasure = measures[0];
@@ -988,27 +1018,25 @@ function updateProgressionKey(newKey) {
     
     console.log(`Transposing from ${originalKey} to ${newKey} (shift: ${semitoneShift} semitones)`);
     
-    // Update all measures except the first one (which was already changed by the user)
+    // Update all measures except the first one
     Array.from(measures).slice(1).forEach((measure, index) => {
         const rootNote = measure.querySelector('.root-note');
         const secondKey = measure.querySelector('.second-key');
-        
         const currentRoot = rootNote.value;
         const currentRootIndex = NOTES.indexOf(currentRoot);
         
         // Calculate new root note index after transposition
-        const newRootIndex = (currentRootIndex + semitoneShift) % 12;
+        const newRootIndex = (currentRootIndex + semitoneShift + 12) % 12;
         const newRoot = NOTES[newRootIndex];
-        
-        console.log(`Transposing chord ${index+2} from ${currentRoot} to ${newRoot}`);
         
         // Update both the chord root and scale key
         rootNote.value = newRoot;
         secondKey.value = newRoot;
+        
+        console.log(`Measure ${index + 2}: Transposed from ${currentRoot} to ${newRoot}`);
     });
 }
-       
-    function playMetronomeSound(volume = 1) {
+       function playMetronomeSound(volume = 1) {
         if (!audioContext || audioContext.state === 'suspended') {
             console.log("AudioContext not ready, initializing...");
             initializeAudio().then(success => {
