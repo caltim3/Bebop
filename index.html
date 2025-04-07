@@ -527,6 +527,18 @@
         semitoneDiff: (noteIndex - NOTES.indexOf(nearestNote) + 12) % 12
     };
 }
+    function getPitchShiftedNote(note, octave) {
+    const { sampleKey, semitoneDiff } = findNearestSampledNote(note, octave);
+    
+    // Calculate playback rate based on semitone difference
+    // Each semitone is approximately a 5.9% change in frequency (2^(1/12))
+    const playbackRate = Math.pow(2, semitoneDiff / 12);
+    
+    return {
+        sampleKey: sampleKey,
+        playbackRate: playbackRate
+    };
+}
        
     // Utility functions
     function log(message) {
@@ -652,13 +664,22 @@ async function loadPianoSamples() {
     for (let note of SAMPLED_NOTES) {
         for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
-            // Handle special characters like # in note names
-            const fileName = `${sampleName}.ogg`;
+            
+            // Handle special characters in filenames
+            let fileName;
+            if (note.includes('#')) {
+                // Replace # with its URL-encoded equivalent %23
+                const encodedNote = note.replace('#', '%23');
+                fileName = `${encodedNote}${octave}v12.ogg`;
+            } else {
+                fileName = `${sampleName}.ogg`;
+            }
+            
             const url = baseUrl + fileName;
 
             const loadPromise = (async () => {
                 try {
-                    log(`Attempting to load: ${fileName}`);
+                    log(`Attempting to load: ${sampleName}.ogg`);
                     const response = await fetch(url);
 
                     if (!response.ok) {
