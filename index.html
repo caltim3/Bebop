@@ -645,17 +645,21 @@ async function loadPianoSamples() {
     if (!audioContext) await initializeAudio();
 
     const loadPromises = [];
-    // Use relative paths instead of absolute URLs
-    const baseUrl = "./"; // or whatever folder they're in
+    
+    // Use a CORS proxy to access the GitHub files
+    const corsProxy = "https://corsproxy.io/?";
+    const baseUrl = "https://github.com/caltim3/bebop/raw/main/";
 
     for (let note of SAMPLED_NOTES) {
         for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
-            const url = `${baseUrl}${sampleName}.ogg`;
+            // Handle special characters like # in note names
+            const encodedSampleName = encodeURIComponent(`${sampleName}.ogg`);
+            const url = `${corsProxy}${encodeURIComponent(baseUrl)}${encodedSampleName}`;
 
             const loadPromise = (async () => {
                 try {
-                    log(`Attempting to load: ${url}`);
+                    log(`Attempting to load: ${sampleName}.ogg`);
                     const response = await fetch(url);
 
                     if (!response.ok) {
@@ -691,48 +695,10 @@ async function loadPianoSamples() {
     if (!samplesLoaded) {
         log('No samples loaded, will use fallback oscillator');
         updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
+    } else {
+        updateLoadingStatus('Piano samples loaded successfully.');
     }
 }
-       
-    function getPitchShiftedNote(note, octave) {
-        const noteIndex = NOTES.indexOf(note);
-        const targetPitch = octave * 12 + noteIndex;
-        let closestSample = null;
-        let minDistance = Infinity;
-
-        for (const sampleKey of Object.keys(pianoSampleBuffers)) {
-            const sampleNote = sampleKey.match(/[A-Z#]+/)[0];
-            const sampleOctave = parseInt(sampleKey.match(/\d+/)[0], 10);
-            const sampleNoteIndex = NOTES.indexOf(sampleNote);
-            const samplePitch = sampleOctave * 12 + sampleNoteIndex;
-            const distance = Math.abs(targetPitch - samplePitch);
-
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestSample = {
-                    sampleKey: sampleKey,
-                    semitoneDiff: targetPitch - samplePitch
-                };
-            }
-        }
-
-        if (!closestSample) {
-            console.warn(`No suitable sample found for ${note}${octave} among loaded samples`);
-            return null;
-        }
-
-        const playbackRate = Math.pow(2, closestSample.semitoneDiff / 12);
-        if (playbackRate < 0.5 || playbackRate > 2) {
-            console.warn(`Playback rate ${playbackRate} for ${note}${octave} too extreme`);
-            return null;
-        }
-
-        return {
-            sampleKey: closestSample.sampleKey,
-            playbackRate: playbackRate
-        };
-    }
-
     async function playNote(note, string, fret) {
         if (!audioContext || audioContext.state === 'suspended') {
             const success = await initializeAudio();
