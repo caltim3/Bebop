@@ -645,11 +645,12 @@ async function loadPianoSamples() {
     if (!audioContext) await initializeAudio();
 
     const loadPromises = [];
+    const baseUrl = "https://github.com/caltim3/bebop/raw/main/";
 
     for (let note of SAMPLED_NOTES) {
         for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
-            const url = `${sampleName}.ogg`;
+            const url = `${baseUrl}${sampleName}.ogg`;
 
             const loadPromise = (async () => {
                 try {
