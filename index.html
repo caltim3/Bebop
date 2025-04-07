@@ -649,7 +649,7 @@ async function loadPianoSamples() {
     for (let note of SAMPLED_NOTES) {
         for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
-            const url = `${sampleName}.ogg;
+            const url = `${sampleName}.ogg`;
 
             const loadPromise = (async () => {
                 try {
