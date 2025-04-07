@@ -640,41 +640,27 @@ async function setupReverb() {
         return buffer;
     }
 
-   async function loadPianoSamples() {
+async function loadPianoSamples() {
     log('Starting piano sample loading...');
     if (!audioContext) await initializeAudio();
 
-    // First, try to load a single sample to test if files are accessible
-    const testSampleName = 'A4v12';
-    const testUrl = `${testSampleName}.wav`;
-    try {
-        const testResponse = await fetch(testUrl);
-        if (!testResponse.ok) {
-            log(`Test sample load failed. Please check if ${testUrl} exists in the same directory as the HTML file.`);
-            return;
-        }
-    } catch (error) {
-        log(`Error loading test sample: ${error.message}`);
-        return;
-    }
-
     const loadPromises = [];
-    
+
     for (let note of SAMPLED_NOTES) {
         for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
             const url = `${sampleName}.wav`;
-            
+
             const loadPromise = (async () => {
                 try {
                     log(`Attempting to load: ${url}`);
                     const response = await fetch(url);
-                    
+
                     if (!response.ok) {
                         log(`Failed to load ${sampleName}: ${response.status}`);
                         return null;
                     }
-                    
+
                     const arrayBuffer = await response.arrayBuffer();
                     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                     log(`Successfully loaded ${sampleName}`);
@@ -684,7 +670,7 @@ async function setupReverb() {
                     return null;
                 }
             })();
-            
+
             loadPromises.push(loadPromise);
         }
     }
@@ -704,6 +690,7 @@ async function setupReverb() {
         log('No samples loaded, will use fallback oscillator');
         updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
     }
+}
 }
        
     function getPitchShiftedNote(note, octave) {
@@ -806,12 +793,17 @@ async function setupReverb() {
     }
 
      
-   function playChord(root, quality, time, duration) {
+  function playChord(root, quality, time = audioContext.currentTime, duration = 1) {
     if (!audioContext || !document.getElementById('chordsEnabled').checked) return;
     if (!reverbNode) setupReverb();
 
     const baseFreq = 440 * Math.pow(2, (NOTES.indexOf(root) - 9) / 12);
     const chordVolume = parseFloat(document.getElementById('chord-volume').value) || 0.5;
+
+    if (isNaN(chordVolume) || isNaN(time)) {
+        console.error("Invalid chordVolume or time:", { chordVolume, time });
+        return;
+    }
 
     if (currentChordGain) {
         currentChordGain.gain.setValueAtTime(currentChordGain.gain.value, time);
@@ -844,7 +836,7 @@ async function setupReverb() {
         frequencies.push(baseFreq * (quality.includes('maj7') ? 1.887748625 : 1.781797436)); // Maj7 or Dom7
     }
 
-    frequencies.forEach((freq, index) => {
+    frequencies.forEach((freq) => {
         const osc = audioContext.createOscillator();
         osc.type = 'triangle';
         osc.frequency.value = freq;
@@ -868,6 +860,7 @@ async function setupReverb() {
         osc.stop(time + duration);
     });
 }
+       
     // Add this function near other utility functions
 function addFirstChordListener() {
     const measures = document.getElementsByClassName('measure');
@@ -952,7 +945,7 @@ function updateProgressionKey(newKey) {
     }
 
     function startPlayback() {
-        if (!audioContext) initializeAudio();
+        if (!audioContext) initAudioContext();
         const timeSignature = parseInt(document.getElementById('time-signature').value);
         const measures = document.getElementsByClassName('measure');
 
@@ -1522,66 +1515,18 @@ function createFretboard(container, tuning) {
         this.classList.remove('dragging');
     }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const measures = document.querySelectorAll('#measures .measure');
-    measures.forEach(measure => {
-        measure.draggable = true;
-        measure.addEventListener('dragstart', dragStart);
-        measure.addEventListener('dragover', dragOver);
-        measure.addEventListener('drop', drop);
-        measure.addEventListener('dragend', dragEnd);
-    });
-    updateMeasureNumbers();
+document.addEventListener('DOMContentLoaded', function () {
+    createBeats();
+    initializeStaticFretboards();
+    initializeDragAndDrop();
 
-    addFirstChordListener();
-
-    const fretboardsGrid = document.querySelector('.fretboards-grid');
-    for (let i = 1; i <= 4; i++) {
-        const container = createFretboardContainer(i);
-        fretboardsGrid.appendChild(container);
-        const fretboard = container.querySelector('.fretboard');
-        createFretboard(fretboard, TUNINGS.standard);
-        updateFretboardNotes(fretboard, 'C', 'major', TUNINGS.standard);
-
-        container.querySelector('.tuning-select').addEventListener('change', function() {
-            const tuning = TUNINGS[this.value];
-            const key = container.querySelector(`#key-${i}`).value;
-            const scale = container.querySelector(`#scale-${i}`).value;
-            updateFretboardNotes(fretboard, key, scale, tuning);
-        });
-
-        container.querySelector(`#key-${i}`).addEventListener('change', function() {
-            const tuning = TUNINGS[container.querySelector('.tuning-select').value];
-            const scale = container.querySelector(`#scale-${i}`).value;
-            updateFretboardNotes(fretboard, this.value, scale, tuning);
-        });
-
-        container.querySelector(`#scale-${i}`).addEventListener('change', function() {
-            const tuning = TUNINGS[container.querySelector('.tuning-select').value];
-            const key = container.querySelector(`#key-${i}`).value;
-            updateFretboardNotes(fretboard, key, this.value, tuning);
-        });
+    const measures = document.getElementById('measures');
+    if (measures.children.length === 0) {
+        addMeasure('C', 'major', 'C', 'major');
+        addMeasure('G', 'dom7', 'G', 'mixolydian');
     }
 
-    const chordFretboard = document.getElementById('chord-fretboard');
-    createFretboard(chordFretboard, TUNINGS.standard);
-    updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
-
-    document.getElementById('chord-tuning').addEventListener('change', function() {
-        const measures = document.getElementsByClassName('measure');
-        if (measures.length > 0 && currentMeasure < measures.length) {
-            const currentMeasureElement = measures[currentMeasure];
-            const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-            const scale = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-            if (root && scale) {
-                updateFretboardNotes(chordFretboard, root, scale, TUNINGS[this.value]);
-            }
-        }
-    });
-
-    createBeats();
-
-    document.getElementById('start-stop').addEventListener('click', function() {
+    document.getElementById('start-stop').addEventListener('click', function () {
         if (!audioContext) initAudioContext();
         if (isPlaying) {
             isPlaying = false;
@@ -1594,7 +1539,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    document.getElementById('tempo').addEventListener('input', function() {
+    document.getElementById('tempo').addEventListener('input', function () {
         tempo = parseInt(this.value);
         document.getElementById('tempo-display').textContent = `${tempo} BPM`;
         if (isPlaying) {
@@ -1603,7 +1548,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    document.getElementById('time-signature').addEventListener('change', function() {
+    document.getElementById('time-signature').addEventListener('change', function () {
         createBeats();
         if (isPlaying) {
             stopPlayback();
@@ -1611,7 +1556,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    document.getElementById('tap-tempo').addEventListener('click', function() {
+    document.getElementById('tap-tempo').addEventListener('click', function () {
         const now = Date.now();
         if (now - lastTapTime > 2000) {
             tapTimes = [];
@@ -1637,8 +1582,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-
-    document.addEventListener('click', initAudioContext, { once: true });
 });
 
     window.onload = () => {
