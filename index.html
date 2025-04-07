@@ -646,20 +646,27 @@ async function loadPianoSamples() {
 
     const loadPromises = [];
     
-    // Use a CORS proxy to access the GitHub files
-    const corsProxy = "https://corsproxy.io/?";
+    // Use a different CORS proxy
+    const corsProxy = "https://api.allorigins.win/raw?url=";
     const baseUrl = "https://github.com/caltim3/bebop/raw/main/";
 
     for (let note of SAMPLED_NOTES) {
         for (let octave of PIANO_CONFIG.octaves[note]) {
+            // Handle special characters in note names
             const sampleName = `${note}${octave}v12`;
-            // Handle special characters like # in note names
-            const encodedSampleName = encodeURIComponent(`${sampleName}.ogg`);
-            const url = `${corsProxy}${encodeURIComponent(baseUrl)}${encodedSampleName}`;
+            const fileName = sampleName + '.ogg';
+            
+            // Properly encode the URL, especially for notes with # in them
+            let encodedFileName = fileName;
+            if (note.includes('#')) {
+                encodedFileName = fileName.replace('#', '%23');
+            }
+            
+            const url = `${corsProxy}${encodeURIComponent(baseUrl + encodedFileName)}`;
 
             const loadPromise = (async () => {
                 try {
-                    log(`Attempting to load: ${sampleName}.ogg`);
+                    log(`Attempting to load: ${fileName}`);
                     const response = await fetch(url);
 
                     if (!response.ok) {
@@ -699,6 +706,7 @@ async function loadPianoSamples() {
         updateLoadingStatus('Piano samples loaded successfully.');
     }
 }
+       
     async function playNote(note, string, fret) {
         if (!audioContext || audioContext.state === 'suspended') {
             const success = await initializeAudio();
