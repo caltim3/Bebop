@@ -506,22 +506,14 @@ async function initAudioContext() {
     let nearestNote = null;
     let nearestOctave = octave;
 
-    // Standardize the note name for comparison
-    const compareNote = note === 'F#' ? 'Fs' : note === 'D#' ? 'Ds' : note;
-
     const noteIndex = NOTES.indexOf(note);
     for (let sampledNote of SAMPLED_NOTES) {
-        // Convert sampled note name for comparison
-        const sampledNoteForIndex = sampledNote === 'Fs' ? 'F#' : 
-                                  sampledNote === 'Ds' ? 'D#' : sampledNote;
-        
-        const sampledIndex = NOTES.indexOf(sampledNoteForIndex);
+        const sampledIndex = NOTES.indexOf(sampledNote === 'Fs' ? 'F#' : sampledNote === 'Ds' ? 'D#' : sampledNote);
         const distance = Math.abs(noteIndex - sampledIndex);
-        
         if (distance < minDistance) {
             minDistance = distance;
             nearestNote = sampledNote;
-            
+
             // Adjust octave if we're crossing C
             if (noteIndex < sampledIndex && noteIndex < 3 && sampledIndex > 8) {
                 nearestOctave = octave - 1;
@@ -533,8 +525,7 @@ async function initAudioContext() {
 
     return {
         sampleKey: `${nearestNote}${nearestOctave}v12`,
-        semitoneDiff: (noteIndex - NOTES.indexOf(nearestNote === 'Fs' ? 'F#' : 
-                                                nearestNote === 'Ds' ? 'D#' : nearestNote) + 12) % 12
+        semitoneDiff: (noteIndex - NOTES.indexOf(nearestNote === 'Fs' ? 'F#' : nearestNote === 'Ds' ? 'D#' : nearestNote) + 12) % 12
     };
 }
        function getPitchShiftedNote(note, octave) {
@@ -664,27 +655,18 @@ async function setupReverb() {
 
 async function loadPianoSamples() {
     log('Starting piano sample loading...');
-    if (!audioContext) await initializeAudio();
+    if (!audioContext) {
+        await initializeAudio();
+    }
 
     const loadPromises = [];
-    
-    // Use relative path if files are in the same repository
+    // './' means "current directory" - where your HTML file is located
     const baseUrl = "./";
 
     for (let note of SAMPLED_NOTES) {
         for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
-            
-            // Create a clean filename - replace % with actual characters for the URL
-            let fileName;
-            if (note === 'D%') {
-                fileName = `Ds${octave}v12.ogg`;  // Use Ds instead of D%
-            } else if (note === 'F%') {
-                fileName = `Fs${octave}v12.ogg`;  // Use Fs instead of F%
-            } else {
-                fileName = `${note}${octave}v12.ogg`;
-            }
-            
+            const fileName = `${sampleName}.ogg`;
             const url = baseUrl + fileName;
 
             const loadPromise = (async () => {
@@ -693,14 +675,19 @@ async function loadPianoSamples() {
                     const response = await fetch(url);
 
                     if (!response.ok) {
-                        log(`Failed to load ${sampleName}: ${response.status} ${response.statusText}`);
+                        log(`Failed to load ${fileName}: ${response.status} ${response.statusText}`);
                         return null;
                     }
 
                     const arrayBuffer = await response.arrayBuffer();
-                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                    log(`Successfully loaded ${sampleName}`);
-                    return { name: sampleName, buffer: audioBuffer };
+                    try {
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                        log(`Successfully loaded ${sampleName}`);
+                        return { name: sampleName, buffer: audioBuffer };
+                    } catch (decodeError) {
+                        log(`Failed to decode ${fileName}: ${decodeError.message}`);
+                        return null;
+                    }
                 } catch (error) {
                     log(`Error loading ${sampleName}: ${error.message}`);
                     return null;
@@ -711,22 +698,30 @@ async function loadPianoSamples() {
         }
     }
 
-    const results = await Promise.all(loadPromises);
-    results.forEach(result => {
-        if (result) {
-            pianoSampleBuffers[result.name] = result.buffer;
+    try {
+        const results = await Promise.all(loadPromises);
+        let loadedCount = 0;
+        results.forEach(result => {
+            if (result) {
+                pianoSampleBuffers[result.name] = result.buffer;
+                loadedCount++;
+            }
+        });
+
+        samplesLoaded = loadedCount > 0;
+        log(`Piano sample loading completed. Successfully loaded ${loadedCount} samples`);
+        log(`Loaded samples: ${Object.keys(pianoSampleBuffers).join(', ')}`);
+
+        if (!samplesLoaded) {
+            log('Warning: No samples were loaded successfully');
+            updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
+        } else {
+            updateLoadingStatus('Piano samples loaded successfully.');
         }
-    });
-
-    samplesLoaded = Object.keys(pianoSampleBuffers).length > 0;
-    log('Piano sample loading completed');
-    log(`Loaded samples: ${Object.keys(pianoSampleBuffers).join(', ')}`);
-
-    if (!samplesLoaded) {
-        log('No samples loaded, will use fallback oscillator');
-        updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
-    } else {
-        updateLoadingStatus('Piano samples loaded successfully.');
+    } catch (error) {
+        log(`Error during sample loading: ${error.message}`);
+        samplesLoaded = false;
+        updateLoadingStatus('Error loading piano samples. Using fallback synthesizer.');
     }
 }
        
