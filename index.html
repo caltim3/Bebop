@@ -973,143 +973,97 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
 }
        
     // Add this function near other utility functions
-// Replace your current addFirstChordListener function with this:
-function addFirstChordListener() {
-    const measures = document.getElementsByClassName('measure');
-    if (measures.length > 0) {
-        const firstMeasure = measures[0];
-        const firstRootSelect = firstMeasure.querySelector('.root-note');
-        
-        // Create new handler function
-        const changeHandler = function(event) {
-            const newKey = event.target.value;
-            console.log(`First chord changed to: ${newKey}`);
-            
-            // Get the original progression before transposition
-            const originalProgression = Array.from(measures).map(measure => ({
-                root: measure.querySelector('.root-note').value,
-                quality: measure.querySelector('.chord-quality').value
-            }));
-            
-            // Calculate the interval for transposition
-            const originalKey = originalProgression[0].root;
-            const semitoneShift = (NOTES.indexOf(newKey) - NOTES.indexOf(originalKey) + 12) % 12;
-            
-            // Update all measures including scales
-            Array.from(measures).forEach((measure, index) => {
-                if (index === 0) {
-                    // First measure: just update the scale key
-                    measure.querySelector('.second-key').value = newKey;
-                } else {
-                    // Other measures: transpose both root and scale
-                    const originalRoot = originalProgression[index].root;
-                    const originalRootIndex = NOTES.indexOf(originalRoot);
-                    const newRootIndex = (originalRootIndex + semitoneShift) % 12;
-                    const newRoot = NOTES[newRootIndex];
-                    
-                    measure.querySelector('.root-note').value = newRoot;
-                    measure.querySelector('.second-key').value = newRoot;
-                }
-            });
-            
-            console.log(`Progression transposed by ${semitoneShift} semitones`);
-        };
-        
-        // Remove any existing listeners
-        firstRootSelect.removeEventListener('change', firstRootSelect._changeHandler);
-        
-        // Add and store the new listener
-        firstRootSelect._changeHandler = changeHandler;
-        firstRootSelect.addEventListener('change', changeHandler);
-        
-        console.log("First chord listener added successfully");
-    }
-}
-       // Replace your current firstChordChangeHandler function with this:
-function firstChordChangeHandler() {
-    const newKey = this.value;
-    console.log(`First chord changed to: ${newKey}`);
-    updateProgressionKey(newKey);
-}
+let isTransposing = false;
 
-function updateProgressionKey(newKey) {
-    const measures = document.getElementsByClassName('measure');
-    if (measures.length <= 1) return;
-
-    const firstMeasure = measures[0];
-    const originalKey = firstMeasure.querySelector('.root-note').value;
-    
-    // Calculate semitone shift
-    const semitoneShift = getSemitoneDistance(originalKey, newKey);
-    console.log(`Transposing from ${originalKey} to ${newKey} (shift: ${semitoneShift} semitones)`);
-
-    // If there's no actual shift, don't do anything
-    if (semitoneShift === 0) {
-        console.log('No transposition needed - same key');
-        return;
+    // Update the first measure's scale key
+    const firstScaleKey = firstMeasure.querySelector('.second-key');
+    if (firstScaleKey) {
+        firstScaleKey.value = newKey;
     }
 
-    // Update all measures except the first one
-    for (let i = 1; i < measures.length; i++) {
-        const measure = measures[i];
-        const rootNote = measure.querySelector('.root-note');
-        const secondKey = measure.querySelector('.second-key');
-        
-        if (!rootNote || !secondKey) continue;
-
-        const currentRoot = rootNote.value;
-        const newRoot = transposeNote(currentRoot, semitoneShift);
-        
-        console.log(`Measure ${i + 1}: Transposing ${currentRoot} to ${newRoot}`);
-        
-        rootNote.value = newRoot;
-        secondKey.value = newRoot;
-    }
-}
-    // Update the display to show the new progression
+    // Update the fretboard display
     const chordFretboard = document.getElementById('chord-fretboard');
     if (chordFretboard) {
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-        const scaleType = measures[0].querySelector('.scale-select').value;
+        const scaleType = firstMeasure.querySelector('.scale-select').value;
         updateFretboardNotes(chordFretboard, newKey, scaleType, tuning);
     }
 
-let isTransposing = false; // Add this flag at the top of your file
-
-function firstChordChangeHandler(event) {
-    if (isTransposing) return; // Prevent recursive calls
-    
-    isTransposing = true;
-    const newKey = event.target.value;
-    console.log(`First chord changed to: ${newKey}`);
-    
-    try {
-        updateProgressionKey(newKey);
-    } catch (error) {
-        console.error('Error during transposition:', error);
-    } finally {
-        isTransposing = false;
-    }
+    isTransposing = false;
 }
-function addFirstChordListener() {
-    const measures = document.getElementsByClassName('measure');
-    if (measures.length === 0) return;
 
-    const firstMeasure = measures[0];
-    const firstRootSelect = firstMeasure.querySelector('.root-note');
+    function addFirstChordListener() {
+        const measures = document.getElementsByClassName('measure');
     
-    if (!firstRootSelect) {
-        console.error('Could not find root note select in first measure');
-        return;
+        if (measures.length === 0) {
+            console.error('No measures found');
+            return;
+        }
+    
+        const firstMeasure = measures[0];
+        const firstRootSelect = firstMeasure.querySelector('.root-note');
+        
+        if (!firstRootSelect) {
+            console.error('Could not find root note select in first measure');
+            return;
+        }
+    
+        // Remove any existing listeners
+        firstRootSelect.removeEventListener('change', firstChordChangeHandler);
+        
+        // Add the new listener
+        firstRootSelect.addEventListener('change', firstChordChangeHandler);
+        console.log("First chord listener added successfully");
+    }       
+       // Replace your current firstChordChangeHandler function with this:
+    function firstChordChangeHandler() {
+        const newKey = this.value;
+        console.log(`First chord changed to: ${newKey}`);
+        updateProgressionKey(newKey);
     }
-
-    // Remove any existing listeners
-    firstRootSelect.removeEventListener('change', firstChordChangeHandler);
     
-    // Add the new listener
-    firstRootSelect.addEventListener('change', firstChordChangeHandler);
-    console.log("First chord listener added successfully");
-}       
+    function updateProgressionKey(newKey) {
+        const measures = document.getElementsByClassName('measure');
+        if (measures.length <= 1) return;
+    
+        const firstMeasure = measures[0];
+        const originalKey = firstMeasure.querySelector('.root-note').value;
+        
+        // Calculate semitone shift
+        const semitoneShift = getSemitoneDistance(originalKey, newKey);
+        console.log(`Transposing from ${originalKey} to ${newKey} (shift: ${semitoneShift} semitones)`);
+    
+        // If there's no actual shift, don't do anything
+        if (semitoneShift === 0) {
+            console.log('No transposition needed - same key');
+            return;
+        }
+    
+        // Update all measures except the first one
+        for (let i = 1; i < measures.length; i++) {
+            const measure = measures[i];
+            const rootNote = measure.querySelector('.root-note');
+            const secondKey = measure.querySelector('.second-key');
+            
+            if (!rootNote || !secondKey) continue;
+    
+            const currentRoot = rootNote.value;
+            const newRoot = transposeNote(currentRoot, semitoneShift);
+            
+            console.log(`Measure ${i + 1}: Transposing ${currentRoot} to ${newRoot}`);
+            
+            rootNote.value = newRoot;
+            secondKey.value = newRoot;
+        }
+    }
+        // Update the display to show the new progression
+        const chordFretboard = document.getElementById('chord-fretboard');
+        if (chordFretboard) {
+            const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+            const scaleType = measures[0].querySelector('.scale-select').value;
+            updateFretboardNotes(chordFretboard, newKey, scaleType, tuning);
+        }
+       
        function playMetronomeSound(volume = 1) {
         if (!audioContext || audioContext.state === 'suspended') {
             console.log("AudioContext not ready, initializing...");
