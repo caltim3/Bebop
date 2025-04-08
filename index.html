@@ -1062,20 +1062,18 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     
     let buffer;
     if (soundType === 'drums') {
-        // In 4/4 time: Kick on 1 & 4, Snare on 2 & 3, HiHat on all beats
-    if (timeSignature === 4) {
-        if (currentBeat % 2 === 0) { // On main beats (1,2,3,4)
-            if (currentBeat === 0 || currentBeat === 4) { // Beats 1 and 3
-                buffer = soundBuffers['kick'] || createDrumSound('kick');
-            } else if (currentBeat === 2 || currentBeat === 6) { // Beats 2 and 4
-                buffer = soundBuffers['snare'] || createDrumSound('snare');
+        if (timeSignature === 4) {
+            if (currentBeat % 2 === 0) { // On main beats (1,2,3,4)
+                if (currentBeat === 0 || currentBeat === 4) { // Beats 1 and 3
+                    buffer = soundBuffers['kick'] || createDrumSound('kick');
+                } else if (currentBeat === 2 || currentBeat === 6) { // Beats 2 and 4
+                    buffer = soundBuffers['snare'] || createDrumSound('snare');
+                }
+                // Play hihat on all main beats
+                playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), volume * 0.7 * metronomeVolume);
             }
-            // Play hihat on all main beats
-            playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), volume * 0.7 * metronomeVolume);
-        }
-    }
         } else {
-            // For other time signatures, use kick on first beat, snare on other strong beats
+            // For other time signatures, use patterns from DRUM_PATTERNS
             if (currentBeat === 0) {
                 buffer = soundBuffers['kick'] || createDrumSound('kick');
             } else if (DRUM_PATTERNS[timeSignature]?.kick[currentBeat]) {
@@ -1097,7 +1095,7 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
         playBuffer(buffer, volume * metronomeVolume);
     }
 }
-
+       
 // Helper function to play a buffer
 function playBuffer(buffer, volume) {
     const source = audioContext.createBufferSource();
