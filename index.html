@@ -1571,7 +1571,7 @@ function createFretboard(container, tuning) {
             ).join('')}
         </select>
     </div>
-    `;
+   ;
 
     const rootNoteSelect = newMeasure.querySelector('.root-note');
     const qualitySelect = newMeasure.querySelector('.chord-quality');
@@ -1605,7 +1605,6 @@ function createFretboard(container, tuning) {
     if (measuresDiv.children.length === 1) {
         addFirstChordListener();
     }
-}
 
     function removeMeasure() {
         const measures = document.getElementById('measures');
