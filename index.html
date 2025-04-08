@@ -975,21 +975,6 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     // Add this function near other utility functions
 let isTransposing = false;
 
-    // Update the first measure's scale key
-    const firstScaleKey = firstMeasure.querySelector('.second-key');
-    if (firstScaleKey) {
-        firstScaleKey.value = newKey;
-    }
-
-    // Update the fretboard display
-    const chordFretboard = document.getElementById('chord-fretboard');
-    if (chordFretboard) {
-        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-        const scaleType = firstMeasure.querySelector('.scale-select').value;
-        updateFretboardNotes(chordFretboard, newKey, scaleType, tuning);
-    }
-
-    isTransposing = false;
 
     function addFirstChordListener() {
         const measures = document.getElementsByClassName('measure');
@@ -1020,6 +1005,7 @@ let isTransposing = false;
         console.log(`First chord changed to: ${newKey}`);
         updateProgressionKey(newKey);
     }
+    
     function updateProgressionKey(newKey) {
     const measures = document.getElementsByClassName('measure');
     if (measures.length <= 1) return;
