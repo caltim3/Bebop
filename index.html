@@ -566,10 +566,19 @@ function getChordFromFunction(key, func) {
 
     const note = noteMap[(keyIndex + degree) % 12];
     let quality = '';
-    if (func.includes("7")) quality = func.includes("m7") ? "m7" : "7";
-    else if (func.includes("m")) quality = "m";
-    else if (func.includes("°")) quality = "min7b5";
-    else if (func === func.toUpperCase()) quality = ""; // Major chords
+
+    // Check if the Roman numeral is lowercase (indicating minor)
+    const isMinor = func.match(/^[a-z]/); // Check if starts with lowercase letter
+
+    if (func.includes("7")) {
+        quality = func.includes("m7") ? "m7" : "7";
+    } else if (isMinor || func.includes("m")) {
+        quality = "m";
+    } else if (func.includes("°")) {
+        quality = "min7b5";
+    } else if (func === func.toUpperCase()) {
+        quality = ""; // Major chords
+    }
 
     return note + quality;
 }
@@ -1136,6 +1145,7 @@ function mapQualityToDropdown(quality) {
         case 'maj7': return 'maj7';
         case 'm': return 'minor';
         case '': return 'major';
+        case 'min7b5': return 'min7b5';
         default: return 'major';
     }
 }
