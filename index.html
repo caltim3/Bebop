@@ -1013,10 +1013,7 @@ function firstChordChangeHandler() {
 
 function updateProgressionKey(newKey) {
     const measures = document.getElementsByClassName('measure');
-    if (measures.length <= 1) {
-        console.log("Not enough measures to update progression");
-        return;
-    }
+    if (measures.length <= 1) return;
 
     // Get the first measure's root note (original key)
     const firstMeasure = measures[0];
@@ -1027,8 +1024,8 @@ function updateProgressionKey(newKey) {
     const newKeyIndex = NOTES.indexOf(newKey);
     const semitoneShift = (newKeyIndex - originalKeyIndex + 12) % 12;
     
-    console.log(`Transposing from ${originalKey} to ${newKey} (shift: ${semitoneShift} semitones)`);
-    
+    console.log(`Transposing progression from ${originalKey} to ${newKey} (shift: ${semitoneShift} semitones)`);
+
     // Update all measures except the first one
     Array.from(measures).slice(1).forEach((measure, index) => {
         const rootNote = measure.querySelector('.root-note');
@@ -1040,13 +1037,56 @@ function updateProgressionKey(newKey) {
         const newRootIndex = (currentRootIndex + semitoneShift + 12) % 12;
         const newRoot = NOTES[newRootIndex];
         
-        // Update both the chord root and scale key
+        // Update both selects
         rootNote.value = newRoot;
         secondKey.value = newRoot;
         
-        console.log(`Measure ${index + 2}: Transposed from ${currentRoot} to ${newRoot}`);
+        console.log(`Transposed measure ${index + 2}: ${currentRoot} -> ${newRoot}`);
     });
+
+    // Update the display to show the new progression
+    const chordFretboard = document.getElementById('chord-fretboard');
+    if (chordFretboard) {
+        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+        const scaleType = measures[0].querySelector('.scale-select').value;
+        updateFretboardNotes(chordFretboard, newKey, scaleType, tuning);
+    }
 }
+
+function firstChordChangeHandler(event) {
+    const newKey = event.target.value;
+    console.log(`First chord changed to: ${newKey}`);
+    
+    // Remove the event listener temporarily
+    event.target.removeEventListener('change', firstChordChangeHandler);
+    
+    // Update the progression
+    updateProgressionKey(newKey);
+    
+    // Re-add the event listener
+    event.target.addEventListener('change', firstChordChangeHandler);
+}
+
+function addFirstChordListener() {
+    const measures = document.getElementsByClassName('measure');
+    if (measures.length > 0) {
+        const firstMeasure = measures[0];
+        const firstRootSelect = firstMeasure.querySelector('.root-note');
+        
+        // Store a reference to the current handler if it exists
+        if (firstRootSelect._changeHandler) {
+            firstRootSelect.removeEventListener('change', firstRootSelect._changeHandler);
+        }
+        
+        // Create new handler and store reference
+        firstRootSelect._changeHandler = firstChordChangeHandler;
+        
+        // Add the event listener
+        firstRootSelect.addEventListener('change', firstRootSelect._changeHandler);
+        console.log("First chord listener added successfully");
+    }
+}
+       
        function playMetronomeSound(volume = 1) {
         if (!audioContext || audioContext.state === 'suspended') {
             console.log("AudioContext not ready, initializing...");
