@@ -1541,6 +1541,8 @@ function createFretboard(container, tuning) {
         newMeasure.addEventListener('dragend', dragEnd);
 
         measuresDiv.appendChild(newMeasure);
+        
+        console.log(`Added measure ${index + 1}: ${root} ${quality}`);
     });
 
     updateMeasureNumbers();
