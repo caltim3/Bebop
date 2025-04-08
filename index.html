@@ -1539,6 +1539,7 @@ function createFretboard(container, tuning) {
     
     // Log completion
     console.log(`Progression ${progressionKey} loaded successfully`);
+       
     function addMeasure() {
     const measuresDiv = document.getElementById('measures');
     const newMeasure = document.createElement('div');
@@ -1547,29 +1548,29 @@ function createFretboard(container, tuning) {
     newMeasure.innerHTML = `
     <span class="measure-number">${measuresDiv.children.length + 1}</span>
     <div class="chord-controls">
-        <select class="root-note">
-            ${NOTES.map(note => `<option>${note}</option>`).join('')}
-        </select>
-        <select class="chord-quality">
-            <option value="major">Major</option>
-            <option value="minor">Minor</option>
-            <option value="dom7">7</option>
-            <option value="maj7">Maj7</option>
-            <option value="min7">Min7</option>
-            <option value="min7b5">Min7b5 (Half Diminished)</option>
-        </select>
+    <select class="root-note">
+    ${NOTES.map(note => `<option>${note}</option>`).join('')}
+    </select>
+    <select class="chord-quality">
+    <option value="major">Major</option>
+    <option value="minor">Minor</option>
+    <option value="dom7">7</option>
+    <option value="maj7">Maj7</option>
+    <option value="min7">Min7</option>
+    <option value="min7b5">Min7b5 (Half Diminished)</option>
+    </select>
     </div>
     <div class="scale-controls">
-        <select class="second-key">
-            ${NOTES.map(note => `<option>${note}</option>`).join('')}
-        </select>
-        <select class="scale-select">
-            ${Object.keys(SCALES).map(scale => 
-                `<option value="${scale}">${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`
-            ).join('')}
-        </select>
+    <select class="second-key">
+    ${NOTES.map(note => `<option>${note}</option>`).join('')}
+    </select>
+    <select class="scale-select">
+    ${Object.keys(SCALES).map(scale => 
+    `<option value="${scale}">${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`
+    ).join('')}
+    </select>
     </div>
-   ;
+    `;  // Fixed: Added missing backtick
 
     const rootNoteSelect = newMeasure.querySelector('.root-note');
     const qualitySelect = newMeasure.querySelector('.chord-quality');
@@ -1603,6 +1604,7 @@ function createFretboard(container, tuning) {
     if (measuresDiv.children.length === 1) {
         addFirstChordListener();
     }
+} // Fixed: Added missing closing brace for addMeasure function
 
     function removeMeasure() {
         const measures = document.getElementById('measures');
