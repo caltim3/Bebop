@@ -599,12 +599,6 @@ function getChordFromFunction(key, func) {
   });
 }
 
-    document.getElementById("progression-select").addEventListener("change", () => {
-      const progression = document.getElementById("progression-select").value;
-      const key = document.getElementById("keyselect").value;
-      updateChordDropdownsForKey(progression, key);
-});
-
     function findNearestSampledNote(note, octave) {
     let minDistance = Infinity;
     let nearestNote = null;
@@ -998,6 +992,7 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
     console.log(`Chord playback completed: ${root} ${quality}`);
 }
 
+      
 function playFallbackChordNote(note, octave, volume, time, duration, outputNode) {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -1053,6 +1048,27 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     oscillator.stop(time + duration);
     
     console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
+}
+
+    function playMetronomeSound(volume) {
+    if (!audioContext || audioContext.state === 'suspended') {
+        initializeAudio();
+        return;
+    }
+
+    const soundType = document.getElementById('sound-type').value;
+    const metronomeVolume = parseFloat(document.getElementById('metronome-volume').value) || 0.7;
+    const buffer = soundBuffers[soundType === 'drums' && currentBeat === 0 ? 'kick' : soundType === 'drums' ? 'snare' : 'click'];
+
+    if (buffer) {
+        const source = audioContext.createBufferSource();
+        const gainNode = audioContext.createGain();
+        source.buffer = buffer;
+        gainNode.gain.value = volume * metronomeVolume;
+        source.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        source.start();
+    }
 }
        
     // Add this function near other utility functions
@@ -1060,28 +1076,23 @@ let isTransposing = false;
 
 
     function addFirstChordListener() {
-        const measures = document.getElementsByClassName('measure');
-    
-        if (measures.length === 0) {
-            console.error('No measures found');
-            return;
-        }
-    
-        const firstMeasure = measures[0];
-        const firstRootSelect = firstMeasure.querySelector('.root-note');
-        
-        if (!firstRootSelect) {
-            console.error('Could not find root note select in first measure');
-            return;
-        }
-    
-        // Remove any existing listeners
-        firstRootSelect.removeEventListener('change', firstChordChangeHandler);
-        
-        // Add the new listener
-        firstRootSelect.addEventListener('change', firstChordChangeHandler);
-        console.log("First chord listener added successfully");
-    }       
+    const measures = document.getElementsByClassName('measure');
+    if (measures.length === 0) {
+        console.error('No measures found');
+        return;
+    }
+
+    const firstMeasure = measures[0];
+    const firstRootSelect = firstMeasure.querySelector('.root-note');
+    if (!firstRootSelect) {
+        console.error('Could not find root note select in first measure');
+        return;
+    }
+
+    firstRootSelect.removeEventListener('change', firstChordChangeHandler);
+    firstRootSelect.addEventListener('change', firstChordChangeHandler);
+    console.log("First chord listener re-added successfully");
+} 
        
        function firstChordChangeHandler() {
         const newKey = this.value;
@@ -1457,21 +1468,23 @@ function createFretboard(container, tuning) {
     }
 
     function loadProgression(progressionKey) {
-    const progression = PROGRESSIONS[progressionKey];
+    const progression = progressions[progressionKey];
     if (!progression) {
         console.warn("No progression found for key:", progressionKey);
         return;
     }
-    
+
     console.log(`Loading progression: ${progressionKey}`, progression);
-    
+
     const measuresDiv = document.getElementById('measures');
-    measuresDiv.innerHTML = '';
-    
-    progression.forEach((chordDef, index) => {
-        const root = chordDef.root;
-        const quality = chordDef.quality;
-        
+    measuresDiv.innerHTML = ''; // Clear existing measures
+
+    const key = document.getElementById('keySelect').value || 'C'; // Default to C if no key selected
+
+    progression.forEach((chordFunc, index) => {
+        const chord = getChordFromFunction(key, chordFunc);
+        const [root, quality] = parseChord(chord);
+
         const newMeasure = document.createElement('div');
         newMeasure.className = 'measure';
         newMeasure.draggable = true;
@@ -1482,11 +1495,11 @@ function createFretboard(container, tuning) {
                     ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
                 </select>
                 <select class="chord-quality">
-                    <option value="major" ${quality === 'major' ? 'selected' : ''}>Major</option>
-                    <option value="minor" ${quality === 'minor' ? 'selected' : ''}>Minor</option>
-                    <option value="dom7" ${quality === 'dom7' ? 'selected' : ''}>7</option>
+                    <option value="major" ${quality === '' ? 'selected' : ''}>Major</option>
+                    <option value="minor" ${quality === 'm' ? 'selected' : ''}>Minor</option>
+                    <option value="dom7" ${quality === '7' ? 'selected' : ''}>7</option>
                     <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
-                    <option value="min7" ${quality === 'min7' ? 'selected' : ''}>Min7</option>
+                    <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
                     <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
                 </select>
             </div>
@@ -1496,20 +1509,44 @@ function createFretboard(container, tuning) {
                 </select>
                 <select class="scale-select">
                     ${Object.keys(SCALES).map(scale => {
-                        let selected = '';
-                        // Set appropriate default scale based on chord quality
-                        if (quality === 'major' && scale === 'major') selected = 'selected';
-                        else if (quality === 'minor' && scale === 'dorian') selected = 'selected';
-                        else if (quality === 'dom7' && scale === 'mixolydian') selected = 'selected';
-                        else if (quality === 'maj7' && scale === 'major') selected = 'selected';
-                        else if (quality === 'min7' && scale === 'dorian') selected = 'selected';
-                        else if (quality === 'min7b5' && scale === 'locrian') selected = 'selected';
-                        
+                        const selected = suggestScaleForQuality(quality) === scale ? 'selected' : '';
                         return `<option value="${scale}" ${selected}>${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`;
                     }).join('')}
                 </select>
             </div>
         `;
+
+        const rootNoteSelect = newMeasure.querySelector('.root-note');
+        const secondKeySelect = newMeasure.querySelector('.second-key');
+        const qualitySelect = newMeasure.querySelector('.chord-quality');
+        const scaleSelect = newMeasure.querySelector('.scale-select');
+
+        // Sync root note with scale key and handle first chord transposition
+        rootNoteSelect.addEventListener('change', function() {
+            secondKeySelect.value = this.value;
+            if (index === 0) {
+                updateProgressionKey(this.value);
+            }
+        });
+
+        // Update scale type based on chord quality
+        qualitySelect.addEventListener('change', function() {
+            scaleSelect.value = suggestScaleForQuality(this.value);
+        });
+
+        // Add drag and drop handlers
+        newMeasure.addEventListener('dragstart', dragStart);
+        newMeasure.addEventListener('dragover', dragOver);
+        newMeasure.addEventListener('drop', drop);
+        newMeasure.addEventListener('dragend', dragEnd);
+
+        measuresDiv.appendChild(newMeasure);
+    });
+
+    updateMeasureNumbers();
+    addFirstChordListener(); // Ensure listener is added after measures are created
+    console.log(`Progression ${progressionKey} loaded successfully`);
+}
 
         // Add event listeners for root note changes
         const rootNoteSelect = newMeasure.querySelector('.root-note');
@@ -1702,7 +1739,7 @@ function createFretboard(container, tuning) {
                     <option value="DADGAD">DADGAD</option>
                     <option value="openE">Open E (EBEG#BE)</option>
                 </select>
-                <select class="keyselect" id="key-${index}">
+                <select class="keySelect" id="key-${index}">
                     ${NOTES.map(note => `<option value="${note}">${note}</option>`).join('')}
                 </select>
                 <select class="scale-select" id="scale-${index}">
@@ -1774,27 +1811,26 @@ function createFretboard(container, tuning) {
     }
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Add the keySelect event listener
-document.getElementById('keySelect').addEventListener('change', function() {
-    const newKey = this.value;
-    const selectedProgression = document.getElementById('progression-select').value;
-    if (selectedProgression !== 'none') {
-        updateProgressionKey(newKey);
-    }
-});
-
     // Create initial UI elements
     createBeats();
     initializeStaticFretboards();
     initializeDragAndDrop();
-    addFirstChordListener();
 
-    // Initialize measures if empty
-    const measures = document.getElementById('measures');
-    if (measures.children.length === 0) {
-        addMeasure('C', 'major', 'C', 'major');
-        addMeasure('G', 'dom7', 'G', 'mixolydian');
+    // Initialize chord fretboard
+    const chordFretboard = document.getElementById('chord-fretboard');
+    if (chordFretboard) {
+        createFretboard(chordFretboard, TUNINGS.standard);
+        updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
     }
+
+    // Add key select event listener for transposition
+    document.getElementById('keySelect').addEventListener('change', function() {
+        const newKey = this.value;
+        const selectedProgression = document.getElementById('progression-select').value;
+        if (selectedProgression !== 'none') {
+            updateProgressionKey(newKey);
+        }
+    });
 
     // Add progression select event listener
     document.getElementById('progression-select').addEventListener('change', function() {
@@ -1803,7 +1839,7 @@ document.getElementById('keySelect').addEventListener('change', function() {
             loadProgression(selectedProgression);
         }
     });
-    
+
     // Add start-stop button event listener
     document.getElementById('start-stop').addEventListener('click', function () {
         if (!audioContext) initAudioContext();
@@ -1840,9 +1876,7 @@ document.getElementById('keySelect').addEventListener('change', function() {
     // Add tap tempo button event listener
     document.getElementById('tap-tempo').addEventListener('click', function () {
         const now = Date.now();
-        if (now - lastTapTime > 2000) {
-            tapTimes = [];
-        }
+        if (now - lastTapTime > 2000) tapTimes = [];
         tapTimes.push(now);
         lastTapTime = now;
 
@@ -1854,10 +1888,8 @@ document.getElementById('keySelect').addEventListener('change', function() {
             const averageInterval = intervals.reduce((a, b) => a + b) / intervals.length;
             tempo = Math.round(60000 / averageInterval);
             tempo = Math.min(Math.max(tempo, 40), 220);
-
             document.getElementById('tempo').value = tempo;
             document.getElementById('tempo-display').textContent = `${tempo} BPM`;
-
             if (isPlaying) {
                 stopPlayback();
                 startPlayback();
@@ -1865,30 +1897,34 @@ document.getElementById('keySelect').addEventListener('change', function() {
         }
     });
 
-    // Initialize chord fretboard
-    const chordFretboard = document.getElementById('chord-fretboard');
-    if (chordFretboard) {
-        createFretboard(chordFretboard, TUNINGS.standard);
-        updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
-    }
-
-    // Make all chords editable and wire the first one to trigger transposition
-    document.querySelectorAll('.chord').forEach((el, i) => {
-        el.contentEditable = true;
-        el.addEventListener('blur', () => {
-            if (i === 0) {
-                updateChords(); // if first chord was changed
-            }
-        });
+    // Initialize audio context
+    initializeAudio().then(() => {
+        console.log("Audio context initialized");
+    }).catch(error => {
+        console.error("Error initializing audio context:", error);
     });
 
-    // Initialize audio context if needed
-    if (!audioContext) {
-        initializeAudio().then(() => {
-            console.log("Audio context initialized");
-        }).catch(error => {
-            console.error("Error initializing audio context:", error);
-        });
+    // Ensure first chord listener is added if measures exist
+    const measures = document.getElementById('measures');
+    if (measures.children.length > 0) {
+        addFirstChordListener();
+    } else {
+        // Add initial measures if none exist
+        addMeasure();
+        addMeasure();
+        const firstMeasure = measures.children[0];
+        const secondMeasure = measures.children[1];
+        if (firstMeasure && secondMeasure) {
+            firstMeasure.querySelector('.root-note').value = 'C';
+            firstMeasure.querySelector('.chord-quality').value = 'major';
+            firstMeasure.querySelector('.second-key').value = 'C';
+            firstMeasure.querySelector('.scale-select').value = 'major';
+            secondMeasure.querySelector('.root-note').value = 'G';
+            secondMeasure.querySelector('.chord-quality').value = 'dom7';
+            secondMeasure.querySelector('.second-key').value = 'G';
+            secondMeasure.querySelector('.scale-select').value = 'mixolydian';
+            addFirstChordListener();
+        }
     }
 });
 
