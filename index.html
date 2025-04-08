@@ -276,6 +276,22 @@
             <option value="2_5_1">2-5-1</option>
             <option value="6_2_5_1">6-2-5-1</option>
         </select>
+        <label for="keySelect">Select Key:</label>
+            <select id="keySelect">
+              <option value="C">C</option>
+              <option value="C#">C#</option>
+              <option value="D">D</option>
+              <option value="D#">D#</option>
+              <option value="E">E</option>
+              <option value="F">F</option>
+              <option value="F#">F#</option>
+              <option value="G">G</option>
+              <option value="G#">G#</option>
+              <option value="A">A</option>
+              <option value="A#">A#</option>
+              <option value="B">B</option>
+        </select>
+
 <div id="measures">
     <div class="measure" draggable="true">
         <span class="measure-number">1</span>
@@ -418,6 +434,13 @@ async function initAudioContext() {
     }
     return audioContext;
 }
+    document.getElementById("keySelect").addEventListener("change", () => {
+      const selectedKey = document.getElementById("keySelect").value;
+      const selectedProgression = document.getElementById("progression").value;
+      updateChordDropdowns(selectedProgression, selectedKey);
+});
+
+
        
     // Piano sample configuration
     const SAMPLED_NOTES = ['A', 'C', 'Ds', 'Fs'];
@@ -494,33 +517,106 @@ function transposeNote(note, semitones) {
         '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
     };
 
-    const PROGRESSIONS = {
-        jazz_blues: [
-            { root: 'C', quality: 'dom7' }, { root: 'F', quality: 'dom7' }, { root: 'C', quality: 'dom7' },
-            { root: 'C', quality: 'dom7' }, { root: 'F', quality: 'dom7' }, { root: 'F', quality: 'dom7' },
-            { root: 'C', quality: 'dom7' }, { root: 'A', quality: 'dom7' }, { root: 'D', quality: 'min7' },
-            { root: 'G', quality: 'dom7' }, { root: 'C', quality: 'dom7' }, { root: 'G', quality: 'dom7' }
-        ],
-        minor_blues: [
-            { root: 'C', quality: 'min7' }, { root: 'F', quality: 'min7' }, { root: 'C', quality: 'min7' },
-            { root: 'C', quality: 'min7' }, { root: 'F', quality: 'min7' }, { root: 'F', quality: 'min7' },
-            { root: 'C', quality: 'min7' }, { root: 'C', quality: 'min7' }, { root: 'D', quality: 'min7b5' },
-            { root: 'G', quality: 'dom7' }, { root: 'C', quality: 'min7' }, { root: 'C', quality: 'min7' }
-        ],
-        rhythm_changes: [
-            { root: 'B', quality: 'min7' }, { root: 'E', quality: 'dom7' }, { root: 'A', quality: 'min7' },
-            { root: 'D', quality: 'dom7' }, { root: 'G', quality: 'min7' }, { root: 'C', quality: 'dom7' },
-            { root: 'F', quality: 'maj7' }, { root: 'F', quality: 'maj7' }
-        ],
-        '2_5_1': [
-            { root: 'D', quality: 'min7' }, { root: 'G', quality: 'dom7' }, { root: 'C', quality: 'maj7' },
-            { root: 'C', quality: 'maj7' }
-        ],
-        '6_2_5_1': [
-            { root: 'A', quality: 'min7' }, { root: 'D', quality: 'min7' }, { root: 'G', quality: 'dom7' },
-            { root: 'C', quality: 'maj7' }
-        ]
-    };
+   const progressions = {
+          "jazz_blues": [
+            "I7", "IV7", "I7", "I7",
+            "IV7", "IV7", "I7", "VI7",
+            "II7", "V7", "I7", "V7"
+          ],
+          "minor_blues": [
+            "Im7", "IVm7", "Im7", "Im7",
+            "bVI7", "V7", "Im7", "IVm7",
+            "Im7", "bVII7", "Im7", "V7"
+          ],
+          "rhythm_changes": [
+            "I", "vi", "ii", "V",
+            "I", "vi", "ii", "V",
+            "I", "IV", "I", "I",
+            "ii", "V", "I", "V7"
+          ],
+          "2_5_1": [
+            "ii", "V", "I"
+          ],
+          "6_2_5_1": [
+            "vi", "ii", "V", "I"
+          ]
+        };
+
+
+       // Master note map
+const noteMap = [
+  "C", "C#", "D", "D#", "E", "F",
+  "F#", "G", "G#", "A", "A#", "B"
+];
+
+// Converts note name to index in noteMap
+function getNoteIndex(note) {
+  return noteMap.indexOf(note);
+}
+
+// Get chord from Roman numeral (e.g. "ii", "V7") based on a root key
+function getChordFromFunction(key, func) {
+  const keyIndex = getNoteIndex(key);
+  const scaleDegrees = {
+    "I": 0, "ii": 2, "iii": 4, "IV": 5, "V": 7, "vi": 9, "vii°": 11,
+    "I7": 0, "II7": 2, "III7": 4, "IV7": 5, "V7": 7, "VI7": 9, "VII7": 11,
+    "Im7": 0, "IIm7": 2, "IIIm7": 4, "IVm7": 5, "Vm7": 7, "VIm7": 9, "VIIm7": 11,
+    "bII": 1, "bIII": 3, "bVI": 8, "bVII": 10,
+    "bII7": 1, "bIII7": 3, "bVI7": 8, "bVII7": 10
+  };
+
+  let chordType = "";
+
+  // Determine chord type from suffix
+  if (func.includes("7")) chordType = "7";
+  else if (func.includes("m7")) chordType = "m7";
+  else if (func.includes("°")) chordType = "°";
+  else if (func.includes("m")) chordType = "m";
+
+  const degree = scaleDegrees[func];
+  if (degree === undefined) return "X"; // fallback
+
+  const note = noteMap[(keyIndex + degree) % 12];
+  return note + chordType;
+}
+
+       function updateChordDropdownsForKey(progressionName, key) {
+  const container = document.getElementById("chord-grid");
+  container.innerHTML = ""; // Clear current chord selectors
+
+  const chordFunctions = progressions[progressionName];
+  if (!chordFunctions) return;
+
+  chordFunctions.forEach((func, index) => {
+    const chord = getChordFromFunction(key, func);
+
+    const select = document.createElement("select");
+    select.className = "chord-select";
+    select.dataset.index = index;
+
+    // For simplicity, just add the current chord as the only option
+    // (we can later add a full list if needed)
+    const option = document.createElement("option");
+    option.value = chord;
+    option.textContent = chord;
+    select.appendChild(option);
+
+    container.appendChild(select);
+  });
+}
+
+    document.getElementById("progression-select").addEventListener("change", () => {
+      const progression = document.getElementById("progression-select").value;
+      const key = document.getElementById("key-select").value;
+      updateChordDropdownsForKey(progression, key);
+});
+
+    document.getElementById("key-select").addEventListener("change", () => {
+      const progression = document.getElementById("progression-select").value;
+      const key = document.getElementById("key-select").value;
+      updateChordDropdownsForKey(progression, key);
+});
+
 
     function findNearestSampledNote(note, octave) {
     let minDistance = Infinity;
