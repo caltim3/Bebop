@@ -506,15 +506,18 @@ async function initAudioContext() {
     let nearestNote = null;
     let nearestOctave = octave;
 
-    // Handle the special case where we're looking for F# or D#
-    if (note === 'F#') note = 'F%';
-    if (note === 'D#') note = 'D%';
+    // Standardize the note name for comparison
+    const compareNote = note === 'F#' ? 'Fs' : note === 'D#' ? 'Ds' : note;
 
     const noteIndex = NOTES.indexOf(note);
     for (let sampledNote of SAMPLED_NOTES) {
-        const sampledIndex = NOTES.indexOf(sampledNote === 'F%' ? 'F#' : 
-                                          sampledNote === 'D%' ? 'D#' : sampledNote);
+        // Convert sampled note name for comparison
+        const sampledNoteForIndex = sampledNote === 'Fs' ? 'F#' : 
+                                  sampledNote === 'Ds' ? 'D#' : sampledNote;
+        
+        const sampledIndex = NOTES.indexOf(sampledNoteForIndex);
         const distance = Math.abs(noteIndex - sampledIndex);
+        
         if (distance < minDistance) {
             minDistance = distance;
             nearestNote = sampledNote;
@@ -530,8 +533,8 @@ async function initAudioContext() {
 
     return {
         sampleKey: `${nearestNote}${nearestOctave}v12`,
-        semitoneDiff: (noteIndex - NOTES.indexOf(nearestNote === 'F%' ? 'F#' : 
-                                               nearestNote === 'D%' ? 'D#' : nearestNote) + 12) % 12
+        semitoneDiff: (noteIndex - NOTES.indexOf(nearestNote === 'Fs' ? 'F#' : 
+                                                nearestNote === 'Ds' ? 'D#' : nearestNote) + 12) % 12
     };
 }
        function getPitchShiftedNote(note, octave) {
@@ -799,11 +802,13 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
         return;
     }
 
+    // Fade out current chord if it exists
     if (currentChordGain) {
         currentChordGain.gain.setValueAtTime(currentChordGain.gain.value, time);
         currentChordGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
     }
 
+    // Set up gain nodes for mixing dry/wet signal
     const mainGainNode = audioContext.createGain();
     const dryGainNode = audioContext.createGain();
     const wetGainNode = audioContext.createGain();
@@ -819,13 +824,11 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
     currentChordGain = mainGainNode;
 
     // Define chord notes based on root and quality
-    const chordNotes = [root]; // Root note
+    const rootIndex = NOTES.indexOf(root);
+    const chordNotes = [root];
     
     // Add third
-    const rootIndex = NOTES.indexOf(root);
-    const thirdIndex = quality.includes('minor') ? 
-        (rootIndex + 3) % 12 : // Minor third
-        (rootIndex + 4) % 12;  // Major third
+    const thirdIndex = (rootIndex + (quality.includes('minor') ? 3 : 4)) % 12;
     chordNotes.push(NOTES[thirdIndex]);
     
     // Add fifth
@@ -834,24 +837,28 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
     
     // Add seventh if needed
     if (quality.includes('7')) {
-        const seventhIndex = quality.includes('maj7') ? 
-            (rootIndex + 11) % 12 : // Major seventh
-            (rootIndex + 10) % 12;  // Dominant seventh
+        const seventhIndex = (rootIndex + (quality.includes('maj7') ? 11 : 10)) % 12;
         chordNotes.push(NOTES[seventhIndex]);
     }
+
+    // Add diminished fifth for min7b5
+    if (quality === 'min7b5') {
+        chordNotes[2] = NOTES[(rootIndex + 6) % 12]; // Replace perfect 5th with diminished 5th
+    }
+
+    console.log(`Playing chord: ${root} ${quality}`, chordNotes);
     
-    // Play each note in the chord using piano samples
-    const octave = 3; // Middle octave for chord
+    // ADSR envelope parameters
     const attackTime = 0.08;
     const decayTime = 0.15;
     const sustainLevel = 0.7;
     const releaseTime = 0.4;
-    
+
     if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
-        // Use piano samples
+        // Use piano samples with different octaves for better voicing
         chordNotes.forEach((note, index) => {
-            // Use different octaves for better voicing
-            const noteOctave = octave + (index === 0 ? -1 : 0); // Root note one octave lower
+            // Spread the notes across octaves for fuller sound
+            const noteOctave = 3 + (index === 0 ? -1 : 0); // Root note one octave lower
             
             const pitchData = getPitchShiftedNote(note, noteOctave);
             if (pitchData && pianoSampleBuffers[pitchData.sampleKey]) {
@@ -861,6 +868,7 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
                 source.buffer = pianoSampleBuffers[pitchData.sampleKey];
                 source.playbackRate.value = pitchData.playbackRate;
                 
+                // Apply ADSR envelope
                 noteGain.gain.setValueAtTime(0, time);
                 noteGain.gain.linearRampToValueAtTime(chordVolume * 0.25, time + attackTime);
                 noteGain.gain.linearRampToValueAtTime(chordVolume * 0.25 * sustainLevel, time + attackTime + decayTime);
@@ -875,49 +883,50 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
                 
                 console.log(`Played chord note ${note}${noteOctave} using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
             } else {
-                // Fallback to oscillator if sample not available
+                console.warn(`No sample available for ${note}${noteOctave}, using fallback`);
                 playFallbackChordNote(note, noteOctave, chordVolume * 0.25, time, duration, mainGainNode);
             }
         });
     } else {
         // Fallback to oscillators if samples not loaded
-        const baseFreq = 440 * Math.pow(2, (NOTES.indexOf(root) - 9) / 12);
-        const frequencies = [baseFreq];
-        
-        if (quality.includes('minor')) {
-            frequencies.push(baseFreq * 1.189207115); // Minor third
-        } else {
-            frequencies.push(baseFreq * 1.259921049); // Major third
-        }
-        
-        frequencies.push(baseFreq * 1.498307077); // Perfect fifth
-        
-        if (quality.includes('7')) {
-            frequencies.push(baseFreq * (quality.includes('maj7') ? 1.887748625 : 1.781797436)); // Maj7 or Dom7
-        }
-        
-        frequencies.forEach((freq) => {
-            const osc = audioContext.createOscillator();
-            const oscGain = audioContext.createGain();
-            
-            osc.type = 'triangle';
-            osc.frequency.value = freq;
-            
-            oscGain.gain.setValueAtTime(0, time);
-            oscGain.gain.linearRampToValueAtTime(chordVolume * 0.25, time + attackTime);
-            oscGain.gain.linearRampToValueAtTime(chordVolume * 0.25 * sustainLevel, time + attackTime + decayTime);
-            oscGain.gain.setValueAtTime(chordVolume * 0.25 * sustainLevel, time + duration - releaseTime);
-            oscGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-            
-            osc.connect(oscGain);
-            oscGain.connect(mainGainNode);
-            
-            osc.start(time);
-            osc.stop(time + duration);
+        chordNotes.forEach((note, index) => {
+            const noteOctave = 3 + (index === 0 ? -1 : 0);
+            playFallbackChordNote(note, noteOctave, chordVolume * 0.25, time, duration, mainGainNode);
         });
     }
+
+    // Log chord completion
+    console.log(`Chord playback completed: ${root} ${quality}`);
 }
 
+function playFallbackChordNote(note, octave, volume, time, duration, outputNode) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const noteIndex = NOTES.indexOf(note);
+    const frequency = 440 * Math.pow(2, (octave * 12 + noteIndex - 57) / 12);
+    
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(frequency, time);
+    
+    const attackTime = 0.08;
+    const decayTime = 0.15;
+    const sustainLevel = 0.7;
+    const releaseTime = 0.4;
+    
+    gainNode.gain.setValueAtTime(0, time);
+    gainNode.gain.linearRampToValueAtTime(volume, time + attackTime);
+    gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, time + attackTime + decayTime);
+    gainNode.gain.setValueAtTime(volume * sustainLevel, time + duration - releaseTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(outputNode);
+    
+    oscillator.start(time);
+    oscillator.stop(time + duration);
+    
+    console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
+}
 function playFallbackChordNote(note, octave, volume, time, duration, outputNode) {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -955,45 +964,52 @@ function addFirstChordListener() {
         const firstMeasure = measures[0];
         const firstRootSelect = firstMeasure.querySelector('.root-note');
         
-        // Remove any existing listeners to prevent duplicates
-        const oldListener = firstRootSelect._changeHandler;
-        if (oldListener) {
-            firstRootSelect.removeEventListener('change', oldListener);
-        }
-        
         // Create new handler function
         const changeHandler = function(event) {
             const newKey = event.target.value;
             console.log(`First chord changed to: ${newKey}`);
             
-            // Update the scale key to match the root
-            const firstScaleKey = firstMeasure.querySelector('.second-key');
-            if (firstScaleKey) {
-                firstScaleKey.value = newKey;
-            }
+            // Get the original progression before transposition
+            const originalProgression = Array.from(measures).map(measure => ({
+                root: measure.querySelector('.root-note').value,
+                quality: measure.querySelector('.chord-quality').value
+            }));
             
-            // Store the current chord quality
-            const currentQuality = firstMeasure.querySelector('.chord-quality').value;
+            // Calculate the interval for transposition
+            const originalKey = originalProgression[0].root;
+            const semitoneShift = (NOTES.indexOf(newKey) - NOTES.indexOf(originalKey) + 12) % 12;
             
-            // Update the rest of the progression
-            updateProgressionKey(newKey);
+            // Update all measures including scales
+            Array.from(measures).forEach((measure, index) => {
+                if (index === 0) {
+                    // First measure: just update the scale key
+                    measure.querySelector('.second-key').value = newKey;
+                } else {
+                    // Other measures: transpose both root and scale
+                    const originalRoot = originalProgression[index].root;
+                    const originalRootIndex = NOTES.indexOf(originalRoot);
+                    const newRootIndex = (originalRootIndex + semitoneShift) % 12;
+                    const newRoot = NOTES[newRootIndex];
+                    
+                    measure.querySelector('.root-note').value = newRoot;
+                    measure.querySelector('.second-key').value = newRoot;
+                }
+            });
             
-            // Log the complete change
-            console.log(`Progression transposed to ${newKey} ${currentQuality}`);
+            console.log(`Progression transposed by ${semitoneShift} semitones`);
         };
         
-        // Store the handler reference for future removal
-        firstRootSelect._changeHandler = changeHandler;
+        // Remove any existing listeners
+        firstRootSelect.removeEventListener('change', firstRootSelect._changeHandler);
         
-        // Add the new listener
+        // Add and store the new listener
+        firstRootSelect._changeHandler = changeHandler;
         firstRootSelect.addEventListener('change', changeHandler);
         
         console.log("First chord listener added successfully");
-    } else {
-        console.warn("No measures found to add first chord listener");
     }
 }
-// Replace your current firstChordChangeHandler function with this:
+       // Replace your current firstChordChangeHandler function with this:
 function firstChordChangeHandler() {
     const newKey = this.value;
     console.log(`First chord changed to: ${newKey}`);
@@ -1378,11 +1394,16 @@ function createFretboard(container, tuning) {
     }
 
     function loadProgression(progressionKey) {
-        const progression = PROGRESSIONS[progressionKey];
-        if (!progression) return;
-        
-        const measuresDiv = document.getElementById('measures');
-        measuresDiv.innerHTML = '';
+    const progression = PROGRESSIONS[progressionKey];
+    if (!progression) {
+        console.warn("No progression found for key:", progressionKey);
+        return;
+    }
+    
+    console.log(`Loading progression: ${progressionKey}`, progression);
+    
+    const measuresDiv = document.getElementById('measures');
+    measuresDiv.innerHTML = '';
     
     progression.forEach((chordDef, index) => {
         const root = chordDef.root;
@@ -1395,62 +1416,106 @@ function createFretboard(container, tuning) {
             <span class="measure-number">${index + 1}</span>
             <div class="chord-controls">
                 <select class="root-note">
-                    ${NOTES.map(note => `<option>${note}</option>`).join('')}
+                    ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
                 </select>
                 <select class="chord-quality">
-                    <option value="major">Major</option>
-                    <option value="minor">Minor</option>
-                    <option value="dom7">7</option>
-                    <option value="maj7">Maj7</option>
-                    <option value="min7">Min7</option>
-                    <option value="min7b5">Min7b5 (Half Diminished)</option>
+                    <option value="major" ${quality === 'major' ? 'selected' : ''}>Major</option>
+                    <option value="minor" ${quality === 'minor' ? 'selected' : ''}>Minor</option>
+                    <option value="dom7" ${quality === 'dom7' ? 'selected' : ''}>7</option>
+                    <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
+                    <option value="min7" ${quality === 'min7' ? 'selected' : ''}>Min7</option>
+                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
                 </select>
             </div>
             <div class="scale-controls">
                 <select class="second-key">
-                    ${NOTES.map(note => `<option>${note}</option>`).join('')}
+                    ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
                 </select>
                 <select class="scale-select">
-                    ${Object.keys(SCALES).map(scale => 
-                        `<option value="${scale}">${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`
-                    ).join('')}
+                    ${Object.keys(SCALES).map(scale => {
+                        let selected = '';
+                        // Set appropriate default scale based on chord quality
+                        if (quality === 'major' && scale === 'major') selected = 'selected';
+                        else if (quality === 'minor' && scale === 'dorian') selected = 'selected';
+                        else if (quality === 'dom7' && scale === 'mixolydian') selected = 'selected';
+                        else if (quality === 'maj7' && scale === 'major') selected = 'selected';
+                        else if (quality === 'min7' && scale === 'dorian') selected = 'selected';
+                        else if (quality === 'min7b5' && scale === 'locrian') selected = 'selected';
+                        
+                        return `<option value="${scale}" ${selected}>${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`;
+                    }).join('')}
                 </select>
             </div>
         `;
-        
+
+        // Add event listeners for root note changes
         const rootNoteSelect = newMeasure.querySelector('.root-note');
-        const chordQualitySelect = newMeasure.querySelector('.chord-quality');
         const secondKeySelect = newMeasure.querySelector('.second-key');
+        const qualitySelect = newMeasure.querySelector('.chord-quality');
         const scaleSelect = newMeasure.querySelector('.scale-select');
-        
-        rootNoteSelect.value = root;
-        chordQualitySelect.value = quality;
-        secondKeySelect.value = root;
-        
-        // Set appropriate scale based on chord quality
-        if (quality === 'major' || quality === 'maj7') scaleSelect.value = 'major';
-        else if (quality === 'minor' || quality === 'min7') scaleSelect.value = 'dorian';
-        else if (quality === 'dom7') scaleSelect.value = 'mixolydian';
-        else if (quality === 'min7b5') scaleSelect.value = 'locrian';
-        
+
+        // Sync root note with scale key
         rootNoteSelect.addEventListener('change', function() {
             secondKeySelect.value = this.value;
+            
+            // If this is the first measure, trigger the progression update
+            if (index === 0) {
+                const event = new Event('change');
+                this.dispatchEvent(event);
+            }
         });
-        
+
+        // Update scale type based on chord quality
+        qualitySelect.addEventListener('change', function() {
+            const quality = this.value;
+            switch(quality) {
+                case 'major':
+                case 'maj7':
+                    scaleSelect.value = 'major';
+                    break;
+                case 'minor':
+                case 'min7':
+                    scaleSelect.value = 'dorian';
+                    break;
+                case 'dom7':
+                    scaleSelect.value = 'mixolydian';
+                    break;
+                case 'min7b5':
+                    scaleSelect.value = 'locrian';
+                    break;
+            }
+        });
+
+        // Add drag and drop handlers
         newMeasure.addEventListener('dragstart', dragStart);
         newMeasure.addEventListener('dragover', dragOver);
         newMeasure.addEventListener('drop', drop);
         newMeasure.addEventListener('dragend', dragEnd);
         
         measuresDiv.appendChild(newMeasure);
+        
+        console.log(`Added measure ${index + 1}: ${root} ${quality}`);
     });
     
+    // Update measure numbers
     updateMeasureNumbers();
+    
+    // Initialize the first chord's scale key and add the chord change listener
+    const firstMeasure = measuresDiv.firstElementChild;
+    if (firstMeasure) {
+        const rootNote = firstMeasure.querySelector('.root-note').value;
+        const firstScaleKey = firstMeasure.querySelector('.second-key');
+        firstScaleKey.value = rootNote;
+        
+        console.log(`Initialized first measure with root: ${rootNote}`);
+    }
+    
+    // Add the first chord listener for transposition
     addFirstChordListener();
-
-        console.log(`Loaded progression: ${progressionKey}`);
+    
+    // Log completion
+    console.log(`Progression ${progressionKey} loaded successfully`);
 }
-
     function addMeasure() {
     const measuresDiv = document.getElementById('measures');
     const newMeasure = document.createElement('div');
