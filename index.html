@@ -695,21 +695,28 @@ async function initializeAudio() {
     }, { once: true });
 
     async function loadSounds() {
-        try {
-            const types = ['click', 'hihat', 'kick', 'snare'];
-            for (let type of types) {
-                if (!soundBuffers[type]) {
-                    soundBuffers[type] = await createDrumSound(type);
-                    log(`Loaded synthetic ${type} sound`);
-                }
-            }
-            updateLoadingStatus("Drum sounds loaded");
-            return true;
-        } catch (error) {
-            console.error("Failed to load sounds:", error);
-            return false;
+    try {
+        const soundFiles = {
+            'click': 'Click.wav',
+            'hihat': 'HiHat.wav',
+            'kick': 'Kick.wav',
+            'snare': 'Snare.wav'
+        };
+
+        for (let [type, filename] of Object.entries(soundFiles)) {
+            const response = await fetch(filename);
+            const arrayBuffer = await response.arrayBuffer();
+            soundBuffers[type] = await audioContext.decodeAudioData(arrayBuffer);
+            log(`Loaded ${type} sound from ${filename}`);
         }
+        
+        updateLoadingStatus("Drum sounds loaded");
+        return true;
+    } catch (error) {
+        console.error("Failed to load sounds:", error);
+        return false;
     }
+}
 
 // Add this new function
 async function setupReverb() {
@@ -1039,17 +1046,54 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
 
     const soundType = document.getElementById('sound-type').value;
     const metronomeVolume = parseFloat(document.getElementById('metronome-volume').value) || 0.7;
-    const buffer = soundBuffers[soundType === 'drums' && currentBeat === 0 ? 'kick' : soundType === 'drums' ? 'snare' : 'click'];
+    const timeSignature = parseInt(document.getElementById('time-signature').value);
+    
+    let buffer;
+    if (soundType === 'drums') {
+        // In 4/4 time: Kick on 1 & 4, Snare on 2 & 3, HiHat on all beats
+        if (timeSignature === 4) {
+            if (currentBeat % 2 === 0) { // On main beats (1,2,3,4)
+                if (currentBeat === 0 || currentBeat === 6) { // Beats 1 and 4
+                    buffer = soundBuffers['kick'];
+                } else if (currentBeat === 2 || currentBeat === 4) { // Beats 2 and 3
+                    buffer = soundBuffers['snare'];
+                }
+                // Play hihat on all main beats
+                playBuffer(soundBuffers['hihat'], volume * 0.7 * metronomeVolume);
+            }
+        } else {
+            // For other time signatures, use kick on first beat, snare on other strong beats
+            if (currentBeat === 0) {
+                buffer = soundBuffers['kick'];
+            } else if (DRUM_PATTERNS[timeSignature]?.kick[currentBeat]) {
+                buffer = soundBuffers['kick'];
+            } else if (DRUM_PATTERNS[timeSignature]?.snare[currentBeat]) {
+                buffer = soundBuffers['snare'];
+            }
+            // Play hihat on all beats
+            if (DRUM_PATTERNS[timeSignature]?.hihat[currentBeat]) {
+                playBuffer(soundBuffers['hihat'], volume * 0.7 * metronomeVolume);
+            }
+        }
+    } else {
+        // For click sound type, use Click.wav
+        buffer = soundBuffers['click'];
+    }
 
     if (buffer) {
-        const source = audioContext.createBufferSource();
-        const gainNode = audioContext.createGain();
-        source.buffer = buffer;
-        gainNode.gain.value = volume * metronomeVolume;
-        source.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        source.start();
+        playBuffer(buffer, volume * metronomeVolume);
     }
+}
+
+// Helper function to play a buffer
+function playBuffer(buffer, volume) {
+    const source = audioContext.createBufferSource();
+    const gainNode = audioContext.createGain();
+    source.buffer = buffer;
+    gainNode.gain.value = volume;
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    source.start();
 }
        
     // Add this function near other utility functions
