@@ -1488,12 +1488,12 @@ function createFretboard(container, tuning) {
             </div>
         `;
 
+        // Add event listeners and drag-drop handlers
         const rootNoteSelect = newMeasure.querySelector('.root-note');
         const secondKeySelect = newMeasure.querySelector('.second-key');
         const qualitySelect = newMeasure.querySelector('.chord-quality');
         const scaleSelect = newMeasure.querySelector('.scale-select');
 
-        // Sync root note with scale key and handle first chord transposition
         rootNoteSelect.addEventListener('change', function() {
             secondKeySelect.value = this.value;
             if (index === 0) {
@@ -1501,46 +1501,23 @@ function createFretboard(container, tuning) {
             }
         });
 
-        // Update scale type based on chord quality
         qualitySelect.addEventListener('change', function() {
             scaleSelect.value = suggestScaleForQuality(this.value);
         });
 
-        // Add drag and drop handlers
         newMeasure.addEventListener('dragstart', dragStart);
         newMeasure.addEventListener('dragover', dragOver);
         newMeasure.addEventListener('drop', drop);
         newMeasure.addEventListener('dragend', dragEnd);
 
         measuresDiv.appendChild(newMeasure);
-        
-        console.log(`Added measure ${index + 1}: ${root} ${quality}`);
     });
 
     updateMeasureNumbers();
-    addFirstChordListener(); // Ensure listener is added after measures are created
-    console.log(`Progression ${progressionKey} loaded successfully`);
-    
-    // Update measure numbers
-    updateMeasureNumbers();
-    
-    // Initialize the first chord's scale key and add the chord change listener
-    const firstMeasure = measuresDiv.firstElementChild;
-    if (firstMeasure) {
-        const rootNote = firstMeasure.querySelector('.root-note').value;
-        const firstScaleKey = firstMeasure.querySelector('.second-key');
-        firstScaleKey.value = rootNote;
-        
-        console.log(`Initialized first measure with root: ${rootNote}`);
-    }
-    
-    // Add the first chord listener for transposition
     addFirstChordListener();
-    
-    // Log completion
-    console.log(`Progression ${progressionKey} loaded successfully`);
-       
-    function addMeasure() {
+}
+
+function addMeasure() {
     const measuresDiv = document.getElementById('measures');
     const newMeasure = document.createElement('div');
     newMeasure.className = 'measure';
