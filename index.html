@@ -1521,55 +1521,6 @@ function createFretboard(container, tuning) {
     addFirstChordListener(); // Ensure listener is added after measures are created
     console.log(`Progression ${progressionKey} loaded successfully`);
 }
-
-        // Add event listeners for root note changes
-        const rootNoteSelect = newMeasure.querySelector('.root-note');
-        const secondKeySelect = newMeasure.querySelector('.second-key');
-        const qualitySelect = newMeasure.querySelector('.chord-quality');
-        const scaleSelect = newMeasure.querySelector('.scale-select');
-
-        // Sync root note with scale key
-        rootNoteSelect.addEventListener('change', function() {
-            secondKeySelect.value = this.value;
-            
-            // If this is the first measure, trigger the progression update
-            if (index === 0) {
-                const event = new Event('change');
-                this.dispatchEvent(event);
-            }
-        });
-
-        // Update scale type based on chord quality
-        qualitySelect.addEventListener('change', function() {
-            const quality = this.value;
-            switch(quality) {
-                case 'major':
-                case 'maj7':
-                    scaleSelect.value = 'major';
-                    break;
-                case 'minor':
-                case 'min7':
-                    scaleSelect.value = 'dorian';
-                    break;
-                case 'dom7':
-                    scaleSelect.value = 'mixolydian';
-                    break;
-                case 'min7b5':
-                    scaleSelect.value = 'locrian';
-                    break;
-            }
-        });
-
-        // Add drag and drop handlers
-        newMeasure.addEventListener('dragstart', dragStart);
-        newMeasure.addEventListener('dragover', dragOver);
-        newMeasure.addEventListener('drop', drop);
-        newMeasure.addEventListener('dragend', dragEnd);
-        
-        measuresDiv.appendChild(newMeasure);
-        
-        console.log(`Added measure ${index + 1}: ${root} ${quality}`);
-  });
     
     // Update measure numbers
     updateMeasureNumbers();
