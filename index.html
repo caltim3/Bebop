@@ -1020,49 +1020,54 @@ let isTransposing = false;
         console.log(`First chord changed to: ${newKey}`);
         updateProgressionKey(newKey);
     }
-    
     function updateProgressionKey(newKey) {
-        const measures = document.getElementsByClassName('measure');
-        if (measures.length <= 1) return;
+    const measures = document.getElementsByClassName('measure');
+    if (measures.length <= 1) return;
     
-        const firstMeasure = measures[0];
-        const originalKey = firstMeasure.querySelector('.root-note').value;
-        
-        // Calculate semitone shift
-        const semitoneShift = getSemitoneDistance(originalKey, newKey);
-        console.log(`Transposing from ${originalKey} to ${newKey} (shift: ${semitoneShift} semitones)`);
+    const firstMeasure = measures[0];
+    const originalKey = firstMeasure.querySelector('.root-note').value;
     
-        // If there's no actual shift, don't do anything
-        if (semitoneShift === 0) {
-            console.log('No transposition needed - same key');
-            return;
-        }
+    // Calculate semitone shift
+    const semitoneShift = getSemitoneDistance(originalKey, newKey);
+    console.log(`Transposing from ${originalKey} to ${newKey} (shift: ${semitoneShift} semitones)`);
     
-        // Update all measures except the first one
-        for (let i = 1; i < measures.length; i++) {
-            const measure = measures[i];
-            const rootNote = measure.querySelector('.root-note');
-            const secondKey = measure.querySelector('.second-key');
-            
-            if (!rootNote || !secondKey) continue;
-    
-            const currentRoot = rootNote.value;
-            const newRoot = transposeNote(currentRoot, semitoneShift);
-            
-            console.log(`Measure ${i + 1}: Transposing ${currentRoot} to ${newRoot}`);
-            
-            rootNote.value = newRoot;
-            secondKey.value = newRoot;
-        }
+    // If there's no actual shift, don't do anything
+    if (semitoneShift === 0) {
+        console.log('No transposition needed - same key');
+        return;
     }
-        // Update the display to show the new progression
-        const chordFretboard = document.getElementById('chord-fretboard');
-        if (chordFretboard) {
-            const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-            const scaleType = measures[0].querySelector('.scale-select').value;
-            updateFretboardNotes(chordFretboard, newKey, scaleType, tuning);
-        }
-       
+    
+    // Update all measures except the first one
+    for (let i = 1; i < measures.length; i++) {
+        const measure = measures[i];
+        const rootNote = measure.querySelector('.root-note');
+        const secondKey = measure.querySelector('.second-key');
+        
+        if (!rootNote || !secondKey) continue;
+        
+        const currentRoot = rootNote.value;
+        const newRoot = transposeNote(currentRoot, semitoneShift);
+        
+        console.log(`Measure ${i + 1}: Transposing ${currentRoot} to ${newRoot}`);
+        
+        rootNote.value = newRoot;
+        secondKey.value = newRoot;
+    }
+
+    // Update the first measure's scale key
+    const firstScaleKey = firstMeasure.querySelector('.second-key');
+    if (firstScaleKey) {
+        firstScaleKey.value = newKey;
+    }
+
+    // Update the fretboard display
+    const chordFretboard = document.getElementById('chord-fretboard');
+    if (chordFretboard) {
+        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+        const scaleType = firstMeasure.querySelector('.scale-select').value;
+        updateFretboardNotes(chordFretboard, newKey, scaleType, tuning);
+    }
+}
        function playMetronomeSound(volume = 1) {
         if (!audioContext || audioContext.state === 'suspended') {
             console.log("AudioContext not ready, initializing...");
@@ -1115,41 +1120,40 @@ let isTransposing = false;
     }
 
     function startPlayback() {
-        if (!audioContext) initAudioContext();
-        const timeSignature = parseInt(document.getElementById('time-signature').value);
-        const measures = document.getElementsByClassName('measure');
+    if (!audioContext) initAudioContext();
+    const timeSignature = parseInt(document.getElementById('time-signature').value);
+    const measures = document.getElementsByClassName('measure');
 
-        if (measures.length === 0) {
-            console.warn('No measures defined. Please add at least one measure.');
-            return;
-        }
-
-        let interval = (60 / tempo) * 1000;
-        if (timeSignature === 4) {
-            interval = interval / 2;
-        }
-
-        currentBeat = 0;
-        currentMeasure = 0;
-        clearInterval(intervalId);
-
-        const currentMeasureElement = measures[currentMeasure];
-        if (currentMeasureElement) {
-            const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-            const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
-            const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
-            const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-
-            if (root && quality && scaleRoot && scaleType) {
-                const chordFretboard = document.getElementById('chord-fretboard');
-                const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
-                updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
-                playChord(root, quality);
-            }
-        }
-
-        intervalId = setInterval(playBeat, interval);
+    if (measures.length === 0) {
+        console.warn('No measures defined. Please add at least one measure.');
+        return;
     }
+
+    let interval = (60 / tempo) * 1000;
+    if (timeSignature === 4) {
+        interval = interval / 2;
+    }
+
+    currentBeat = 0;
+    currentMeasure = 0;
+    clearInterval(intervalId);
+
+    const currentMeasureElement = measures[currentMeasure];
+    if (currentMeasureElement) {
+        const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+        const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+        const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+        const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+
+        if (root && quality && scaleRoot && scaleType) {
+            const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
+            updateFretboardNotes(document.getElementById('chord-fretboard'), scaleRoot, scaleType, chordTuning);
+            playChord(root, quality);
+        }
+    }
+
+    intervalId = setInterval(playBeat, interval);
+}
        
 function playBeat() {
     const beats = document.querySelectorAll('.beat');
@@ -1174,9 +1178,8 @@ function playBeat() {
             const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
 
             if (root && quality && scaleRoot && scaleType) {
-                const chordFretboard = document.getElementById('chord-fretboard');
                 const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
-                updateFretboardNotes(chordFretboard, scaleRoot, scaleType, chordTuning);
+                updateFretboardNotes(document.getElementById('chord-fretboard'), scaleRoot, scaleType, chordTuning);
 
                 const beatDuration = 60 / tempo;
                 if (timeSignature === 4) {
@@ -1204,7 +1207,6 @@ function playBeat() {
         currentMeasure = (currentMeasure + 1) % measures.length;
     }
 }
-
     function stopPlayback() {
         clearInterval(intervalId);
         currentBeat = 0;
