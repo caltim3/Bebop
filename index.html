@@ -434,14 +434,7 @@ async function initAudioContext() {
     }
     return audioContext;
 }
-    document.getElementById("keySelect").addEventListener("change", () => {
-      const selectedKey = document.getElementById("keySelect").value;
-      const selectedProgression = document.getElementById("progression-select").value;
-      updateChordDropdowns(selectedProgression, selectedKey);
-});
-
-
-       
+      
     // Piano sample configuration
     const SAMPLED_NOTES = ['A', 'C', 'Ds', 'Fs'];
     const PIANO_CONFIG = {
@@ -610,13 +603,6 @@ function getChordFromFunction(key, func) {
       const key = document.getElementById("keyselect").value;
       updateChordDropdownsForKey(progression, key);
 });
-
-    document.getElementById("keyselect").addEventListener("change", () => {
-      const progression = document.getElementById("progression-select").value;
-      const key = document.getElementById("keyselect").value;
-      updateChordDropdownsForKey(progression, key);
-});
-
 
     function findNearestSampledNote(note, octave) {
     let minDistance = Infinity;
@@ -1806,17 +1792,30 @@ function createFretboard(container, tuning) {
     }
 
 document.addEventListener('DOMContentLoaded', function () {
+    // Add the keySelect event listener
+    const keySelect = document.getElementById("keySelect");
+    if (keySelect) {
+        keySelect.addEventListener("change", () => {
+            const selectedKey = keySelect.value;
+            const selectedProgression = document.getElementById("progression-select").value;
+            updateChordDropdowns(selectedProgression, selectedKey);
+        });
+    }
+
+    // Create initial UI elements
     createBeats();
     initializeStaticFretboards();
     initializeDragAndDrop();
     addFirstChordListener();
 
+    // Initialize measures if empty
     const measures = document.getElementById('measures');
     if (measures.children.length === 0) {
         addMeasure('C', 'major', 'C', 'major');
         addMeasure('G', 'dom7', 'G', 'mixolydian');
     }
 
+    // Add progression select event listener
     document.getElementById('progression-select').addEventListener('change', function() {
         const selectedProgression = this.value;
         if (selectedProgression !== 'none') {
@@ -1824,6 +1823,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
     
+    // Add start-stop button event listener
     document.getElementById('start-stop').addEventListener('click', function () {
         if (!audioContext) initAudioContext();
         if (isPlaying) {
@@ -1837,6 +1837,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Add tempo slider event listener
     document.getElementById('tempo').addEventListener('input', function () {
         tempo = parseInt(this.value);
         document.getElementById('tempo-display').textContent = `${tempo} BPM`;
@@ -1846,6 +1847,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Add time signature event listener
     document.getElementById('time-signature').addEventListener('change', function () {
         createBeats();
         if (isPlaying) {
@@ -1854,6 +1856,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Add tap tempo button event listener
     document.getElementById('tap-tempo').addEventListener('click', function () {
         const now = Date.now();
         if (now - lastTapTime > 2000) {
@@ -1880,93 +1883,44 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
+    // Initialize chord fretboard
+    const chordFretboard = document.getElementById('chord-fretboard');
+    if (chordFretboard) {
+        createFretboard(chordFretboard, TUNINGS.standard);
+        updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
+    }
+
+    // Make all chords editable and wire the first one to trigger transposition
+    document.querySelectorAll('.chord').forEach((el, i) => {
+        el.contentEditable = true;
+        el.addEventListener('blur', () => {
+            if (i === 0) {
+                updateChords(); // if first chord was changed
+            }
+        });
+    });
+
+    // Initialize audio context if needed
+    if (!audioContext) {
+        initializeAudio().then(() => {
+            console.log("Audio context initialized");
+        }).catch(error => {
+            console.error("Error initializing audio context:", error);
+        });
+    }
 });
 
-        window.onload = () => {
-        createFretboard(document.getElementById('chord-fretboard'), TUNINGS.standard);
-        updateFretboardNotes(document.getElementById('chord-fretboard'), 'C', 'major', TUNINGS.standard);
-        createBeats();
-        initializeDragAndDrop();
-        initializeStaticFretboards();
-        addFirstChordListener();
-    
-        const measures = document.getElementById('measures');
-        if (measures.children.length === 0) {
-            addMeasure('C', 'major', 'C', 'major');
-            addMeasure('G', 'dom7', 'G', 'mixolydian');
+  window.onload = () => {
+    // Double-check fretboard initialization
+    const chordFretboard = document.getElementById('chord-fretboard');
+    if (chordFretboard) {
+        createFretboard(chordFretboard, TUNINGS.standard);
+        updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
+    }
+};
         }
 };
-
-const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const majorScaleSteps = [2, 2, 1, 2, 2, 2, 1];
-const romanNumerals = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
-
-function getMajorScale(key) {
-    let scale = [];
-    let index = chromaticScale.indexOf(key);
-    if (index === -1) return [];
-
-    scale.push(chromaticScale[index]);
-    for (let step of majorScaleSteps) {
-        index = (index + step) % chromaticScale.length;
-        scale.push(chromaticScale[index]);
-    }
-    return scale.slice(0, 7);
-}
-
-function getRomanNumeralPattern(chords, scale) {
-    return chords.map(chord => {
-        const base = chord.replace("m", "").replace("°", "");
-        const idx = scale.indexOf(base);
-        if (idx === -1) return "?";
-        const rn = romanNumerals[idx];
-        if (chord.includes("°")) return rn + "°";
-        if (chord.includes("m")) return rn.toLowerCase();
-        return rn;
-    });
-}
-
-function applyRomanPatternToNewKey(romanPattern, newKey) {
-    const scale = getMajorScale(newKey);
-    return romanPattern.map(rn => {
-        const baseRN = rn.toLowerCase().replace("°", "");
-        const idx = romanNumerals.findIndex(r => r.toLowerCase() === baseRN);
-        if (idx === -1) return "?";
-
-        let chord = scale[idx];
-        if (rn.includes("°")) chord += "°";
-        else if (rn === rn.toLowerCase()) chord += "m";
-        return chord;
-    });
-}
-
-function updateChords() {
-    const chordEls = document.querySelectorAll('.chord');
-    if (chordEls.length === 0) return;
-
-    const originalChords = Array.from(chordEls).map(el => el.innerText);
-    const originalKey = originalChords[0].replace("m", "").replace("°", "");
-    const originalScale = getMajorScale(originalKey);
-    const romanPattern = getRomanNumeralPattern(originalChords, originalScale);
-
-    // Recheck the new first chord
-    const newKey = chordEls[0].innerText.replace("m", "").replace("°", "");
-    const newChords = applyRomanPatternToNewKey(romanPattern, newKey);
-
-    newChords.forEach((chord, i) => {
-        chordEls[i].innerText = chord;
-    });
-}
-
-// Make all chords editable and wire the first one to trigger transposition
-document.querySelectorAll('.chord').forEach((el, i) => {
-    el.contentEditable = true;
-    el.addEventListener('blur', () => {
-        if (i === 0) {
-            updateChords(); // if first chord was changed
-        }
-    });
-});
 </script>
 </body>
 </html>
