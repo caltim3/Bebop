@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bebop Blueprint</title>
-    <link rel="icon" href="data:,">
+    <link rel="icon" type="image/png" href="es335icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* Same as index 16 but drums dont work.html, no changes needed */
@@ -1060,17 +1060,21 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     const metronomeVolume = parseFloat(document.getElementById('metronome-volume').value) || 0.7;
     const timeSignature = parseInt(document.getElementById('time-signature').value);
     
+    const finalVolume = volume * metronomeVolume;
+    
     let buffer;
     if (soundType === 'drums') {
         if (timeSignature === 4) {
-            if (currentBeat % 2 === 0) { // On main beats (1,2,3,4)
+            // Play hihat on ALL eighth notes (removed the currentBeat % 2 condition)
+            playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), finalVolume * 0.7);
+            
+            // Only check kick and snare on main beats
+            if (currentBeat % 2 === 0) {
                 if (currentBeat === 0 || currentBeat === 4) { // Beats 1 and 3
                     buffer = soundBuffers['kick'] || createDrumSound('kick');
                 } else if (currentBeat === 2 || currentBeat === 6) { // Beats 2 and 4
                     buffer = soundBuffers['snare'] || createDrumSound('snare');
                 }
-                // Play hihat on all main beats
-                playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), volume * 0.7 * metronomeVolume);
             }
         } else {
             // For other time signatures, use patterns from DRUM_PATTERNS
@@ -1081,9 +1085,9 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
             } else if (DRUM_PATTERNS[timeSignature]?.snare[currentBeat]) {
                 buffer = soundBuffers['snare'] || createDrumSound('snare');
             }
-            // Play hihat on all beats
+            // Play hihat according to pattern
             if (DRUM_PATTERNS[timeSignature]?.hihat[currentBeat]) {
-                playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), volume * 0.7 * metronomeVolume);
+                playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), finalVolume * 0.7);
             }
         }
     } else {
@@ -1092,7 +1096,7 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     }
 
     if (buffer) {
-        playBuffer(buffer, volume * metronomeVolume);
+        playBuffer(buffer, finalVolume);
     }
 }
        
