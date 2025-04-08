@@ -549,28 +549,29 @@ function getNoteIndex(note) {
 
 // Get chord from Roman numeral (e.g. "ii", "V7") based on a root key
 function getChordFromFunction(key, func) {
-  const keyIndex = getNoteIndex(key);
-  const scaleDegrees = {
-    "I": 0, "ii": 2, "iii": 4, "IV": 5, "V": 7, "vi": 9, "vii°": 11,
-    "I7": 0, "II7": 2, "III7": 4, "IV7": 5, "V7": 7, "VI7": 9, "VII7": 11,
-    "Im7": 0, "IIm7": 2, "IIIm7": 4, "IVm7": 5, "Vm7": 7, "VIm7": 9, "VIIm7": 11,
-    "bII": 1, "bIII": 3, "bVI": 8, "bVII": 10,
-    "bII7": 1, "bIII7": 3, "bVI7": 8, "bVII7": 10
-  };
+    const keyIndex = getNoteIndex(key);
+    const scaleDegrees = {
+        "I": 0, "ii": 2, "iii": 4, "IV": 5, "V": 7, "vi": 9, "vii°": 11,
+        "I7": 0, "II7": 2, "III7": 4, "IV7": 5, "V7": 7, "VI7": 9, "VII7": 11,
+        "Im7": 0, "IIm7": 2, "IIIm7": 4, "IVm7": 5, "Vm7": 7, "VIm7": 9, "VIIm7": 11,
+        "bII": 1, "bIII": 3, "bVI": 8, "bVII": 10,
+        "bII7": 1, "bIII7": 3, "bVI7": 8, "bVII7": 10
+    };
 
-  let chordType = "";
+    const degree = scaleDegrees[func];
+    if (degree === undefined) {
+        console.error(`Invalid chord function: ${func}`);
+        return "C"; // Fallback
+    }
 
-  // Determine chord type from suffix
-  if (func.includes("7")) chordType = "7";
-  else if (func.includes("m7")) chordType = "m7";
-  else if (func.includes("°")) chordType = "°";
-  else if (func.includes("m")) chordType = "m";
+    const note = noteMap[(keyIndex + degree) % 12];
+    let quality = '';
+    if (func.includes("7")) quality = func.includes("m7") ? "m7" : "7";
+    else if (func.includes("m")) quality = "m";
+    else if (func.includes("°")) quality = "min7b5";
+    else if (func === func.toUpperCase()) quality = ""; // Major chords
 
-  const degree = scaleDegrees[func];
-  if (degree === undefined) return "X"; // fallback
-
-  const note = noteMap[(keyIndex + degree) % 12];
-  return note + chordType;
+    return note + quality;
 }
 
        function updateChordDropdownsForKey(progressionName, key) {
@@ -1081,8 +1082,8 @@ let isTransposing = false;
         firstRootSelect.addEventListener('change', firstChordChangeHandler);
         console.log("First chord listener added successfully");
     }       
-       // Replace your current firstChordChangeHandler function with this:
-    function firstChordChangeHandler() {
+       
+       function firstChordChangeHandler() {
         const newKey = this.value;
         console.log(`First chord changed to: ${newKey}`);
         updateProgressionKey(newKey);
@@ -1091,101 +1092,82 @@ let isTransposing = false;
     function updateProgressionKey(newKey) {
     const measures = document.getElementsByClassName('measure');
     if (measures.length <= 1) return;
-    
-    const firstMeasure = measures[0];
-    const originalKey = firstMeasure.querySelector('.root-note').value;
-    
-    // Calculate semitone shift
-    const semitoneShift = getSemitoneDistance(originalKey, newKey);
-    console.log(`Transposing from ${originalKey} to ${newKey} (shift: ${semitoneShift} semitones)`);
-    
-    // If there's no actual shift, don't do anything
-    if (semitoneShift === 0) {
-        console.log('No transposition needed - same key');
+
+    const selectedProgression = document.getElementById('progression-select').value;
+    if (selectedProgression === 'none') return;
+
+    // Get the progression's Roman numeral structure
+    const progressionChords = progressions[selectedProgression];
+    if (!progressionChords) {
+        console.error(`No progression found for ${selectedProgression}`);
         return;
     }
-    
-    // Update all measures except the first one
-    for (let i = 1; i < measures.length; i++) {
-        const measure = measures[i];
-        const rootNote = measure.querySelector('.root-note');
-        const secondKey = measure.querySelector('.second-key');
-        
-        if (!rootNote || !secondKey) continue;
-        
-        const currentRoot = rootNote.value;
-        const newRoot = transposeNote(currentRoot, semitoneShift);
-        
-        console.log(`Measure ${i + 1}: Transposing ${currentRoot} to ${newRoot}`);
-        
-        rootNote.value = newRoot;
-        secondKey.value = newRoot;
-    }
 
-    // Update the first measure's scale key
-    const firstScaleKey = firstMeasure.querySelector('.second-key');
-    if (firstScaleKey) {
-        firstScaleKey.value = newKey;
-    }
+    // Update all measures based on the new key
+    Array.from(measures).forEach((measure, index) => {
+        const chordFunc = progressionChords[index];
+        if (!chordFunc) return; // Skip if no chord defined for this measure
 
-    // Update the fretboard display
+        const newChord = getChordFromFunction(newKey, chordFunc);
+        const [root, quality] = parseChord(newChord);
+
+        // Update chord controls
+        const rootNoteSelect = measure.querySelector('.root-note');
+        const qualitySelect = measure.querySelector('.chord-quality');
+        const secondKeySelect = measure.querySelector('.second-key');
+        const scaleSelect = measure.querySelector('.scale-select');
+
+        rootNoteSelect.value = root;
+        qualitySelect.value = mapQualityToDropdown(quality);
+        secondKeySelect.value = root; // Sync scale key with chord root
+
+        // Suggest a default scale based on chord quality
+        scaleSelect.value = suggestScaleForQuality(quality);
+    });
+
+    // Update the fretboard
     const chordFretboard = document.getElementById('chord-fretboard');
     if (chordFretboard) {
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+        const firstMeasure = measures[0];
         const scaleType = firstMeasure.querySelector('.scale-select').value;
         updateFretboardNotes(chordFretboard, newKey, scaleType, tuning);
     }
+
+    console.log(`Progression transposed to key: ${newKey}`);
 }
-       function playMetronomeSound(volume = 1) {
-        if (!audioContext || audioContext.state === 'suspended') {
-            console.log("AudioContext not ready, initializing...");
-            initializeAudio().then(success => {
-                if (success) playMetronomeSound(volume);
-            });
-            return;
-        }
-        if (!soundBuffers['click']) {
-            console.warn("Sound buffers not loaded yet, attempting to load...");
-            loadSounds().then(() => playMetronomeSound(volume));
-            return;
-        }
-        try {
-            const soundType = document.getElementById('sound-type').value;
-            const metronomeVolume = parseFloat(document.getElementById('metronome-volume').value) || 0.7;
-            console.log(`Playing sound type: ${soundType}, beat: ${currentBeat}`);
-            if (soundType === 'click') {
-                const source = audioContext.createBufferSource();
-                const gainNode = audioContext.createGain();
-                source.buffer = soundBuffers['click'];
-                gainNode.gain.value = volume * metronomeVolume;
-                source.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                source.start();
-                console.log("Played click");
-            } else if (soundType === 'drums') {
-                const timeSignature = document.getElementById('time-signature').value;
-                const pattern = DRUM_PATTERNS[timeSignature];
-                if (!pattern) {
-                    console.warn(`No drum pattern for time signature ${timeSignature}`);
-                    return;
-                }
-                ['kick', 'snare', 'hihat'].forEach(drum => {
-                    if (pattern[drum][currentBeat % pattern[drum].length] && soundBuffers[drum]) {
-                        const source = audioContext.createBufferSource();
-                        const gainNode = audioContext.createGain();
-                        source.buffer = soundBuffers[drum];
-                        gainNode.gain.value = volume * metronomeVolume * (drum === 'snare' ? 0.8 : drum === 'hihat' ? 0.6 : 1);
-                        source.connect(gainNode);
-                        gainNode.connect(audioContext.destination);
-                        source.start();
-                        console.log(`Played ${drum}`);
-                    }
-                });
-            }
-        } catch (error) {
-            console.error("Error playing metronome sound:", error);
-        }
+
+// Helper function to parse chord notation (e.g., "C7" -> ["C", "dom7"])
+function parseChord(chord) {
+    const rootMatch = chord.match(/^[A-G]#?/);
+    const root = rootMatch ? rootMatch[0] : 'C';
+    const quality = chord.replace(root, '');
+    return [root, quality || 'major'];
+}
+
+// Map chord quality to dropdown values
+function mapQualityToDropdown(quality) {
+    switch (quality) {
+        case '7': return 'dom7';
+        case 'm7': return 'min7';
+        case 'maj7': return 'maj7';
+        case 'm': return 'minor';
+        case '': return 'major';
+        default: return 'major';
     }
+}
+
+// Suggest a scale based on chord quality
+function suggestScaleForQuality(quality) {
+    switch (quality) {
+        case '7': return 'mixolydian';
+        case 'm7': return 'dorian';
+        case 'maj7': return 'major';
+        case 'm': return 'minor';
+        case 'min7b5': return 'locrian';
+        default: return 'major';
+    }
+}
 
     function startPlayback() {
     if (!audioContext) initAudioContext();
@@ -1793,14 +1775,13 @@ function createFretboard(container, tuning) {
 
 document.addEventListener('DOMContentLoaded', function () {
     // Add the keySelect event listener
-    const keySelect = document.getElementById("keySelect");
-    if (keySelect) {
-        keySelect.addEventListener("change", () => {
-            const selectedKey = keySelect.value;
-            const selectedProgression = document.getElementById("progression-select").value;
-            updateChordDropdowns(selectedProgression, selectedKey);
-        });
+document.getElementById('keySelect').addEventListener('change', function() {
+    const newKey = this.value;
+    const selectedProgression = document.getElementById('progression-select').value;
+    if (selectedProgression !== 'none') {
+        updateProgressionKey(newKey);
     }
+});
 
     // Create initial UI elements
     createBeats();
