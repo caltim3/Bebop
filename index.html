@@ -436,7 +436,7 @@ async function initAudioContext() {
 }
     document.getElementById("keySelect").addEventListener("change", () => {
       const selectedKey = document.getElementById("keySelect").value;
-      const selectedProgression = document.getElementById("progression").value;
+      const selectedProgression = document.getElementById("progression-select").value;
       updateChordDropdowns(selectedProgression, selectedKey);
 });
 
@@ -607,13 +607,13 @@ function getChordFromFunction(key, func) {
 
     document.getElementById("progression-select").addEventListener("change", () => {
       const progression = document.getElementById("progression-select").value;
-      const key = document.getElementById("key-select").value;
+      const key = document.getElementById("keyselect").value;
       updateChordDropdownsForKey(progression, key);
 });
 
-    document.getElementById("key-select").addEventListener("change", () => {
+    document.getElementById("keyselect").addEventListener("change", () => {
       const progression = document.getElementById("progression-select").value;
-      const key = document.getElementById("key-select").value;
+      const key = document.getElementById("keyselect").value;
       updateChordDropdownsForKey(progression, key);
 });
 
@@ -1734,7 +1734,7 @@ function createFretboard(container, tuning) {
                     <option value="DADGAD">DADGAD</option>
                     <option value="openE">Open E (EBEG#BE)</option>
                 </select>
-                <select class="key-select" id="key-${index}">
+                <select class="keyselect" id="key-${index}">
                     ${NOTES.map(note => `<option value="${note}">${note}</option>`).join('')}
                 </select>
                 <select class="scale-select" id="scale-${index}">
