@@ -1021,34 +1021,6 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     
     console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
 }
-function playFallbackChordNote(note, octave, volume, time, duration, outputNode) {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    const noteIndex = NOTES.indexOf(note);
-    const frequency = 440 * Math.pow(2, (octave * 12 + noteIndex - 57) / 12);
-    
-    oscillator.type = 'triangle';
-    oscillator.frequency.setValueAtTime(frequency, time);
-    
-    const attackTime = 0.08;
-    const decayTime = 0.15;
-    const sustainLevel = 0.7;
-    const releaseTime = 0.4;
-    
-    gainNode.gain.setValueAtTime(0, time);
-    gainNode.gain.linearRampToValueAtTime(volume, time + attackTime);
-    gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, time + attackTime + decayTime);
-    gainNode.gain.setValueAtTime(volume * sustainLevel, time + duration - releaseTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(outputNode);
-    
-    oscillator.start(time);
-    oscillator.stop(time + duration);
-    
-    console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
-}
 
     function playMetronomeSound(volume) {
     if (!audioContext || audioContext.state === 'suspended') {
