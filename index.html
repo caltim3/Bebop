@@ -694,8 +694,10 @@ async function initializeAudio() {
         }
     }, { once: true });
 
-    async function loadSounds() {
+   async function loadSounds() {
     try {
+        // Use the same path structure as the piano samples
+        const baseUrl = "./"; // This should match where your WAV files are located
         const soundFiles = {
             'click': 'Click.wav',
             'hihat': 'HiHat.wav',
@@ -704,10 +706,20 @@ async function initializeAudio() {
         };
 
         for (let [type, filename] of Object.entries(soundFiles)) {
-            const response = await fetch(filename);
-            const arrayBuffer = await response.arrayBuffer();
-            soundBuffers[type] = await audioContext.decodeAudioData(arrayBuffer);
-            log(`Loaded ${type} sound from ${filename}`);
+            try {
+                const response = await fetch(baseUrl + filename);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                soundBuffers[type] = await audioContext.decodeAudioData(arrayBuffer);
+                log(`Loaded ${type} sound from ${filename}`);
+            } catch (error) {
+                console.error(`Failed to load ${filename}:`, error);
+                // Create fallback synthetic sound if loading fails
+                soundBuffers[type] = await createDrumSound(type);
+                log(`Using fallback synthetic sound for ${type}`);
+            }
         }
         
         updateLoadingStatus("Drum sounds loaded");
@@ -1054,30 +1066,30 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
         if (timeSignature === 4) {
             if (currentBeat % 2 === 0) { // On main beats (1,2,3,4)
                 if (currentBeat === 0 || currentBeat === 6) { // Beats 1 and 4
-                    buffer = soundBuffers['kick'];
+                    buffer = soundBuffers['kick'] || createDrumSound('kick');
                 } else if (currentBeat === 2 || currentBeat === 4) { // Beats 2 and 3
-                    buffer = soundBuffers['snare'];
+                    buffer = soundBuffers['snare'] || createDrumSound('snare');
                 }
                 // Play hihat on all main beats
-                playBuffer(soundBuffers['hihat'], volume * 0.7 * metronomeVolume);
+                playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), volume * 0.7 * metronomeVolume);
             }
         } else {
             // For other time signatures, use kick on first beat, snare on other strong beats
             if (currentBeat === 0) {
-                buffer = soundBuffers['kick'];
+                buffer = soundBuffers['kick'] || createDrumSound('kick');
             } else if (DRUM_PATTERNS[timeSignature]?.kick[currentBeat]) {
-                buffer = soundBuffers['kick'];
+                buffer = soundBuffers['kick'] || createDrumSound('kick');
             } else if (DRUM_PATTERNS[timeSignature]?.snare[currentBeat]) {
-                buffer = soundBuffers['snare'];
+                buffer = soundBuffers['snare'] || createDrumSound('snare');
             }
             // Play hihat on all beats
             if (DRUM_PATTERNS[timeSignature]?.hihat[currentBeat]) {
-                playBuffer(soundBuffers['hihat'], volume * 0.7 * metronomeVolume);
+                playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), volume * 0.7 * metronomeVolume);
             }
         }
     } else {
         // For click sound type, use Click.wav
-        buffer = soundBuffers['click'];
+        buffer = soundBuffers['click'] || createDrumSound('click');
     }
 
     if (buffer) {
