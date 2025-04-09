@@ -1338,43 +1338,8 @@ function loadProgressionOptions() {
     console.log("Progression options loaded:", Object.keys(PROGRESSIONS));
 }
        
-function loadProgression(progressionName) {
-    console.log(`Loading progression: ${progressionName}`, PROGRESSIONS[progressionName].chords);
-    const progressionData = PROGRESSIONS[progressionName];
-    if (!progressionData || !progressionData.chords) return;
-
-    const measuresContainer = document.getElementById('measures');
-    measuresContainer.innerHTML = '';
-
-    const chords = progressionData.chords;
-    chords.forEach((chord, index) => {
-        const measure = createMeasure(index + 1);
-        const rootNoteSelect = measure.querySelector('.root-note');
-        const chordQualitySelect = measure.querySelector('.chord-quality');
-        const romanNumeral = chord.match(/^([b#]?\w+)/)[0];
-        const quality = chord.replace(romanNumeral, '');
-
-        const key = progressionData.defaultKey;
-        const root = romanNumeralToRoot(romanNumeral, key);
-        rootNoteSelect.value = root || 'C';
-        chordQualitySelect.value = mapRomanQualityToDropdown(quality) || 'major';
-
-        measuresContainer.appendChild(measure);
-    });
-
-    if (document.querySelectorAll('.measure').length > 0) {
-        const firstMeasure = document.querySelector('.measure');
-        firstMeasure.querySelector('.chord-controls')?.classList.remove('hidden');
-        console.log("First chord listener re-added successfully");
-    }
-
-    const keySelect = document.getElementById('keySelect');
-    if (keySelect) {
-        keySelect.value = progressionData.defaultKey;
-    }
-}
-       
-   
+ 
+  
 // Suggest a scale based on chord quality
 function suggestScaleForQuality(quality) {
     switch (quality) {
@@ -1730,6 +1695,61 @@ function createFretboard(container, tuning) {
     }
 }
 
+function createMeasure(measureNumber) {
+    const measure = document.createElement('div');
+    measure.className = 'measure';
+    measure.draggable = true;
+    measure.innerHTML = `
+        <span class="measure-number">${measureNumber}</span>
+        <div class="chord-controls">
+            <select class="root-note">
+                ${NOTES.map(note => `<option>${note}</option>`).join('')}
+            </select>
+            <select class="chord-quality">
+                <option value="major">Major</option>
+                <option value="minor">Minor</option>
+                <option value="dom7">7</option>
+                <option value="maj7">Maj7</option>
+                <option value="min7">Min7</option>
+                <option value="min7b5">Min7b5 (Half Diminished)</option>
+            </select>
+        </div>
+        <div class="scale-controls">
+            <select class="second-key">
+                ${NOTES.map(note => `<option>${note}</option>`).join('')}
+            </select>
+            <select class="scale-select">
+                ${Object.keys(SCALES).map(scale => 
+                    `<option value="${scale}">${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`
+                ).join('')}
+            </select>
+        </div>
+    `;
+
+    // Add drag-and-drop event listeners
+    measure.addEventListener('dragstart', dragStart);
+    measure.addEventListener('dragover', dragOver);
+    measure.addEventListener('drop', drop);
+    measure.addEventListener('dragend', dragEnd);
+
+    // Sync scale key with root note and suggest scale
+    const rootNoteSelect = measure.querySelector('.root-note');
+    const qualitySelect = measure.querySelector('.chord-quality');
+    const secondKeySelect = measure.querySelector('.second-key');
+    const scaleSelect = measure.querySelector('.scale-select');
+
+    rootNoteSelect.addEventListener('change', function() {
+        secondKeySelect.value = this.value;
+        scaleSelect.value = suggestScaleForQuality(qualitySelect.value);
+    });
+
+    qualitySelect.addEventListener('change', function() {
+        scaleSelect.value = suggestScaleForQuality(this.value);
+    });
+
+    return measure;
+}
+       
 function loadProgression(progressionName) {
     console.log(`Loading progression: ${progressionName}`, PROGRESSIONS[progressionName].chords);
     const progressionData = PROGRESSIONS[progressionName];
@@ -1743,29 +1763,31 @@ function loadProgression(progressionName) {
         const measure = createMeasure(index + 1);
         const rootNoteSelect = measure.querySelector('.root-note');
         const chordQualitySelect = measure.querySelector('.chord-quality');
+        const secondKeySelect = measure.querySelector('.second-key');
+        const scaleSelect = measure.querySelector('.scale-select');
+
         const romanNumeral = chord.match(/^([b#]?\w+)/)[0];
         const quality = chord.replace(romanNumeral, '');
-
-        // Map Roman numeral to root note based on default key
         const key = progressionData.defaultKey;
         const root = romanNumeralToRoot(romanNumeral, key);
+
         rootNoteSelect.value = root || 'C';
         chordQualitySelect.value = mapRomanQualityToDropdown(quality) || 'major';
+        secondKeySelect.value = root || 'C'; // Sync scale key with chord root
+        scaleSelect.value = suggestScaleForQuality(quality); // Suggest appropriate scale
 
         measuresContainer.appendChild(measure);
     });
 
-    if (document.querySelectorAll('.measure').length > 0) {
-        const firstMeasure = document.querySelector('.measure');
-        firstMeasure.querySelector('.chord-controls')?.classList.remove('hidden');
-        console.log("First chord listener re-added successfully");
-    }
-
-    // Set the key dropdown to the default key
+    // Update key dropdown
     const keySelect = document.getElementById('keySelect');
     if (keySelect) {
         keySelect.value = progressionData.defaultKey;
     }
+
+    // Add first chord listener after loading
+    addFirstChordListener();
+    console.log(`Progression ${progressionName} loaded with ${chords.length} measures`);
 }
 
 function addMeasure() {
