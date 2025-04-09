@@ -1224,8 +1224,10 @@ function suggestScaleForQuality(quality) {
     }
 }
 
-    function startPlayback() {
+function startPlayback() {
     if (!audioContext) initAudioContext();
+    if (isPlaying) return; // Prevent multiple intervals
+
     const timeSignature = parseInt(document.getElementById('time-signature').value);
     const measures = document.getElementsByClassName('measure');
 
@@ -1236,12 +1238,12 @@ function suggestScaleForQuality(quality) {
 
     let interval = (60 / tempo) * 1000;
     if (timeSignature === 4) {
-        interval = interval / 2;
+        interval = interval / 2; // Eighth notes in 4/4
     }
 
     currentBeat = 0;
     currentMeasure = 0;
-    clearInterval(intervalId);
+    clearInterval(intervalId); // Clear any existing interval
 
     const currentMeasureElement = measures[currentMeasure];
     if (currentMeasureElement) {
@@ -1258,7 +1260,11 @@ function suggestScaleForQuality(quality) {
     }
 
     intervalId = setInterval(playBeat, interval);
+    isPlaying = true; // Set flag after starting
+    document.getElementById('start-stop').textContent = 'Stop';
+    console.log("Playback started");
 }
+
        
 async function playBeat() {
     const beats = document.querySelectorAll('.beat');
@@ -1313,6 +1319,32 @@ async function playBeat() {
     }
 }
 
+    function stopPlayback() {
+    clearInterval(intervalId);
+    intervalId = null;
+    isPlaying = false;
+    currentBeat = 0;
+    currentMeasure = 0;
+
+    // Reset beat visuals
+    const beats = document.querySelectorAll('.beat');
+    beats.forEach(beat => beat.classList.remove('active'));
+
+    // Reset measure visuals
+    const measures = document.querySelectorAll('.measure');
+    measures.forEach(measure => measure.classList.remove('active'));
+
+    // Stop any ongoing chord audio
+    if (currentChordGain) {
+        currentChordGain.gain.setValueAtTime(currentChordGain.gain.value, audioContext.currentTime);
+        currentChordGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+        currentChordGain = null;
+    }
+
+    document.getElementById('start-stop').textContent = 'Start';
+    console.log("Playback stopped");
+}
+       
 function createFretboard(container, tuning) {
     container.innerHTML = '';
 
@@ -1832,18 +1864,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Add start-stop button event listener
-    document.getElementById('start-stop').addEventListener('click', function () {
-        if (!audioContext) initAudioContext();
-        if (isPlaying) {
-            isPlaying = false;
-            this.textContent = 'Start';
-            stopPlayback();
-        } else {
-            isPlaying = true;
-            this.textContent = 'Stop';
-            startPlayback();
-        }
-    });
+document.getElementById('start-stop').addEventListener('click', function () {
+    if (!audioContext) initAudioContext();
+    if (isPlaying) {
+        stopPlayback();
+    } else {
+        startPlayback();
+    }
+});
 
     // Add tempo slider event listener
     document.getElementById('tempo').addEventListener('input', function () {
