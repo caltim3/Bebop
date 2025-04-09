@@ -1856,6 +1856,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Add metronome volume slider event listener (NEW FIX)
+    document.getElementById('metronome-volume').addEventListener('input', function () {
+        const metronomeVolume = parseFloat(this.value);
+        console.log(`Metronome volume set to: ${metronomeVolume}`); // Debugging log
+        if (isPlaying) {
+            stopPlayback();
+            startPlayback(); // Restart playback to apply new volume immediately
+        }
+    });
+
     // Initialize audio context
     initializeAudio().then(() => {
         console.log("Audio context initialized");
