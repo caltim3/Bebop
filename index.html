@@ -215,8 +215,9 @@
         <h1>BEBOP BLUEPRINT</h1>
         <h3>Fretflow - Dynamic Fretboard with Scales that Move with the Chord Progression</h3>
         <div class="volume-control">
-            <span>Fretboard Volume:</span>
-            <input type="range" id="chord-fretboard-volume" min="0" max="1" step="0.1" value="0.3">
+            <span>Note Duration:</span>
+            <input type="range" id="note-duration" min="0.1" max="2" step="0.1" value="0.5">
+            <span id="duration-display">0.5s</span>
         </div>
         <div class="fretboard-container">
             <div class="scale-display" id="scale-display"></div>
@@ -857,7 +858,7 @@ async function loadPianoSamples() {
     }
 }
        
-    async function playNote(note, string, fret) {
+   async function playNote(note, string, fret) {
     if (!audioContext || audioContext.state === 'suspended') {
         const success = await initializeAudio();
         if (!success) return;
@@ -1969,6 +1970,11 @@ document.getElementById('start-stop').addEventListener('click', function () {
         }
     });
 
+    document.getElementById('note-duration').addEventListener('input', function () {
+    const duration = parseFloat(this.value);
+    document.getElementById('duration-display').textContent = `${duration}s`;
+});
+    
     // Add metronome volume slider event listener (NEW FIX)
     document.getElementById('metronome-volume').addEventListener('input', function () {
         const metronomeVolume = parseFloat(this.value);
