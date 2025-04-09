@@ -865,29 +865,21 @@ async function loadPianoSamples() {
     }
 
     try {
-        // Frequency table for Standard tuning (EADGBE), frets 0-12
         const FREQUENCIES = [
-            // String 6 (E2)
             [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
-            // String 5 (A2)
             [110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00],
-            // String 4 (D3)
             [146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66],
-            // String 3 (G3)
             [196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00],
-            // String 2 (B3)
             [246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88],
-            // String 1 (E4)
             [329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25]
         ];
 
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-        const stringIndex = 5 - string; // Convert string (0=high E, 5=low E) to array index
+        const stringIndex = 5 - string;
         const frequency = FREQUENCIES[stringIndex][fret];
         const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
-        const duration = 0.5; // 0.5 seconds
+        const duration = parseFloat(document.getElementById('note-duration').value) || 0.5;
 
-        // Piano sample matching
         const SAMPLE_FREQUENCIES = {
             'A2': 110.00, 'A3': 220.00, 'A4': 440.00, 'A5': 880.00, 'A6': 1760.00,
             'C2': 65.41, 'C3': 130.81, 'C4': 261.63, 'C5': 523.25, 'C6': 1046.50,
@@ -906,21 +898,20 @@ async function loadPianoSamples() {
                 if (diff < minDiff) {
                     minDiff = diff;
                     closestSample = sampleFreq;
-                    sampleKey = `${key}v12`; // e.g., "A4v12"
+                    sampleKey = `${key}v12`;
                 }
             }
 
-            if (minDiff < 5 && pianoSampleBuffers[sampleKey]) { // Allow 5 Hz tolerance
-                const playbackRate = frequency / closestSample; // Adjust pitch
+            if (pianoSampleBuffers[sampleKey]) {
+                const playbackRate = frequency / closestSample; // Adjust pitch to match exactly
                 const source = audioContext.createBufferSource();
                 const gainNode = audioContext.createGain();
 
                 source.buffer = pianoSampleBuffers[sampleKey];
                 source.playbackRate.value = playbackRate;
 
-                // ADSR: Quick attack, no sustain, 0.5s fade-out
                 gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01); // Fast attack
+                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
                 gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
 
                 source.connect(gainNode);
@@ -930,7 +921,7 @@ async function loadPianoSamples() {
 
                 console.log(`Played ${note} (fret ${fret}, string ${string}) at ${frequency} Hz using ${sampleKey} with playbackRate ${playbackRate}`);
             } else {
-                console.warn(`No close piano sample for ${frequency} Hz, using synthetic`);
+                console.warn(`Sample ${sampleKey} not loaded, using synthetic`);
                 playSyntheticNote(frequency, volume, duration);
             }
         } else {
