@@ -699,7 +699,7 @@ async function initializeAudio() {
         if (!Object.keys(soundBuffers).length) {
             await loadSounds();
         }
-        if (!samplesLoaded) {
+        if (!samplesLoaded && Object.keys(pianoSampleBuffers).length === 0) { // Guard against duplicate loading
             await loadPianoSamples();
         }
         return audioContext.state === 'running';
@@ -909,11 +909,11 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
 }
        
- async function playNote(note, string, fret) {
+async function playNote(note, string, fret) {
     if (!audioContext || audioContext.state === 'suspended') {
         const success = await initializeAudio();
         if (!success) return;
-        return playNote(note, string, fret);
+        return playNote(note, string, fret); // Recursive call after initialization
     }
 
     let frequency, volume, duration;
@@ -930,21 +930,22 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
         const stringIndex = 5 - string;
         frequency = FREQUENCIES[stringIndex][fret];
-        volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
+        const volumeElement = document.getElementById('fretboard-volume');
+        volume = volumeElement ? parseFloat(volumeElement.value) || 0.3 : 0.3;
         const durationElement = document.getElementById('note-duration');
         duration = durationElement ? parseFloat(durationElement.value) || 0.5 : 0.5;
-
-        const SAMPLE_FREQUENCIES = {
-            'A2': 110.00, 'A3': 220.00, 'A4': 440.00, 'A5': 880.00, 'A6': 1760.00,
-            'C2': 65.41, 'C3': 130.81, 'C4': 261.63, 'C5': 523.25, 'C6': 1046.50,
-            'Ds2': 77.78, 'Ds3': 155.56, 'Ds4': 311.13, 'Ds5': 622.25, 'Ds6': 1244.51,
-            'Fs2': 92.50, 'Fs3': 185.00, 'Fs4': 369.99, 'Fs5': 739.99, 'Fs6': 1479.98
-        };
 
         if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
             let closestSample = null;
             let minDiff = Infinity;
             let sampleKey = null;
+
+            const SAMPLE_FREQUENCIES = {
+                'A2': 110.00, 'A3': 220.00, 'A4': 440.00, 'A5': 880.00, 'A6': 1760.00,
+                'C2': 65.41, 'C3': 130.81, 'C4': 261.63, 'C5': 523.25, 'C6': 1046.50,
+                'Ds2': 77.78, 'Ds3': 155.56, 'Ds4': 311.13, 'Ds5': 622.25, 'Ds6': 1244.51,
+                'Fs2': 92.50, 'Fs3': 185.00, 'Fs4': 369.99, 'Fs5': 739.99, 'Fs6': 1479.98
+            };
 
             for (const [key, sampleFreq] of Object.entries(SAMPLE_FREQUENCIES)) {
                 const diff = Math.abs(frequency - sampleFreq);
@@ -983,11 +984,11 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
         }
     } catch (error) {
         console.error("Error playing note:", error);
-        // Only call playSyntheticNote if variables are defined
-        if (typeof frequency !== 'undefined' && typeof volume !== 'undefined' && typeof duration !== 'undefined') {
+        // Ensure fallback only if all variables are defined
+        if (frequency && !isNaN(volume) && duration) {
             playSyntheticNote(frequency, volume, duration);
         } else {
-            console.error("Cannot play synthetic note: frequency, volume, or duration undefined");
+            console.error("Cannot play synthetic note: frequency, volume, or duration invalid", { frequency, volume, duration });
         }
     }
 }
@@ -1703,7 +1704,7 @@ function createMeasure(measureNumber) {
         <span class="measure-number">${measureNumber}</span>
         <div class="chord-controls">
             <select class="root-note">
-                ${NOTES.map(note => `<option>${note}</option>`).join('')}
+                ${NOTES.map(note => `<option value="${note}">${note}</option>`).join('')}
             </select>
             <select class="chord-quality">
                 <option value="major">Major</option>
@@ -1716,7 +1717,7 @@ function createMeasure(measureNumber) {
         </div>
         <div class="scale-controls">
             <select class="second-key">
-                ${NOTES.map(note => `<option>${note}</option>`).join('')}
+                ${NOTES.map(note => `<option value="${note}">${note}</option>`).join('')}
             </select>
             <select class="scale-select">
                 ${Object.keys(SCALES).map(scale => 
