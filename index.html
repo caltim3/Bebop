@@ -1335,8 +1335,9 @@ function loadProgressionOptions() {
         option.textContent = progression.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         select.appendChild(option);
     }
+    console.log("Progression options loaded:", Object.keys(PROGRESSIONS));
 }
-
+       
 function loadProgression(progressionName) {
     console.log(`Loading progression: ${progressionName}`, PROGRESSIONS[progressionName].chords);
     const progressionData = PROGRESSIONS[progressionName];
@@ -1373,17 +1374,7 @@ function loadProgression(progressionName) {
     }
 }
        
-function loadProgressionOptions() {
-    const select = document.getElementById('progression-select');
-    select.innerHTML = '<option value="none">None</option>';
-    for (const progression in PROGRESSIONS) {
-        const option = document.createElement('option');
-        option.value = progression;
-        option.textContent = progression.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        select.appendChild(option);
-    }
-}
-       
+   
 // Suggest a scale based on chord quality
 function suggestScaleForQuality(quality) {
     switch (quality) {
@@ -1970,6 +1961,7 @@ document.addEventListener('DOMContentLoaded', function () {
     createBeats();
     initializeStaticFretboards();
     initializeDragAndDrop();
+    loadProgressionOptions(); // Added to populate the dropdown
 
     // Initialize chord fretboard
     const chordFretboard = document.getElementById('chord-fretboard');
@@ -1996,14 +1988,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Add start-stop button event listener
-document.getElementById('start-stop').addEventListener('click', function () {
-    if (!audioContext) initAudioContext();
-    if (isPlaying) {
-        stopPlayback();
-    } else {
-        startPlayback();
-    }
-});
+    document.getElementById('start-stop').addEventListener('click', function () {
+        if (!audioContext) initAudioContext();
+        if (isPlaying) {
+            stopPlayback();
+        } else {
+            startPlayback();
+        }
+    });
 
     // Add tempo slider event listener
     document.getElementById('tempo').addEventListener('input', function () {
@@ -2049,17 +2041,17 @@ document.getElementById('start-stop').addEventListener('click', function () {
     });
 
     document.getElementById('note-duration').addEventListener('input', function () {
-    const duration = parseFloat(this.value);
-    document.getElementById('duration-display').textContent = `${duration}s`;
-});
+        const duration = parseFloat(this.value);
+        document.getElementById('duration-display').textContent = `${duration}s`;
+    });
     
-    // Add metronome volume slider event listener (NEW FIX)
+    // Add metronome volume slider event listener
     document.getElementById('metronome-volume').addEventListener('input', function () {
         const metronomeVolume = parseFloat(this.value);
-        console.log(`Metronome volume set to: ${metronomeVolume}`); // Debugging log
+        console.log(`Metronome volume set to: ${metronomeVolume}`);
         if (isPlaying) {
             stopPlayback();
-            startPlayback(); // Restart playback to apply new volume immediately
+            startPlayback();
         }
     });
 
