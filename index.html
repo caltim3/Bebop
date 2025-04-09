@@ -246,9 +246,10 @@
                 <option value="8">8/8</option>
                 <option value="12">12/8</option>
             </select>
-            <select id="sound-type">
+              <select id="sound-type">
                 <option value="click">Click</option>
                 <option value="drums">Drums</option>
+                <option value="woodblock">Woodblock</option>
             </select>
             <div class="volume-control">
                 <span>Metronome Volume:</span>
@@ -696,13 +697,13 @@ async function initializeAudio() {
 
    async function loadSounds() {
     try {
-        // Use the same path structure as the piano samples
-        const baseUrl = "./"; // This should match where your WAV files are located
+        const baseUrl = "./"; // Assumes sound files are in the same directory as index.html
         const soundFiles = {
             'click': 'Click.wav',
             'hihat': 'HiHat.wav',
             'kick': 'Kick.wav',
-            'snare': 'Snare.wav'
+            'snare': 'Snare.wav',
+            'woodblock': 'woodblock.wav'
         };
 
         for (let [type, filename] of Object.entries(soundFiles)) {
@@ -716,7 +717,6 @@ async function initializeAudio() {
                 log(`Loaded ${type} sound from ${filename}`);
             } catch (error) {
                 console.error(`Failed to load ${filename}:`, error);
-                // Create fallback synthetic sound if loading fails
                 soundBuffers[type] = await createDrumSound(type);
                 log(`Using fallback synthetic sound for ${type}`);
             }
@@ -778,7 +778,7 @@ async function setupReverb() {
         case 'woodblock':
             for (let i = 0; i < data.length; i++) {
                 const t = i / sampleRate;
-                data[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 20); // Higher pitch, quick decay
+                data[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 20); // High-pitched, quick decay
             }
             break;
     }
@@ -1056,48 +1056,50 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
 }
 
-    function playMetronomeSound(volume) {
+    async function playMetronomeSound(volume) {
     if (!audioContext || audioContext.state === 'suspended') {
-        initializeAudio();
+        await initializeAudio();
         return;
     }
 
     const soundType = document.getElementById('sound-type').value;
     const metronomeVolume = parseFloat(document.getElementById('metronome-volume').value) || 0.7;
     const timeSignature = parseInt(document.getElementById('time-signature').value);
-    
+    const beats = document.querySelectorAll('.beat');
+    const currentBeatElement = beats[currentBeat];
     const finalVolume = volume * metronomeVolume;
-    
-    let buffer;
-    if (soundType === 'drums') {
-        // Always play hihat on every eighth note for 4/4 time
+
+    if (!currentBeatElement || finalVolume <= 0) return;
+
+    const beatSound = currentBeatElement.dataset.sound || 'default';
+
+    if (soundType === 'click') {
+        playBuffer(soundBuffers['click'] || await createDrumSound('click'), finalVolume);
+    } else if (soundType === 'woodblock') {
+        playBuffer(soundBuffers['woodblock'] || await createDrumSound('woodblock'), finalVolume);
+    } else if (soundType === 'drums') {
         if (timeSignature === 4) {
-            // Play hihat on every beat (eighth notes)
-            playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), finalVolume * 0.7);
-            
-            // For kick and snare, only play on main beats (0,2,4,6)
-            if (currentBeat % 2 === 0) {  // Main beats
-                if (currentBeat === 0 || currentBeat === 4) {  // Beats 1 and 3
-                    playBuffer(soundBuffers['kick'] || createDrumSound('kick'), finalVolume);
-                } else if (currentBeat === 2 || currentBeat === 6) {  // Beats 2 and 4
-                    playBuffer(soundBuffers['snare'] || createDrumSound('snare'), finalVolume);
-                }
+            playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
+            if (beatSound === 'kick') {
+                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
+            } else if (beatSound === 'snare') {
+                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
             }
         } else {
-            // For other time signatures, use patterns from DRUM_PATTERNS
-            if (DRUM_PATTERNS[timeSignature]?.hihat[currentBeat]) {
-                playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), finalVolume * 0.7);
+            const pattern = DRUM_PATTERNS[timeSignature];
+            if (pattern.hihat[currentBeat]) {
+                playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
             }
-            if (DRUM_PATTERNS[timeSignature]?.kick[currentBeat]) {
-                playBuffer(soundBuffers['kick'] || createDrumSound('kick'), finalVolume);
-            } else if (DRUM_PATTERNS[timeSignature]?.snare[currentBeat]) {
-                playBuffer(soundBuffers['snare'] || createDrumSound('snare'), finalVolume);
+            if (beatSound === 'kick') {
+                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
+            } else if (beatSound === 'snare') {
+                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
+            } else if (pattern.kick[currentBeat]) {
+                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
+            } else if (pattern.snare[currentBeat]) {
+                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
             }
         }
-    } else {
-        // For click sound type
-        buffer = soundBuffers['click'] || createDrumSound('click');
-        playBuffer(buffer, finalVolume);
     }
 }
        
@@ -1440,63 +1442,98 @@ function createFretboard(container, tuning) {
     }
 
     function createBeats() {
-        const container = document.querySelector('.beats-container');
-        container.innerHTML = '';
-        const timeSignature = parseInt(document.getElementById('time-signature').value);
+    const container = document.querySelector('.beats-container');
+    container.innerHTML = '';
+    const timeSignature = parseInt(document.getElementById('time-signature').value);
 
-        const totalBeats = timeSignature === 4 ? 8 : timeSignature;
+    const totalBeats = timeSignature === 4 ? 8 : timeSignature;
 
-        for (let i = 0; i < totalBeats; i++) {
-            const beat = document.createElement('div');
-            beat.className = 'beat';
-            beat.dataset.beat = i;
+    for (let i = 0; i < totalBeats; i++) {
+        const beat = document.createElement('div');
+        beat.className = 'beat';
+        beat.dataset.beat = i;
 
-            if (timeSignature === 4) {
-                const isEighth = i % 2 === 1;
-                beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
-                if (i === 0 || i === 4) {
-                    beat.dataset.volume = '1';
-                    beat.style.backgroundColor = '#1F618D';
-                } else if (i % 2 === 0) {
-                    beat.dataset.volume = '0.3';
-                    beat.style.backgroundColor = '#4CAF50';
-                } else {
-                    beat.dataset.volume = '0';
-                    beat.style.backgroundColor = '#9E9E9E';
-                }
+        if (timeSignature === 4) {
+            const isEighth = i % 2 === 1;
+            beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
+            if (i === 0 || i === 4) {
+                beat.dataset.volume = '1';
+                beat.dataset.sound = 'default';
+                beat.style.backgroundColor = '#1F618D';
+            } else if (i % 2 === 0) {
+                beat.dataset.volume = '0.3';
+                beat.dataset.sound = 'default';
+                beat.style.backgroundColor = '#4CAF50';
             } else {
-                beat.textContent = i + 1;
-                if (timeSignature === 6) {
-                    beat.dataset.volume = (i === 0 || i === 3) ? '1' : '0.3';
-                    beat.style.backgroundColor = (i === 0 || i === 3) ? '#1F618D' : '#4CAF50';
-                } else if (timeSignature === 7) {
-                    beat.dataset.volume = (i === 0 || i === 4) ? '1' : '0.3';
-                    beat.style.backgroundColor = (i === 0 || i === 4) ? '#1F618D' : '#4CAF50';
-                } else if (timeSignature === 12) {
-                    beat.dataset.volume = (i % 3 === 0) ? '1' : '0.3';
-                    beat.style.backgroundColor = (i % 3 === 0) ? '#1F618D' : '#4CAF50';
-                } else {
-                    beat.dataset.volume = i === 0 ? '1' : '0.3';
-                    beat.style.backgroundColor = i === 0 ? '#1F618D' : '#4CAF50';
-                }
+                beat.dataset.volume = '0';
+                beat.dataset.sound = 'default';
+                beat.style.backgroundColor = '#9E9E9E';
             }
-
-            beat.addEventListener('click', function() {
-                const states = [
-                    { volume: '1', color: '#1F618D' },
-                    { volume: '0.3', color: '#4CAF50' },
-                    { volume: '0', color: '#9E9E9E' }
-                ];
-                const currentVolume = this.dataset.volume;
-                let nextStateIndex = (states.findIndex(state => state.volume === currentVolume) + 1) % states.length;
-                const nextState = states[nextStateIndex];
-                this.dataset.volume = nextState.volume;
-                this.style.backgroundColor = nextState.color;
-            });
-
-            container.appendChild(beat);
+        } else {
+            beat.textContent = i + 1;
+            if (timeSignature === 6) {
+                beat.dataset.volume = (i === 0 || i === 3) ? '1' : '0.3';
+                beat.dataset.sound = 'default';
+                beat.style.backgroundColor = (i === 0 || i === 3) ? '#1F618D' : '#4CAF50';
+            } else if (timeSignature === 7) {
+                beat.dataset.volume = (i === 0 || i === 4) ? '1' : '0.3';
+                beat.dataset.sound = 'default';
+                beat.style.backgroundColor = (i === 0 || i === 4) ? '#1F618D' : '#4CAF50';
+            } else if (timeSignature === 12) {
+                beat.dataset.volume = (i % 3 === 0) ? '1' : '0.3';
+                beat.dataset.sound = 'default';
+                beat.style.backgroundColor = (i % 3 === 0) ? '#1F618D' : '#4CAF50';
+            } else {
+                beat.dataset.volume = i === 0 ? '1' : '0.3';
+                beat.dataset.sound = 'default';
+                beat.style.backgroundColor = i === 0 ? '#1F618D' : '#4CAF50';
+            }
         }
+
+        beat.addEventListener('click', function() {
+            const soundType = document.getElementById('sound-type').value;
+            let currentVolume = parseFloat(this.dataset.volume);
+            let currentSound = this.dataset.sound || 'default';
+
+            if (soundType === 'click' || soundType === 'woodblock') {
+                const states = [
+                    { volume: '1', color: '#1F618D', sound: 'default' },
+                    { volume: '0.3', color: '#4CAF50', sound: 'default' },
+                    { volume: '0', color: '#9E9E9E', sound: 'default' }
+                ];
+                const currentIndex = states.findIndex(state => state.volume === currentVolume.toString() && state.sound === currentSound);
+                const nextIndex = (currentIndex + 1) % states.length;
+                const nextState = states[nextIndex];
+                this.dataset.volume = nextState.volume;
+                this.dataset.sound = nextState.sound;
+                this.style.backgroundColor = nextState.color;
+            } else if (soundType === 'drums') {
+                const pattern = DRUM_PATTERNS[timeSignature];
+                const isKick = pattern.kick[i];
+                const isSnare = pattern.snare[i];
+                const states = [
+                    { volume: '1', color: '#1F618D', sound: isKick ? 'kick' : isSnare ? 'snare' : 'default' },
+                    { volume: '0.3', color: '#4CAF50', sound: isKick ? 'kick' : isSnare ? 'snare' : 'default' },
+                    { volume: '0', color: '#9E9E9E', sound: 'default' },
+                    { volume: '1', color: '#BD2031', sound: isKick ? 'snare' : isSnare ? 'kick' : 'default' },
+                    { volume: '0.3', color: '#006400', sound: isKick ? 'snare' : isSnare ? 'kick' : 'default' },
+                    { volume: '0', color: '#9E9E9E', sound: 'default' }
+                ];
+                let currentIndex = states.findIndex(state => 
+                    state.volume === currentVolume.toString() && state.sound === currentSound
+                );
+                if (currentIndex === -1) currentIndex = 0; // Fallback to start
+                const nextIndex = (currentIndex + 1) % states.length;
+                const nextState = states[nextIndex];
+                this.dataset.volume = nextState.volume;
+                this.dataset.sound = nextState.sound;
+                this.style.backgroundColor = nextState.color;
+            }
+        });
+
+        container.appendChild(beat);
     }
+}
 
    function loadProgression(progressionKey) {
     const progression = progressions[progressionKey];
