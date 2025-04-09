@@ -573,38 +573,51 @@ function getNoteIndex(note) {
 
 // Get chord from Roman numeral (e.g. "ii", "V7") based on a root key
 function getChordFromFunction(key, func) {
-    const keyIndex = getNoteIndex(key);
+    const noteMap = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const keyIndex = noteMap.indexOf(key);
+    if (keyIndex === -1) {
+        console.error(`Invalid key: ${key}`);
+        return "Cmajor"; // Fallback
+    }
+
+    // Define scale degrees for major key (Ionian mode)
     const scaleDegrees = {
         "I": 0, "ii": 2, "iii": 4, "IV": 5, "V": 7, "vi": 9, "vii°": 11,
-        "I7": 0, "II7": 2, "III7": 4, "IV7": 5, "V7": 7, "VI7": 9, "VII7": 11,
-        "Im": 0, "Im7": 0, "IIm7": 2, "IIIm7": 4, "IVm7": 5, "Vm7": 7, "VIm7": 9, "VIIm7": 11,
+        "I7": 0, "ii7": 2, "iii7": 4, "IV7": 5, "V7": 7, "vi7": 9, "vii7b5": 11,
+        "Im": 0, "iim7": 2, "iiim7": 4, "IVm7": 5, "Vm7": 7, "vim7": 9, "viim7": 11,
         "bII": 1, "bIII": 3, "bVI": 8, "bVII": 10,
-        "bII7": 1, "bIII7": 3, "bVI7": 8, "bVII7": 10,
-        "vii7b5": 11, "II7b5": 2 // Added for half-diminished cases
+        "bII7": 1, "bIII7": 3, "bVI7": 8, "bVII7": 10
     };
 
+    // Parse the Roman numeral
     const degree = scaleDegrees[func];
     if (degree === undefined) {
         console.error(`Invalid chord function: ${func}`);
-        return "C"; // Fallback
+        return "Cmajor"; // Fallback
     }
 
-    const note = noteMap[(keyIndex + degree) % 12];
-    let quality = '';
+    // Calculate the root note
+    const rootIndex = (keyIndex + degree) % 12;
+    const root = noteMap[rootIndex];
 
+    // Determine chord quality
+    let quality = "major"; // Default
     if (func.includes("7b5")) {
         quality = "min7b5";
     } else if (func.includes("7")) {
-        quality = func.includes("m7") ? "min7" : func.includes("maj7") ? "maj7" : "dom7";
+        if (func.includes("m7")) quality = "min7";
+        else if (func.includes("maj7")) quality = "maj7";
+        else quality = "dom7";
     } else if (func.includes("m") || func.match(/^[iv]/)) {
         quality = "minor";
     } else if (func.includes("°")) {
-        quality = "min7b5";
+        quality = "diminished";
     } else if (func === func.toUpperCase() && !func.includes("b")) {
         quality = "major";
     }
 
-    return note + quality;
+    console.log(`Parsed ${func} in key ${key}: ${root}${quality}`);
+    return root + quality;
 }
 
        function updateChordDropdownsForKey(progressionName, key) {
@@ -1233,36 +1246,36 @@ let isTransposing = false;
     const selectedProgression = document.getElementById('progression-select').value;
     if (selectedProgression === 'none') return;
 
-    // Use PROGRESSIONS (uppercase) instead of progressions
     const progressionData = PROGRESSIONS[selectedProgression];
     if (!progressionData || !progressionData.chords) {
         console.error(`No progression data found for ${selectedProgression}`);
         return;
     }
 
-    // Update all measures based on the new key
     Array.from(measures).forEach((measure, index) => {
         const chordFunc = progressionData.chords[index];
-        if (!chordFunc) return; // Skip if no chord defined for this measure
+        if (!chordFunc) return;
 
         const newChord = getChordFromFunction(newKey, chordFunc);
-        const [root, quality] = parseChord(newChord);
+        const rootMatch = newChord.match(/^([A-G]#?)/);
+        const qualityMatch = newChord.match(/major|minor|dom7|min7|maj7|min7b5|diminished/);
+        
+        const root = rootMatch ? rootMatch[1] : 'C';
+        const quality = qualityMatch ? qualityMatch[0] : 'major';
 
-        // Update chord controls
         const rootNoteSelect = measure.querySelector('.root-note');
         const qualitySelect = measure.querySelector('.chord-quality');
         const secondKeySelect = measure.querySelector('.second-key');
         const scaleSelect = measure.querySelector('.scale-select');
 
         rootNoteSelect.value = root;
-        qualitySelect.value = mapQualityToDropdown(quality);
-        secondKeySelect.value = root; // Sync scale key with chord root
+        qualitySelect.value = quality;
+        secondKeySelect.value = root;
         scaleSelect.value = suggestScaleForQuality(quality);
 
         console.log(`Measure ${index + 1}: Set chord ${root}${quality}, scale ${root} ${scaleSelect.value}`);
     });
 
-    // Update the fretboard
     const chordFretboard = document.getElementById('chord-fretboard');
     if (chordFretboard) {
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
@@ -1765,21 +1778,25 @@ function loadProgression(progressionName) {
     const chords = progressionData.chords;
     const defaultKey = progressionData.defaultKey;
 
-    chords.forEach((chord, index) => {
+    chords.forEach((chordFunc, index) => {
         const measure = createMeasure(index + 1);
         const rootNoteSelect = measure.querySelector('.root-note');
         const chordQualitySelect = measure.querySelector('.chord-quality');
         const secondKeySelect = measure.querySelector('.second-key');
         const scaleSelect = measure.querySelector('.scale-select');
 
-        // Parse Roman numeral and convert to chord in the default key
-        const chordRoot = getChordFromFunction(defaultKey, chord);
-        const [root, quality] = parseChord(chordRoot);
+        // Get chord from Roman numeral in the default key
+        const chord = getChordFromFunction(defaultKey, chordFunc);
+        const rootMatch = chord.match(/^([A-G]#?)/);
+        const qualityMatch = chord.match(/major|minor|dom7|min7|maj7|min7b5|diminished/);
+        
+        const root = rootMatch ? rootMatch[1] : 'C';
+        const quality = qualityMatch ? qualityMatch[0] : 'major';
 
-        rootNoteSelect.value = root || 'C';
-        chordQualitySelect.value = mapQualityToDropdown(quality) || 'major';
-        secondKeySelect.value = root || 'C'; // Sync scale key with chord root
-        scaleSelect.value = suggestScaleForQuality(quality); // Suggest appropriate scale
+        rootNoteSelect.value = root;
+        chordQualitySelect.value = quality;
+        secondKeySelect.value = root; // Sync scale key with chord root
+        scaleSelect.value = suggestScaleForQuality(quality);
 
         console.log(`Measure ${index + 1}: Loaded ${root}${quality}, Scale: ${root} ${scaleSelect.value}`);
         measuresContainer.appendChild(measure);
@@ -1791,9 +1808,22 @@ function loadProgression(progressionName) {
         keySelect.value = defaultKey;
     }
 
-    // Add first chord listener after loading
     addFirstChordListener();
     console.log(`Progression ${progressionName} loaded with ${chords.length} measures in key ${defaultKey}`);
+}
+
+// Helper function to suggest scales based on chord quality
+function suggestScaleForQuality(quality) {
+    switch (quality) {
+        case 'major': return 'major';
+        case 'minor': return 'dorian';
+        case 'dom7': return 'mixolydian';
+        case 'min7': return 'dorian';
+        case 'maj7': return 'major';
+        case 'min7b5': return 'locrian';
+        case 'diminished': return 'locrian';
+        default: return 'major';
+    }
 }
        
 function addMeasure() {
