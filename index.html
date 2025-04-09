@@ -1065,7 +1065,7 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     let buffer;
     if (soundType === 'drums') {
         if (timeSignature === 4) {
-            // Play hihat on ALL eighth notes (removed the currentBeat % 2 condition)
+            // Play hihat on every eighth note (1, &, 2, &, 3, &, 4, &)
             playBuffer(soundBuffers['hihat'] || createDrumSound('hihat'), finalVolume * 0.7);
             
             // Only check kick and snare on main beats
@@ -1091,7 +1091,7 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
             }
         }
     } else {
-        // For click sound type, use Click.wav 
+        // For click sound type, use Click.wav
         buffer = soundBuffers['click'] || createDrumSound('click');
     }
 
