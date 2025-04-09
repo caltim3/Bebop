@@ -857,14 +857,44 @@ async function loadPianoSamples() {
         updateLoadingStatus('Error loading piano samples. Using fallback synthesizer.');
     }
 }
+
+function playFallbackChordNote(note, octave, volume, time, duration, outputNode) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const noteIndex = NOTES.indexOf(note);
+    const frequency = 440 * Math.pow(2, (octave * 12 + noteIndex - 57) / 12);
+    
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(frequency, time);
+    
+    const attackTime = 0.08;
+    const decayTime = 0.15;
+    const sustainLevel = 0.7;
+    const releaseTime = 0.4;
+    
+    gainNode.gain.setValueAtTime(0, time);
+    gainNode.gain.linearRampToValueAtTime(volume, time + attackTime);
+    gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, time + attackTime + decayTime);
+    gainNode.gain.setValueAtTime(volume * sustainLevel, time + duration - releaseTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(outputNode);
+    
+    oscillator.start(time);
+    oscillator.stop(time + duration);
+    
+    console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
+}
        
-   async function playNote(note, string, fret) {
+ async function playNote(note, string, fret) {
     if (!audioContext || audioContext.state === 'suspended') {
         const success = await initializeAudio();
         if (!success) return;
         return playNote(note, string, fret);
     }
 
+    let frequency, volume, duration;
     try {
         const FREQUENCIES = [
             [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
@@ -877,9 +907,10 @@ async function loadPianoSamples() {
 
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
         const stringIndex = 5 - string;
-        const frequency = FREQUENCIES[stringIndex][fret];
-        const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
-        const duration = parseFloat(document.getElementById('note-duration').value) || 0.5;
+        frequency = FREQUENCIES[stringIndex][fret];
+        volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
+        const durationElement = document.getElementById('note-duration');
+        duration = durationElement ? parseFloat(durationElement.value) || 0.5 : 0.5;
 
         const SAMPLE_FREQUENCIES = {
             'A2': 110.00, 'A3': 220.00, 'A4': 440.00, 'A5': 880.00, 'A6': 1760.00,
@@ -893,7 +924,6 @@ async function loadPianoSamples() {
             let minDiff = Infinity;
             let sampleKey = null;
 
-            // Find the closest sampled note
             for (const [key, sampleFreq] of Object.entries(SAMPLE_FREQUENCIES)) {
                 const diff = Math.abs(frequency - sampleFreq);
                 if (diff < minDiff) {
@@ -904,7 +934,7 @@ async function loadPianoSamples() {
             }
 
             if (pianoSampleBuffers[sampleKey]) {
-                const playbackRate = frequency / closestSample; // Adjust pitch to match exactly
+                const playbackRate = frequency / closestSample;
                 const source = audioContext.createBufferSource();
                 const gainNode = audioContext.createGain();
 
@@ -931,7 +961,12 @@ async function loadPianoSamples() {
         }
     } catch (error) {
         console.error("Error playing note:", error);
-        playSyntheticNote(frequency, volume, duration);
+        // Only call playSyntheticNote if variables are defined
+        if (typeof frequency !== 'undefined' && typeof volume !== 'undefined' && typeof duration !== 'undefined') {
+            playSyntheticNote(frequency, volume, duration);
+        } else {
+            console.error("Cannot play synthetic note: frequency, volume, or duration undefined");
+        }
     }
 }
 
@@ -939,12 +974,11 @@ function playSyntheticNote(frequency, volume, duration) {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
-    oscillator.type = 'triangle'; // Softer than sine, closer to piano
+    oscillator.type = 'triangle';
     oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
 
-    // ADSR: Quick attack, no sustain, 0.5s fade-out
     gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01); // Fast attack
+    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
     gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
 
     oscillator.connect(gainNode);
@@ -952,7 +986,7 @@ function playSyntheticNote(frequency, volume, duration) {
     oscillator.start();
     oscillator.stop(audioContext.currentTime + duration);
 
-    console.log(`Played synthetic note at ${frequency} Hz`);
+    console.log(`Played synthetic note at ${frequency} Hz for ${duration}s`);
 }
 
     function playFallbackNote(note, octave, volume, duration = 1) {
@@ -971,6 +1005,7 @@ function playSyntheticNote(frequency, volume, duration) {
         oscillator.stop(audioContext.currentTime + duration);
     }
 
+       
      
 function playChord(root, quality, time = audioContext.currentTime, duration = 1) {
     if (!audioContext || !document.getElementById('chordsEnabled').checked) return;
@@ -1080,36 +1115,7 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
     console.log(`Chord playback completed: ${root} ${quality}`);
 }
 
-      
-function playFallbackChordNote(note, octave, volume, time, duration, outputNode) {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    const noteIndex = NOTES.indexOf(note);
-    const frequency = 440 * Math.pow(2, (octave * 12 + noteIndex - 57) / 12);
-    
-    oscillator.type = 'triangle';
-    oscillator.frequency.setValueAtTime(frequency, time);
-    
-    const attackTime = 0.08;
-    const decayTime = 0.15;
-    const sustainLevel = 0.7;
-    const releaseTime = 0.4;
-    
-    gainNode.gain.setValueAtTime(0, time);
-    gainNode.gain.linearRampToValueAtTime(volume, time + attackTime);
-    gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, time + attackTime + decayTime);
-    gainNode.gain.setValueAtTime(volume * sustainLevel, time + duration - releaseTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(outputNode);
-    
-    oscillator.start(time);
-    oscillator.stop(time + duration);
-    
-    console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
-}
-
+     
     async function playMetronomeSound(volume) {
     if (!audioContext || audioContext.state === 'suspended') {
         await initializeAudio();
