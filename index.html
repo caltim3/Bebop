@@ -752,32 +752,38 @@ async function setupReverb() {
 }
        
     async function createDrumSound(type) {
-        const sampleRate = audioContext.sampleRate;
-        const duration = type === 'hihat' ? 0.05 : 0.2;
-        const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
-        const data = buffer.getChannelData(0);
-        switch (type) {
-            case 'click':
-                for (let i = 0; i < data.length; i++) data[i] = Math.sin(i * 0.05) * Math.exp(-i * 0.01);
-                break;
-            case 'hihat':
-                for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.01));
-                break;
-            case 'kick':
-                for (let i = 0; i < data.length; i++) {
-                    const t = i / sampleRate;
-                    data[i] = Math.sin(2 * Math.PI * 100 * t) * Math.exp(-t * 10) * 2;
-                }
-                break;
-            case 'snare':
-                for (let i = 0; i < data.length; i++) {
-                    const t = i / sampleRate;
-                    data[i] = ((Math.random() * 2 - 1) + Math.sin(2 * Math.PI * 200 * t)) * Math.exp(-t * 10) * 2;
-                }
-                break;
-        }
-        return buffer;
+    const sampleRate = audioContext.sampleRate;
+    const duration = type === 'hihat' ? 0.05 : 0.2;
+    const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+    const data = buffer.getChannelData(0);
+    switch (type) {
+        case 'click':
+            for (let i = 0; i < data.length; i++) data[i] = Math.sin(i * 0.05) * Math.exp(-i * 0.01);
+            break;
+        case 'hihat':
+            for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.01));
+            break;
+        case 'kick':
+            for (let i = 0; i < data.length; i++) {
+                const t = i / sampleRate;
+                data[i] = Math.sin(2 * Math.PI * 100 * t) * Math.exp(-t * 10) * 2;
+            }
+            break;
+        case 'snare':
+            for (let i = 0; i < data.length; i++) {
+                const t = i / sampleRate;
+                data[i] = ((Math.random() * 2 - 1) + Math.sin(2 * Math.PI * 200 * t)) * Math.exp(-t * 10) * 2;
+            }
+            break;
+        case 'woodblock':
+            for (let i = 0; i < data.length; i++) {
+                const t = i / sampleRate;
+                data[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 20); // Higher pitch, quick decay
+            }
+            break;
     }
+    return buffer;
+}
 
 async function loadPianoSamples() {
     log('Starting piano sample loading...');
@@ -1252,7 +1258,7 @@ function suggestScaleForQuality(quality) {
     intervalId = setInterval(playBeat, interval);
 }
        
-function playBeat() {
+async function playBeat() {
     const beats = document.querySelectorAll('.beat');
     beats.forEach(beat => beat.classList.remove('active'));
 
@@ -1260,7 +1266,7 @@ function playBeat() {
     if (currentBeatElement) {
         currentBeatElement.classList.add('active');
         const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
-        playMetronomeSound(volume);
+        await playMetronomeSound(volume);
     }
 
     const measures = document.getElementsByClassName('measure');
@@ -1304,17 +1310,6 @@ function playBeat() {
         currentMeasure = (currentMeasure + 1) % measures.length;
     }
 }
-    function stopPlayback() {
-        clearInterval(intervalId);
-        currentBeat = 0;
-        currentMeasure = 0;
-        document.querySelectorAll('.beat').forEach(beat => beat.classList.remove('active'));
-        document.querySelectorAll('.measure').forEach(measure => measure.classList.remove('active'));
-        if (currentChordGain) {
-            currentChordGain.gain.setValueAtTime(currentChordGain.gain.value, audioContext.currentTime);
-            currentChordGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
-        }
-    }
 
 function createFretboard(container, tuning) {
     container.innerHTML = '';
