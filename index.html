@@ -272,11 +272,7 @@
         <label for="progression-select">Select Progression:</label>
         <select id="progression-select">
             <option value="none">None</option>
-            <option value="jazz_blues">Jazz Blues</option>
-            <option value="minor_blues">Minor Blues</option>
-            <option value="rhythm_changes">Rhythm Changes</option>
-            <option value="2_5_1">2-5-1</option>
-            <option value="6_2_5_1">6-2-5-1</option>
+        </select>
         </select>
         <label for="keySelect">Select Key:</label>
             <select id="keySelect">
@@ -512,30 +508,56 @@ function transposeNote(note, semitones) {
         '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
     };
 
-   const progressions = {
-          "jazz_blues": [
-            "I7", "IV7", "I7", "I7",
-            "IV7", "IV7", "I7", "VI7",
-            "II7", "V7", "I7", "V7"
-          ],
-          "minor_blues": [
-            "Im7", "IVm7", "Im7", "Im7",
-            "bVI7", "V7", "Im7", "IVm7",
-            "Im7", "bVII7", "Im7", "V7"
-          ],
-          "rhythm_changes": [
-            "I", "vi", "ii", "V",
-            "I", "vi", "ii", "V",
-            "I", "IV", "I", "I",
-            "ii", "V", "I", "V7"
-          ],
-          "2_5_1": [
-            "ii", "V", "I"
-          ],
-          "6_2_5_1": [
-            "vi", "ii", "V", "I"
-          ]
-        };
+const PROGRESSIONS = {
+    "jazz_blues": {
+        chords: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "II7", "V7", "I7", "V7"],
+        defaultKey: "Bb"
+    },
+    "minor_blues": {
+        chords: ["Im7", "IVm7", "Im7", "Im7", "bVI7", "V7", "Im7", "IVm7", "Im7", "bVII7", "Im7", "V7"],
+        defaultKey: "C" // Common minor blues key, adjust if you have a preference
+    },
+    "rhythm_changes": {
+        chords: ["I", "vi", "ii", "V", "I", "vi", "ii", "V", "I", "IV", "I", "I", "ii", "V", "I", "V7"],
+        defaultKey: "Bb" // Traditional key for rhythm changes
+    },
+    "2_5_1": {
+        chords: ["ii", "V", "I"],
+        defaultKey: "C" // Common teaching key
+    },
+    "6_2_5_1": {
+        chords: ["vi", "ii", "V", "I"],
+        defaultKey: "C" // Common teaching key
+    },
+    "dark_eyes": {
+        chords: ["V7", "I", "V7", "I", "V7", "I7", "V7", "I7", "V7", "I", "V7", "I7", "V7"],
+        defaultKey: "D" // A7 as V7 in D minor
+    },
+    "black_orpheus": {
+        chords: ["Im", "IVm7", "bVII7", "bIII", "bVI", "II7b5", "V7", "Im", "IVm7", "bVII7", "bIII", "bVI", "II7b5", "V7", "Im"],
+        defaultKey: "A" // A minor traditional key
+    },
+    "autumn_leaves_bb": {
+        chords: ["vi7", "II7", "I", "IV", "vii7b5", "III7", "ii7", "vi7"],
+        defaultKey: "Bb" // Bb major/G minor
+    },
+    "stella_by_starlight": {
+        chords: ["I", "vii7b5", "III7", "vi7", "II7", "v7", "I7", "I", "vii7b5", "III7", "vi7", "ii7", "v7", "I7"],
+        defaultKey: "Bb" // Bb major traditional key
+    },
+    "summertime": {
+        chords: ["Im", "Im", "IVm7", "bVII7", "bIII", "bVI", "II7b5", "V7", "Im"],
+        defaultKey: "A" // A minor traditional key
+    },
+    "girl_from_ipanema": {
+        chords: ["I", "II7", "ii7", "V7", "vi7", "II7", "ii7", "V7", "I"],
+        defaultKey: "F" // F major traditional key
+    },
+    "all_the_things_you_are": {
+        chords: ["vi7", "ii7", "V7", "I", "vi7", "II7", "V", "v7", "i7", "IV7", "bVII7", "III", "iii7", "VI7", "II", "ii7", "V7", "i7"],
+        defaultKey: "Ab" // Ab major, starting on Fm7
+    }
+};
 
 
        // Master note map
@@ -1272,6 +1294,96 @@ function mapQualityToDropdown(quality) {
     }
 }
 
+function romanNumeralToRoot(numeral, key) {
+    const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const majorScaleIntervals = [0, 2, 4, 5, 7, 9, 11];
+    const minorScaleIntervals = [0, 2, 3, 5, 7, 8, 10];
+
+    let baseIndex = NOTES.indexOf(key);
+    let intervals = key.match(/[A-G]#?/) ? majorScaleIntervals : minorScaleIntervals;
+    let numeralClean = numeral.toLowerCase().replace(/[b#]/, '');
+    let degree = { 'i': 0, 'ii': 1, 'iii': 2, 'iv': 3, 'v': 4, 'vi': 5, 'vii': 6 }[numeralClean];
+    let flat = numeral.includes('b');
+    let sharp = numeral.includes('#');
+
+    if (degree === undefined) return key;
+
+    let noteIndex = (baseIndex + intervals[degree]) % 12;
+    if (flat) noteIndex = (noteIndex - 1 + 12) % 12;
+    if (sharp) noteIndex = (noteIndex + 1) % 12;
+
+    return NOTES[noteIndex];
+}
+
+function mapRomanQualityToDropdown(quality) {
+    const qualityMap = {
+        '': 'major',
+        'm': 'minor',
+        'm7': 'min7',
+        '7': 'dom7',
+        'm7b5': 'min7b5'
+    };
+    return qualityMap[quality.toLowerCase()] || 'major';
+}
+
+function loadProgressionOptions() {
+    const select = document.getElementById('progression-select');
+    select.innerHTML = '<option value="none">None</option>';
+    for (const progression in PROGRESSIONS) {
+        const option = document.createElement('option');
+        option.value = progression;
+        option.textContent = progression.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        select.appendChild(option);
+    }
+}
+
+function loadProgression(progressionName) {
+    console.log(`Loading progression: ${progressionName}`, PROGRESSIONS[progressionName].chords);
+    const progressionData = PROGRESSIONS[progressionName];
+    if (!progressionData || !progressionData.chords) return;
+
+    const measuresContainer = document.getElementById('measures');
+    measuresContainer.innerHTML = '';
+
+    const chords = progressionData.chords;
+    chords.forEach((chord, index) => {
+        const measure = createMeasure(index + 1);
+        const rootNoteSelect = measure.querySelector('.root-note');
+        const chordQualitySelect = measure.querySelector('.chord-quality');
+        const romanNumeral = chord.match(/^([b#]?\w+)/)[0];
+        const quality = chord.replace(romanNumeral, '');
+
+        const key = progressionData.defaultKey;
+        const root = romanNumeralToRoot(romanNumeral, key);
+        rootNoteSelect.value = root || 'C';
+        chordQualitySelect.value = mapRomanQualityToDropdown(quality) || 'major';
+
+        measuresContainer.appendChild(measure);
+    });
+
+    if (document.querySelectorAll('.measure').length > 0) {
+        const firstMeasure = document.querySelector('.measure');
+        firstMeasure.querySelector('.chord-controls')?.classList.remove('hidden');
+        console.log("First chord listener re-added successfully");
+    }
+
+    const keySelect = document.getElementById('keySelect');
+    if (keySelect) {
+        keySelect.value = progressionData.defaultKey;
+    }
+}
+       
+function loadProgressionOptions() {
+    const select = document.getElementById('progression-select');
+    select.innerHTML = '<option value="none">None</option>';
+    for (const progression in PROGRESSIONS) {
+        const option = document.createElement('option');
+        option.value = progression;
+        option.textContent = progression.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        select.appendChild(option);
+    }
+}
+       
 // Suggest a scale based on chord quality
 function suggestScaleForQuality(quality) {
     switch (quality) {
@@ -1627,82 +1739,42 @@ function createFretboard(container, tuning) {
     }
 }
 
-   function loadProgression(progressionKey) {
-    const progression = progressions[progressionKey];
-    if (!progression) {
-        console.warn("No progression found for key:", progressionKey);
-        return;
-    }
+function loadProgression(progressionName) {
+    console.log(`Loading progression: ${progressionName}`, PROGRESSIONS[progressionName].chords);
+    const progressionData = PROGRESSIONS[progressionName];
+    if (!progressionData || !progressionData.chords) return;
 
-    console.log(`Loading progression: ${progressionKey}`, progression);
+    const measuresContainer = document.getElementById('measures');
+    measuresContainer.innerHTML = '';
 
-    const measuresDiv = document.getElementById('measures');
-    measuresDiv.innerHTML = ''; // Clear existing measures
+    const chords = progressionData.chords;
+    chords.forEach((chord, index) => {
+        const measure = createMeasure(index + 1);
+        const rootNoteSelect = measure.querySelector('.root-note');
+        const chordQualitySelect = measure.querySelector('.chord-quality');
+        const romanNumeral = chord.match(/^([b#]?\w+)/)[0];
+        const quality = chord.replace(romanNumeral, '');
 
-    const key = document.getElementById('keySelect').value || 'C'; // Default to C if no key selected
+        // Map Roman numeral to root note based on default key
+        const key = progressionData.defaultKey;
+        const root = romanNumeralToRoot(romanNumeral, key);
+        rootNoteSelect.value = root || 'C';
+        chordQualitySelect.value = mapRomanQualityToDropdown(quality) || 'major';
 
-    progression.forEach((chordFunc, index) => {
-        const chord = getChordFromFunction(key, chordFunc);
-        const [root, quality] = parseChord(chord);
-
-        const newMeasure = document.createElement('div');
-        newMeasure.className = 'measure';
-        newMeasure.draggable = true;
-        newMeasure.innerHTML = `
-            <span class="measure-number">${index + 1}</span>
-            <div class="chord-controls">
-                <select class="root-note">
-                    ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
-                </select>
-                <select class="chord-quality">
-                    <option value="major" ${quality === '' ? 'selected' : ''}>Major</option>
-                    <option value="minor" ${quality === 'm' ? 'selected' : ''}>Minor</option>
-                    <option value="dom7" ${quality === '7' ? 'selected' : ''}>7</option>
-                    <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
-                    <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
-                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
-                </select>
-            </div>
-            <div class="scale-controls">
-                <select class="second-key">
-                    ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
-                </select>
-                <select class="scale-select">
-                    ${Object.keys(SCALES).map(scale => {
-                        const selected = suggestScaleForQuality(quality) === scale ? 'selected' : '';
-                        return `<option value="${scale}" ${selected}>${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`;
-                    }).join('')}
-                </select>
-            </div>
-        `;
-
-        // Add event listeners and drag-drop handlers
-        const rootNoteSelect = newMeasure.querySelector('.root-note');
-        const secondKeySelect = newMeasure.querySelector('.second-key');
-        const qualitySelect = newMeasure.querySelector('.chord-quality');
-        const scaleSelect = newMeasure.querySelector('.scale-select');
-
-        rootNoteSelect.addEventListener('change', function() {
-            secondKeySelect.value = this.value;
-            if (index === 0) {
-                updateProgressionKey(this.value);
-            }
-        });
-
-        qualitySelect.addEventListener('change', function() {
-            scaleSelect.value = suggestScaleForQuality(this.value);
-        });
-
-        newMeasure.addEventListener('dragstart', dragStart);
-        newMeasure.addEventListener('dragover', dragOver);
-        newMeasure.addEventListener('drop', drop);
-        newMeasure.addEventListener('dragend', dragEnd);
-
-        measuresDiv.appendChild(newMeasure);
+        measuresContainer.appendChild(measure);
     });
 
-    updateMeasureNumbers();
-    addFirstChordListener();
+    if (document.querySelectorAll('.measure').length > 0) {
+        const firstMeasure = document.querySelector('.measure');
+        firstMeasure.querySelector('.chord-controls')?.classList.remove('hidden');
+        console.log("First chord listener re-added successfully");
+    }
+
+    // Set the key dropdown to the default key
+    const keySelect = document.getElementById('keySelect');
+    if (keySelect) {
+        keySelect.value = progressionData.defaultKey;
+    }
 }
 
 function addMeasure() {
