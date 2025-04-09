@@ -577,9 +577,10 @@ function getChordFromFunction(key, func) {
     const scaleDegrees = {
         "I": 0, "ii": 2, "iii": 4, "IV": 5, "V": 7, "vi": 9, "vii°": 11,
         "I7": 0, "II7": 2, "III7": 4, "IV7": 5, "V7": 7, "VI7": 9, "VII7": 11,
-        "Im7": 0, "IIm7": 2, "IIIm7": 4, "IVm7": 5, "Vm7": 7, "VIm7": 9, "VIIm7": 11,
+        "Im": 0, "Im7": 0, "IIm7": 2, "IIIm7": 4, "IVm7": 5, "Vm7": 7, "VIm7": 9, "VIIm7": 11,
         "bII": 1, "bIII": 3, "bVI": 8, "bVII": 10,
-        "bII7": 1, "bIII7": 3, "bVI7": 8, "bVII7": 10
+        "bII7": 1, "bIII7": 3, "bVI7": 8, "bVII7": 10,
+        "vii7b5": 11, "II7b5": 2 // Added for half-diminished cases
     };
 
     const degree = scaleDegrees[func];
@@ -591,17 +592,16 @@ function getChordFromFunction(key, func) {
     const note = noteMap[(keyIndex + degree) % 12];
     let quality = '';
 
-    // Check if the Roman numeral is lowercase (indicating minor)
-    const isMinor = func.match(/^[a-z]/); // Check if starts with lowercase letter
-
-    if (func.includes("7")) {
-        quality = func.includes("m7") ? "m7" : "7";
-    } else if (isMinor || func.includes("m")) {
-        quality = "m";
+    if (func.includes("7b5")) {
+        quality = "min7b5";
+    } else if (func.includes("7")) {
+        quality = func.includes("m7") ? "min7" : func.includes("maj7") ? "maj7" : "dom7";
+    } else if (func.includes("m") || func.match(/^[iv]/)) {
+        quality = "minor";
     } else if (func.includes("°")) {
         quality = "min7b5";
-    } else if (func === func.toUpperCase()) {
-        quality = ""; // Major chords
+    } else if (func === func.toUpperCase() && !func.includes("b")) {
+        quality = "major";
     }
 
     return note + quality;
@@ -1226,23 +1226,23 @@ let isTransposing = false;
         updateProgressionKey(newKey);
     }
     
-    function updateProgressionKey(newKey) {
+   function updateProgressionKey(newKey) {
     const measures = document.getElementsByClassName('measure');
     if (measures.length <= 1) return;
 
     const selectedProgression = document.getElementById('progression-select').value;
     if (selectedProgression === 'none') return;
 
-    // Get the progression's Roman numeral structure
-    const progressionChords = progressions[selectedProgression];
-    if (!progressionChords) {
-        console.error(`No progression found for ${selectedProgression}`);
+    // Use PROGRESSIONS (uppercase) instead of progressions
+    const progressionData = PROGRESSIONS[selectedProgression];
+    if (!progressionData || !progressionData.chords) {
+        console.error(`No progression data found for ${selectedProgression}`);
         return;
     }
 
     // Update all measures based on the new key
     Array.from(measures).forEach((measure, index) => {
-        const chordFunc = progressionChords[index];
+        const chordFunc = progressionData.chords[index];
         if (!chordFunc) return; // Skip if no chord defined for this measure
 
         const newChord = getChordFromFunction(newKey, chordFunc);
@@ -1257,9 +1257,9 @@ let isTransposing = false;
         rootNoteSelect.value = root;
         qualitySelect.value = mapQualityToDropdown(quality);
         secondKeySelect.value = root; // Sync scale key with chord root
-
-        // Suggest a default scale based on chord quality
         scaleSelect.value = suggestScaleForQuality(quality);
+
+        console.log(`Measure ${index + 1}: Set chord ${root}${quality}, scale ${root} ${scaleSelect.value}`);
     });
 
     // Update the fretboard
@@ -1752,14 +1752,19 @@ function createMeasure(measureNumber) {
 }
        
 function loadProgression(progressionName) {
-    console.log(`Loading progression: ${progressionName}`, PROGRESSIONS[progressionName].chords);
+    console.log(`Loading progression: ${progressionName}`, PROGRESSIONS[progressionName]?.chords);
     const progressionData = PROGRESSIONS[progressionName];
-    if (!progressionData || !progressionData.chords) return;
+    if (!progressionData || !progressionData.chords) {
+        console.error(`Invalid progression data for ${progressionName}`);
+        return;
+    }
 
     const measuresContainer = document.getElementById('measures');
-    measuresContainer.innerHTML = '';
+    measuresContainer.innerHTML = ''; // Clear existing measures
 
     const chords = progressionData.chords;
+    const defaultKey = progressionData.defaultKey;
+
     chords.forEach((chord, index) => {
         const measure = createMeasure(index + 1);
         const rootNoteSelect = measure.querySelector('.root-note');
@@ -1767,30 +1772,30 @@ function loadProgression(progressionName) {
         const secondKeySelect = measure.querySelector('.second-key');
         const scaleSelect = measure.querySelector('.scale-select');
 
-        const romanNumeral = chord.match(/^([b#]?\w+)/)[0];
-        const quality = chord.replace(romanNumeral, '');
-        const key = progressionData.defaultKey;
-        const root = romanNumeralToRoot(romanNumeral, key);
+        // Parse Roman numeral and convert to chord in the default key
+        const chordRoot = getChordFromFunction(defaultKey, chord);
+        const [root, quality] = parseChord(chordRoot);
 
         rootNoteSelect.value = root || 'C';
-        chordQualitySelect.value = mapRomanQualityToDropdown(quality) || 'major';
+        chordQualitySelect.value = mapQualityToDropdown(quality) || 'major';
         secondKeySelect.value = root || 'C'; // Sync scale key with chord root
         scaleSelect.value = suggestScaleForQuality(quality); // Suggest appropriate scale
 
+        console.log(`Measure ${index + 1}: Loaded ${root}${quality}, Scale: ${root} ${scaleSelect.value}`);
         measuresContainer.appendChild(measure);
     });
 
     // Update key dropdown
     const keySelect = document.getElementById('keySelect');
     if (keySelect) {
-        keySelect.value = progressionData.defaultKey;
+        keySelect.value = defaultKey;
     }
 
     // Add first chord listener after loading
     addFirstChordListener();
-    console.log(`Progression ${progressionName} loaded with ${chords.length} measures`);
+    console.log(`Progression ${progressionName} loaded with ${chords.length} measures in key ${defaultKey}`);
 }
-
+       
 function addMeasure() {
     const measuresDiv = document.getElementById('measures');
     const newMeasure = document.createElement('div');
@@ -1984,7 +1989,7 @@ document.addEventListener('DOMContentLoaded', function () {
     createBeats();
     initializeStaticFretboards();
     initializeDragAndDrop();
-    loadProgressionOptions(); // Added to populate the dropdown
+    loadProgressionOptions(); // Populate the progression dropdown
 
     // Initialize chord fretboard
     const chordFretboard = document.getElementById('chord-fretboard');
@@ -1992,6 +1997,9 @@ document.addEventListener('DOMContentLoaded', function () {
         createFretboard(chordFretboard, TUNINGS.standard);
         updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
     }
+
+    // Load a default progression (e.g., "jazz_blues")
+    loadProgression('jazz_blues');
 
     // Add key select event listener for transposition
     document.getElementById('keySelect').addEventListener('change', function() {
@@ -2063,6 +2071,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Add note duration slider event listener
     document.getElementById('note-duration').addEventListener('input', function () {
         const duration = parseFloat(this.value);
         document.getElementById('duration-display').textContent = `${duration}s`;
