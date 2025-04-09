@@ -858,48 +858,110 @@ async function loadPianoSamples() {
 }
        
     async function playNote(note, string, fret) {
-        if (!audioContext || audioContext.state === 'suspended') {
-            const success = await initializeAudio();
-            if (!success) return;
-            return playNote(note, string, fret);
-        }
-        try {
-            const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-            const openNote = tuning[string];
-            const openNoteIndex = NOTES.indexOf(openNote);
-            const noteIndex = (openNoteIndex + fret) % 12;
-            const targetNote = NOTES[noteIndex];
-            const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
-            const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
-
-            if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
-                const pitchData = getPitchShiftedNote(targetNote, octave);
-                if (pitchData && pianoSampleBuffers[pitchData.sampleKey]) {
-                    const source = audioContext.createBufferSource();
-                    const gainNode = audioContext.createGain();
-                    source.buffer = pianoSampleBuffers[pitchData.sampleKey];
-                    source.playbackRate.value = pitchData.playbackRate;
-                    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-                    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 3);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 5);
-                    source.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    source.start();
-                    source.stop(audioContext.currentTime + 5);
-                    console.log(`Played ${targetNote}${octave} using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
-                } else {
-                    console.warn(`No sample available for ${targetNote}${octave}, using fallback`);
-                    playFallbackNote(targetNote, octave, volume, 5);
-                }
-            } else {
-                console.warn("Samples not loaded, falling back to oscillator");
-                playFallbackNote(targetNote, octave, volume, 5);
-            }
-        } catch (error) {
-            console.error("Error playing note:", error);
-            playFallbackNote(note, octave, volume, 5);
-        }
+    if (!audioContext || audioContext.state === 'suspended') {
+        const success = await initializeAudio();
+        if (!success) return;
+        return playNote(note, string, fret);
     }
+
+    try {
+        // Frequency table for Standard tuning (EADGBE), frets 0-12
+        const FREQUENCIES = [
+            // String 6 (E2)
+            [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
+            // String 5 (A2)
+            [110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00],
+            // String 4 (D3)
+            [146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66],
+            // String 3 (G3)
+            [196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00],
+            // String 2 (B3)
+            [246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88],
+            // String 1 (E4)
+            [329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25]
+        ];
+
+        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+        const stringIndex = 5 - string; // Convert string (0=high E, 5=low E) to array index
+        const frequency = FREQUENCIES[stringIndex][fret];
+        const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
+        const duration = 0.5; // 0.5 seconds
+
+        // Piano sample matching
+        const SAMPLE_FREQUENCIES = {
+            'A2': 110.00, 'A3': 220.00, 'A4': 440.00, 'A5': 880.00, 'A6': 1760.00,
+            'C2': 65.41, 'C3': 130.81, 'C4': 261.63, 'C5': 523.25, 'C6': 1046.50,
+            'Ds2': 77.78, 'Ds3': 155.56, 'Ds4': 311.13, 'Ds5': 622.25, 'Ds6': 1244.51,
+            'Fs2': 92.50, 'Fs3': 185.00, 'Fs4': 369.99, 'Fs5': 739.99, 'Fs6': 1479.98
+        };
+
+        if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
+            let closestSample = null;
+            let minDiff = Infinity;
+            let sampleKey = null;
+
+            // Find the closest sampled note
+            for (const [key, sampleFreq] of Object.entries(SAMPLE_FREQUENCIES)) {
+                const diff = Math.abs(frequency - sampleFreq);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestSample = sampleFreq;
+                    sampleKey = `${key}v12`; // e.g., "A4v12"
+                }
+            }
+
+            if (minDiff < 5 && pianoSampleBuffers[sampleKey]) { // Allow 5 Hz tolerance
+                const playbackRate = frequency / closestSample; // Adjust pitch
+                const source = audioContext.createBufferSource();
+                const gainNode = audioContext.createGain();
+
+                source.buffer = pianoSampleBuffers[sampleKey];
+                source.playbackRate.value = playbackRate;
+
+                // ADSR: Quick attack, no sustain, 0.5s fade-out
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01); // Fast attack
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                source.start();
+                source.stop(audioContext.currentTime + duration);
+
+                console.log(`Played ${note} (fret ${fret}, string ${string}) at ${frequency} Hz using ${sampleKey} with playbackRate ${playbackRate}`);
+            } else {
+                console.warn(`No close piano sample for ${frequency} Hz, using synthetic`);
+                playSyntheticNote(frequency, volume, duration);
+            }
+        } else {
+            console.warn("Piano samples not loaded, using synthetic");
+            playSyntheticNote(frequency, volume, duration);
+        }
+    } catch (error) {
+        console.error("Error playing note:", error);
+        playSyntheticNote(frequency, volume, duration);
+    }
+}
+
+function playSyntheticNote(frequency, volume, duration) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = 'triangle'; // Softer than sine, closer to piano
+    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+
+    // ADSR: Quick attack, no sustain, 0.5s fade-out
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01); // Fast attack
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + duration);
+
+    console.log(`Played synthetic note at ${frequency} Hz`);
+}
 
     function playFallbackNote(note, octave, volume, duration = 1) {
         const oscillator = audioContext.createOscillator();
