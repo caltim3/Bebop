@@ -740,6 +740,28 @@ async function initializeAudio() {
     }
 }
 
+       async function initializeAudio() {
+    try {
+        if (!audioContext) {
+            audioContext = await initAudioContext();
+        }
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        if (!Object.keys(soundBuffers).length) {
+            await loadSounds();
+        }
+        if (!samplesLoaded && Object.keys(pianoSampleBuffers).length === 0) {
+            await loadPianoSamples();
+        }
+        return audioContext.state === 'running';
+    } catch (error) {
+        console.error("Audio initialization error:", error);
+        updateLoadingStatus("Audio initialization failed. Please refresh the page.");
+        return false;
+    }
+}
+
     document.addEventListener('click', async function initAudioOnFirstClick() {
         const success = await initializeAudio();
         if (success) {
@@ -940,14 +962,15 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
 }
        
 async function playNote(note, string, fret) {
-    if (!audioContext || audioContext.state === 'suspended') {
-        const success = await initializeAudio();
-        if (!success) return;
-        return playNote(note, string, fret); // Recursive call after initialization
-    }
-
-    let frequency, volume, duration;
     try {
+        if (!audioContext || audioContext.state !== 'running') {
+            await initializeAudio();
+            if (audioContext.state !== 'running') {
+                throw new Error('AudioContext not running');
+            }
+        }
+
+        let frequency, volume, duration;
         const FREQUENCIES = [
             [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
             [110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00],
@@ -987,30 +1010,41 @@ async function playNote(note, string, fret) {
             }
 
             if (pianoSampleBuffers[sampleKey]) {
-                const playbackRate = frequency / closestSample;
-                const source = audioContext.createBufferSource();
-                const gainNode = audioContext.createGain();
+                try {
+                    const source = audioContext.createBufferSource();
+                    const gainNode = audioContext.createGain();
+                    
+                    if (!source || !gainNode) {
+                        throw new Error("Failed to create audio nodes");
+                    }
 
-                source.buffer = pianoSampleBuffers[sampleKey];
-                source.playbackRate.value = playbackRate;
+                    const playbackRate = frequency / closestSample;
+                    source.buffer = pianoSampleBuffers[sampleKey];
+                    source.playbackRate.value = playbackRate;
 
-                // Add ADSR envelope
-                const attackTime = 0.02;
-                const decayTime = 0.1;
-                const sustainLevel = 0.7;
-                const releaseTime = 0.3;
+                    // ADSR envelope
+                    const attackTime = 0.02;
+                    const decayTime = 0.1;
+                    const sustainLevel = 0.7;
+                    const releaseTime = 0.3;
 
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + attackTime);
-                gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, audioContext.currentTime + attackTime + decayTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+                    gainNode.gain.cancelScheduledValues(audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + attackTime);
+                    gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, audioContext.currentTime + attackTime + decayTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
 
-                source.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                source.start();
-                source.stop(audioContext.currentTime + duration);
+                    source.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    source.start(audioContext.currentTime);
+                    source.stop(audioContext.currentTime + duration);
 
-                console.log(`Played ${note} (fret ${fret}, string ${string}) at ${frequency} Hz using ${sampleKey} with playbackRate ${playbackRate}`);
+                    console.log(`Played ${note} (fret ${fret}, string ${string}) at ${frequency} Hz using ${sampleKey} with playbackRate ${playbackRate}`);
+                } catch (audioError) {
+                    console.error("Error in sample playback:", audioError);
+                    playSyntheticNote(frequency, volume, duration);
+                }
             } else {
                 console.warn(`Sample ${sampleKey} not loaded, using synthetic`);
                 playSyntheticNote(frequency, volume, duration);
@@ -1021,36 +1055,59 @@ async function playNote(note, string, fret) {
         }
 
     } catch (error) {
-        console.error("Error playing note:", error);
-        // Ensure fallback only if all variables are defined
+        console.error("PlayNote error:", error);
+        // Attempt fallback if we have the necessary parameters
         if (frequency && !isNaN(volume) && duration) {
-            playSyntheticNote(frequency, volume, duration);
-            console.log("Fallback: Playing synthetic note");
+            try {
+                playSyntheticNote(frequency, volume, duration);
+            } catch (fallbackError) {
+                console.error("Fallback playback failed:", fallbackError);
+            }
         } else {
-            console.error("Cannot play synthetic note: frequency, volume, or duration invalid", 
-                         { frequency, volume, duration });
+            console.error("Cannot play synthetic note: invalid parameters", { frequency, volume, duration });
         }
     }
 }
-       
+
 function playSyntheticNote(frequency, volume, duration) {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    try {
+        if (!audioContext || audioContext.state !== 'running') {
+            throw new Error('AudioContext not in running state');
+        }
 
-    oscillator.type = 'triangle';
-    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
 
-    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+        if (!oscillator || !gainNode) {
+            throw new Error('Failed to create synthetic note nodes');
+        }
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + duration);
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
 
-    console.log(`Played synthetic note at ${frequency} Hz for ${duration}s`);
-}
+        // Add ADSR envelope for synthetic notes
+        const attackTime = 0.02;
+        const decayTime = 0.1;
+        const sustainLevel = 0.7;
+
+        gainNode.gain.cancelScheduledValues(audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + attackTime);
+        gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, audioContext.currentTime + attackTime + decayTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+
+        console.log(`Played synthetic note at ${frequency} Hz for ${duration}s`);
+    } catch (error) {
+        console.error("Synthetic note playback failed:", error);
+        throw error; // Re-throw to handle in calling function
+    }
+}           
 
     function playFallbackNote(note, octave, volume, duration = 1) {
         const oscillator = audioContext.createOscillator();
