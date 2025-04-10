@@ -2191,274 +2191,220 @@ function addMeasure() {
         this.classList.remove('dragging');
     }
 
-document.addEventListener('DOMContentLoaded', async function () {
+// Global initialization state
+let initialized = false;
+const config = {
+    defaultKey: 'C',
+    defaultProgression: 'jazz_blues',
+    minTempo: 40,
+    maxTempo: 220,
+    tapTempoTimeout: 2000
+};
+
+// Utility function to safely get DOM elements
+function getElement(id) {
+    const element = document.getElementById(id);
+    if (!element) throw new Error(`Element with id '${id}' not found`);
+    return element;
+}
+
+// Main initialization function
+async function initializeApplication() {
+    if (initialized) return; // Prevent double initialization
+
     try {
-        // Initialize state and configuration
-        let initialized = false;
-        const config = {
-            defaultKey: 'C',
-            defaultProgression: 'jazz_blues',
-            minTempo: 40,
-            maxTempo: 220,
-            tapTempoTimeout: 2000
-        };
+        // Initialize core components
+        await initializeAudio();
+        console.log("Audio context initialized successfully");
 
-        // Utility function to safely get DOM elements
-        function getElement(id) {
-            const element = document.getElementById(id);
-            if (!element) throw new Error(`Element with id '${id}' not found`);
-            return element;
-        }
+        createBeats();
+        initializeStaticFretboards();
+        initializeDragAndDrop();
+        await loadProgressionOptions();
 
-        // Initialize core components with error handling
-        try {
-            createBeats();
-            initializeStaticFretboards();
-            initializeDragAndDrop();
-            await loadProgressionOptions(); // Now handles async operation
-        } catch (error) {
-            console.error('Error during core initialization:', error);
-            alert('Error initializing application components. Please refresh the page.');
-            return;
-        }
-
-        // Initialize chord fretboard with error checking
+        // Initialize chord fretboard
         const chordFretboard = getElement('chord-fretboard');
         if (chordFretboard) {
-            try {
-                createFretboard(chordFretboard, TUNINGS.standard);
-                updateFretboardNotes(chordFretboard, config.defaultKey, 'major', TUNINGS.standard);
-            } catch (error) {
-                console.error('Error initializing chord fretboard:', error);
-            }
+            createFretboard(chordFretboard, TUNINGS.standard);
+            updateFretboardNotes(chordFretboard, config.defaultKey, 'major', TUNINGS.standard);
         }
 
-        // Load default progression with error handling
-        try {
-            await loadProgression(config.defaultProgression);
-        } catch (error) {
-            console.error('Error loading default progression:', error);
-        }
+        // Load default progression
+        await loadProgression(config.defaultProgression);
 
-        // Key Selection Handler
-        getElement('keySelect').addEventListener('change', function() {
-            try {
-                const newKey = this.value;
-                const progressionSelect = getElement('progression-select');
-                const selectedProgression = progressionSelect.value;
-                if (selectedProgression !== 'none') {
-                    updateProgressionKey(newKey);
-                }
-            } catch (error) {
-                console.error('Error in key selection handler:', error);
-            }
-        });
-
-        // Progression Selection Handler
-        getElement('progression-select').addEventListener('change', async function() {
-            try {
-                const selectedProgression = this.value;
-                if (selectedProgression !== 'none') {
-                    await loadProgression(selectedProgression);
-                }
-            } catch (error) {
-                console.error('Error in progression selection handler:', error);
-            }
-        });
-
-        // Start/Stop Button Handler
-        getElement('start-stop').addEventListener('click', async function () {
-            try {
-                if (!audioContext) await initAudioContext();
-                if (isPlaying) {
-                    await stopPlayback();
-                } else {
-                    await startPlayback();
-                }
-            } catch (error) {
-                console.error('Error in playback control:', error);
-                alert('Error controlling playback. Please check audio settings.');
-            }
-        });
-
-        // Tempo Control Handler
-        getElement('tempo').addEventListener('input', function () {
-            try {
-                tempo = parseInt(this.value);
-                getElement('tempo-display').textContent = `${tempo} BPM`;
-                if (isPlaying) {
-                    stopPlayback();
-                    startPlayback();
-                }
-            } catch (error) {
-                console.error('Error in tempo control:', error);
-            }
-        });
-
-        // Time Signature Handler
-        getElement('time-signature').addEventListener('change', function () {
-            try {
-                createBeats();
-                if (isPlaying) {
-                    stopPlayback();
-                    startPlayback();
-                }
-            } catch (error) {
-                console.error('Error in time signature change:', error);
-            }
-        });
-
-        // Tap Tempo Handler with improved accuracy
-        getElement('tap-tempo').addEventListener('click', function () {
-            try {
-                const now = Date.now();
-                if (now - lastTapTime > config.tapTempoTimeout) tapTimes = [];
-                tapTimes.push(now);
-                lastTapTime = now;
-
-                if (tapTimes.length > 1) {
-                    const intervals = [];
-                    for (let i = 1; i < tapTimes.length; i++) {
-                        intervals.push(tapTimes[i] - tapTimes[i - 1]);
-                    }
-                    const averageInterval = intervals.reduce((a, b) => a + b) / intervals.length;
-                    tempo = Math.round(60000 / averageInterval);
-                    tempo = Math.min(Math.max(tempo, config.minTempo), config.maxTempo);
-                    
-                    const tempoSlider = getElement('tempo');
-                    const tempoDisplay = getElement('tempo-display');
-                    tempoSlider.value = tempo;
-                    tempoDisplay.textContent = `${tempo} BPM`;
-
-                    if (isPlaying) {
-                        stopPlayback();
-                        startPlayback();
-                    }
-                }
-            } catch (error) {
-                console.error('Error in tap tempo handler:', error);
-            }
-        });
-
-        // Note Duration Handler
-        getElement('note-duration').addEventListener('input', function () {
-            try {
-                const duration = parseFloat(this.value);
-                getElement('duration-display').textContent = `${duration}s`;
-            } catch (error) {
-                console.error('Error in note duration handler:', error);
-            }
-        });
-
-        // Metronome Volume Handler
-        getElement('metronome-volume').addEventListener('input', function () {
-            try {
-                const metronomeVolume = parseFloat(this.value);
-                console.log(`Metronome volume set to: ${metronomeVolume}`);
-                if (isPlaying) {
-                    stopPlayback();
-                    startPlayback();
-                }
-            } catch (error) {
-                console.error('Error in metronome volume handler:', error);
-            }
-        });
-
-        // Initialize Audio System
-        try {
-            await initializeAudio();
-            console.log("Audio context initialized successfully");
-        } catch (error) {
-            console.error("Error initializing audio context:", error);
-            alert('Error initializing audio system. Please check your audio settings.');
-        }
-
-        // Initialize Measures and First Chord
-        try {
-            const measures = getElement('measures');
-            if (measures.children.length === 0) {
-                // Add initial measures with default progression
-                addMeasure();
-                addMeasure();
-                
-                const [firstMeasure, secondMeasure] = measures.children;
-                if (firstMeasure && secondMeasure) {
-                    // Initialize first measure
-                    firstMeasure.querySelector('.root-note').value = 'C';
-                    firstMeasure.querySelector('.chord-quality').value = 'major';
-                    firstMeasure.querySelector('.second-key').value = 'C';
-                    firstMeasure.querySelector('.scale-select').value = 'major';
-
-                    // Initialize second measure
-                    secondMeasure.querySelector('.root-note').value = 'G';
-                    secondMeasure.querySelector('.chord-quality').value = 'dom7';
-                    secondMeasure.querySelector('.second-key').value = 'G';
-                    secondMeasure.querySelector('.scale-select').value = 'mixolydian';
-                }
-            }
+        // Initialize measures
+        const measures = getElement('measures');
+        if (!measures.children.length) {
+            addMeasure();
+            addMeasure();
             
-            addFirstChordListener();
-            initialized = true;
-            console.log('Application initialized successfully');
-        } catch (error) {
-            console.error('Error initializing measures:', error);
-            alert('Error initializing chord progression. Please refresh the page.');
-        }
- window.onload = () => {
-    // Initialize chord fretboard
-    const chordFretboard = document.getElementById('chord-fretboard');
-    if (chordFretboard) {
-        createFretboard(chordFretboard, TUNINGS.standard);
-        updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
-    }
+            const [firstMeasure, secondMeasure] = measures.children;
+            if (firstMeasure && secondMeasure) {
+                // Initialize first measure
+                firstMeasure.querySelector('.root-note').value = 'C';
+                firstMeasure.querySelector('.chord-quality').value = 'major';
+                firstMeasure.querySelector('.second-key').value = 'C';
+                firstMeasure.querySelector('.scale-select').value = 'major';
 
-    // Initialize audio context
-    initializeAudio().then(() => {
-        console.log("Audio context initialized");
-    }).catch(error => {
-        console.error("Error initializing audio context:", error);
+                // Initialize second measure
+                secondMeasure.querySelector('.root-note').value = 'G';
+                secondMeasure.querySelector('.chord-quality').value = 'dom7';
+                secondMeasure.querySelector('.second-key').value = 'G';
+                secondMeasure.querySelector('.scale-select').value = 'mixolydian';
+            }
+        }
+
+        // Set up event listeners
+        setupEventListeners();
+
+        addFirstChordListener();
+        initialized = true;
+        console.log('Application initialized successfully');
+
+    } catch (error) {
+        console.error('Error during application initialization:', error);
+        alert('Error initializing application. Please refresh the page.');
+    }
+}
+
+// Event listeners setup
+function setupEventListeners() {
+    // Key Selection Handler
+    getElement('keySelect').addEventListener('change', function() {
+        try {
+            const newKey = this.value;
+            const progressionSelect = getElement('progression-select');
+            if (progressionSelect.value !== 'none') {
+                updateProgressionKey(newKey);
+            }
+        } catch (error) {
+            console.error('Error in key selection handler:', error);
+        }
     });
 
-    // Create initial UI elements if not already created
-    if (!document.querySelector('.beat')) {
-        createBeats();
-    }
-    
-    if (!document.querySelector('.fretboards-grid div')) {
-        initializeStaticFretboards();
-    }
-
-    // Initialize drag and drop functionality
-    initializeDragAndDrop();
-
-    // Load progression options if not already loaded
-    if (document.getElementById('progression-select').children.length <= 1) {
-        loadProgressionOptions();
-    }
-
-    // Ensure measures exist
-    const measures = document.getElementById('measures');
-    if (!measures.children.length) {
-        addMeasure();
-        addMeasure();
-        const firstMeasure = measures.children[0];
-        const secondMeasure = measures.children[1];
-        if (firstMeasure && secondMeasure) {
-            firstMeasure.querySelector('.root-note').value = 'C';
-            firstMeasure.querySelector('.chord-quality').value = 'major';
-            firstMeasure.querySelector('.second-key').value = 'C';
-            firstMeasure.querySelector('.scale-select').value = 'major';
-            secondMeasure.querySelector('.root-note').value = 'G';
-            secondMeasure.querySelector('.chord-quality').value = 'dom7';
-            secondMeasure.querySelector('.second-key').value = 'G';
-            secondMeasure.querySelector('.scale-select').value = 'mixolydian';
+    // Progression Selection Handler
+    getElement('progression-select').addEventListener('change', async function() {
+        try {
+            if (this.value !== 'none') {
+                await loadProgression(this.value);
+            }
+        } catch (error) {
+            console.error('Error in progression selection handler:', error);
         }
-    }
+    });
 
-    // Add first chord listener
-    addFirstChordListener();
-};
-        
+    // Start/Stop Button Handler
+    getElement('start-stop').addEventListener('click', async function () {
+        try {
+            if (!audioContext) await initAudioContext();
+            if (isPlaying) {
+                await stopPlayback();
+            } else {
+                await startPlayback();
+            }
+        } catch (error) {
+            console.error('Error in playback control:', error);
+            alert('Error controlling playback. Please check audio settings.');
+        }
+    });
+
+    // Tempo Control Handler
+    getElement('tempo').addEventListener('input', function () {
+        try {
+            tempo = parseInt(this.value);
+            getElement('tempo-display').textContent = `${tempo} BPM`;
+            if (isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        } catch (error) {
+            console.error('Error in tempo control:', error);
+        }
+    });
+
+    // Time Signature Handler
+    getElement('time-signature').addEventListener('change', function () {
+        try {
+            createBeats();
+            if (isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        } catch (error) {
+            console.error('Error in time signature change:', error);
+        }
+    });
+
+    // Tap Tempo Handler
+    getElement('tap-tempo').addEventListener('click', function () {
+        try {
+            const now = Date.now();
+            if (now - lastTapTime > config.tapTempoTimeout) tapTimes = [];
+            tapTimes.push(now);
+            lastTapTime = now;
+
+            if (tapTimes.length > 1) {
+                const intervals = [];
+                for (let i = 1; i < tapTimes.length; i++) {
+                    intervals.push(tapTimes[i] - tapTimes[i - 1]);
+                }
+                const averageInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+                tempo = Math.round(60000 / averageInterval);
+                tempo = Math.min(Math.max(tempo, config.minTempo), config.maxTempo);
+                
+                const tempoSlider = getElement('tempo');
+                const tempoDisplay = getElement('tempo-display');
+                tempoSlider.value = tempo;
+                tempoDisplay.textContent = `${tempo} BPM`;
+
+                if (isPlaying) {
+                    stopPlayback();
+                    startPlayback();
+                }
+            }
+        } catch (error) {
+            console.error('Error in tap tempo handler:', error);
+        }
+    });
+
+    // Note Duration Handler
+    getElement('note-duration').addEventListener('input', function () {
+        try {
+            const duration = parseFloat(this.value);
+            getElement('duration-display').textContent = `${duration}s`;
+        } catch (error) {
+            console.error('Error in note duration handler:', error);
+        }
+    });
+
+    // Metronome Volume Handler
+    getElement('metronome-volume').addEventListener('input', function () {
+        try {
+            const metronomeVolume = parseFloat(this.value);
+            console.log(`Metronome volume set to: ${metronomeVolume}`);
+            if (isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        } catch (error) {
+            console.error('Error in metronome volume handler:', error);
+        }
+    });
+}
+
+// Initialize on both DOMContentLoaded and window.load
+document.addEventListener('DOMContentLoaded', initializeApplication);
+window.onload = initializeApplication;
+
+// First click handler for audio initialization
+document.addEventListener('click', async function initAudioOnFirstClick() {
+    const success = await initializeAudio();
+    if (success) {
+        document.removeEventListener('click', initAudioOnFirstClick);
+        console.log("Audio initialized on first click");
+    }
+}, { once: true });
+       
 </script>
 </body>
 </html>
