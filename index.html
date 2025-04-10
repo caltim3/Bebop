@@ -1628,6 +1628,11 @@ function parseChord(chord) {
     return [root, quality || 'major'];
 }
 
+function getScaleForChord(chord) {
+    const [root, quality] = parseChord(chord);
+    return suggestScaleForQuality(quality);
+}
+       
 // Map chord quality to dropdown values
 function mapQualityToDropdown(quality) {
     switch (quality) {
@@ -1673,6 +1678,8 @@ function mapRomanQualityToDropdown(quality) {
     return qualityMap[quality.toLowerCase()] || 'major';
 }
 
+
+       
 function loadProgression(progressionName, key) {
     const progression = progressions[progressionName];
     if (!progression) {
