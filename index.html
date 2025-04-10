@@ -977,18 +977,6 @@ async function playNote(note, string, fret) {
                 'Fs2': 92.50, 'Fs3': 185.00, 'Fs4': 369.99, 'Fs5': 739.99, 'Fs6': 1479.98
             };
 
-                const attackTime = 0.02;
-                const decayTime = 0.1;
-                const sustainLevel = 0.7;
-                const releaseTime = 0.3;
-                
-                // Add ADSR envelope
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + attackTime);
-                gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, audioContext.currentTime + attackTime + decayTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
-            }
-            
             for (const [key, sampleFreq] of Object.entries(SAMPLE_FREQUENCIES)) {
                 const diff = Math.abs(frequency - sampleFreq);
                 if (diff < minDiff) {
@@ -1006,8 +994,15 @@ async function playNote(note, string, fret) {
                 source.buffer = pianoSampleBuffers[sampleKey];
                 source.playbackRate.value = playbackRate;
 
+                // Add ADSR envelope
+                const attackTime = 0.02;
+                const decayTime = 0.1;
+                const sustainLevel = 0.7;
+                const releaseTime = 0.3;
+
                 gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + attackTime);
+                gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, audioContext.currentTime + attackTime + decayTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
 
                 source.connect(gainNode);
@@ -1024,17 +1019,20 @@ async function playNote(note, string, fret) {
             console.warn("Piano samples not loaded, using synthetic");
             playSyntheticNote(frequency, volume, duration);
         }
+
     } catch (error) {
         console.error("Error playing note:", error);
         // Ensure fallback only if all variables are defined
         if (frequency && !isNaN(volume) && duration) {
             playSyntheticNote(frequency, volume, duration);
+            console.log("Fallback: Playing synthetic note");
         } else {
-            console.error("Cannot play synthetic note: frequency, volume, or duration invalid", { frequency, volume, duration });
+            console.error("Cannot play synthetic note: frequency, volume, or duration invalid", 
+                         { frequency, volume, duration });
         }
     }
 }
-
+       
 function playSyntheticNote(frequency, volume, duration) {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
