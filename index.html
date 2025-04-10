@@ -954,34 +954,9 @@ function findNearestSampledNote(note, octave) {
         indicator.textContent = message;
     }
 
-    // Audio initialization
-   // Update this function to be async
-// Replace the existing initializeAudio function with:
-function initializeAudio() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        // Add event listener for user interaction
-        document.addEventListener('click', function initAudioOnFirstClick() {
-            audioContext.resume().then(() => {
-                console.log('Audio context resumed successfully');
-                document.removeEventListener('click', initAudioOnFirstClick);
-            });
-        }, { once: true });
-    }
-    return audioContext;
-}
-
-    document.addEventListener('click', async function initAudioOnFirstClick() {
-        const success = await initializeAudio();
-        if (success) {
-            document.removeEventListener('click', initAudioOnFirstClick);
-            log("Audio initialized on first click");
-        }
-    }, { once: true });
-
-   async function loadSounds() {
+       async function loadSounds() {
     try {
-        const baseUrl = "./"; // Assumes sound files are in the same directory as index.html
+        const baseUrl = "./"; // Assumes sound files are in the same directory
         const soundFiles = {
             'click': 'Click.wav',
             'hihat': 'HiHat.wav',
@@ -997,21 +972,80 @@ function initializeAudio() {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const arrayBuffer = await response.arrayBuffer();
-                soundBuffers[type] = await audioContext.decodeAudioData(arrayBuffer);
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                soundBuffers[type] = audioBuffer;
                 log(`Loaded ${type} sound from ${filename}`);
             } catch (error) {
                 console.error(`Failed to load ${filename}:`, error);
+                // Create synthetic fallback sound
                 soundBuffers[type] = await createDrumSound(type);
                 log(`Using fallback synthetic sound for ${type}`);
             }
         }
-        
+
+        // Set up reverb after loading sounds
+        if (!reverbNode) {
+            await setupReverb();
+        }
+
+        // Initialize gain nodes for mixing
+        const mainGainNode = audioContext.createGain();
+        const dryGainNode = audioContext.createGain();
+        const wetGainNode = audioContext.createGain();
+
+        dryGainNode.gain.value = 0.7;
+        wetGainNode.gain.value = 0.3;
+
+        mainGainNode.connect(dryGainNode);
+        mainGainNode.connect(wetGainNode);
+        dryGainNode.connect(audioContext.destination);
+        wetGainNode.connect(reverbNode);
+
         updateLoadingStatus("Drum sounds loaded");
         return true;
     } catch (error) {
         console.error("Failed to load sounds:", error);
+        updateLoadingStatus("Error loading sounds. Using fallback synthesizer.");
         return false;
     }
+}
+    // Audio initialization
+   // Update this function to be async
+// Replace the existing initializeAudio function with:
+async function initializeAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Add event listener for user interaction
+        document.addEventListener('click', function initAudioOnFirstClick() {
+            audioContext.resume().then(() => {
+                console.log('[FretFlow Debug] Audio context resumed successfully');
+                document.removeEventListener('click', initAudioOnFirstClick);
+            });
+        }, { once: true });
+
+        try {
+            await loadSounds();
+            await setupReverb();
+            await loadPianoSamples(); // Ensure piano samples are loaded
+            
+            // Initialize reverb if not already done
+            if (!reverbNode) {
+                await setupReverb();
+            }
+            
+            console.log("[FretFlow Debug] Audio initialized successfully");
+            return audioContext;
+        } catch (error) {
+            console.error("Error during audio initialization:", error);
+            // Create fallback audio nodes if needed
+            if (!reverbNode) {
+                await setupReverb();
+            }
+            return audioContext; // Return context even if some initialization failed
+        }
+    }
+    return audioContext;
 }
 
 // Add this new function
