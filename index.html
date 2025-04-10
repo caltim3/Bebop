@@ -900,12 +900,7 @@ function getCurrentKey() {
     return keySelect ? keySelect.value : 'C'; // Default to C if no key selected
 }
        
-// Usage examples:
-/*
-console.log(getChordFromFunction('V7', 'C'));  // -> 'Gdom7'
-console.log(getChordFromFunction('ii', 'F'));  // -> 'Gminor'
-console.log(getChordFromFunction('I', 'Bb'));  // -> 'A#major'
-console.log(getChordFromFunction('vi7', 'A#')); // -> 'Gdom7'
+
 */
     function findNearestSampledNote(note, octave) {
     let minDistance = Infinity;
@@ -2469,8 +2464,8 @@ async function initializeApplication() {
             updateFretboardNotes(chordFretboard, config.defaultKey, 'major', TUNINGS.standard);
         }
 
-        // Load default progression
-        await loadProgression(config.defaultProgression);
+        // Load default progression with current key
+        await loadProgression(config.defaultProgression, getCurrentKey());
 
         // Initialize measures
         const measures = getElement('measures');
@@ -2510,7 +2505,7 @@ async function initializeApplication() {
 // Event listeners setup
 function setupEventListeners() {
     // Key Selection Handler
-    getElement('keySelect').addEventListener('change', function() {
+    getElement('key-select').addEventListener('change', function() {
         try {
             const newKey = this.value;
             const progressionSelect = getElement('progression-select');
@@ -2521,6 +2516,9 @@ function setupEventListeners() {
             console.error('Error in key selection handler:', error);
         }
     });
+
+    // ... other event listeners ...
+}
 
     // Progression Selection Handler
     getElement('progression-select').addEventListener('change', async function() {
@@ -2633,6 +2631,10 @@ function setupEventListeners() {
 }
 
 // Initialize on both DOMContentLoaded and window.load
+async function initializeApplication() {
+    // ... function body ...
+}
+
 document.addEventListener('DOMContentLoaded', initializeApplication);
 window.onload = initializeApplication;
 
