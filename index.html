@@ -588,80 +588,171 @@ function getNoteIndex(note) {
   return noteMap.indexOf(note);
 }
 
-// Get chord from Roman numeral (e.g. "ii", "V7") based on a root key
-function getChordFromFunction(key, func) {
-    const noteMap = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const keyIndex = noteMap.indexOf(key);
-    if (keyIndex === -1) {
-        console.error(`Invalid key: ${key}`);
-        return "Cmajor"; // Fallback
+// Main chord function handler
+function getChordFromFunction(chordFunction, key) {
+    // Normalize key name first
+    key = normalizeKeyName(key);
+    
+    // Validate inputs
+    if (!key || !chordFunction) {
+        console.error('Invalid inputs:', { key, chordFunction });
+        return null;
     }
 
-    // Define scale degrees for major key (Ionian mode)
-    const scaleDegrees = {
-        "I": 0, "ii": 2, "iii": 4, "IV": 5, "V": 7, "vi": 9, "vii°": 11,
-        "I7": 0, "ii7": 2, "iii7": 4, "IV7": 5, "V7": 7, "vi7": 9, "vii7b5": 11,
-        "Im": 0, "iim7": 2, "iiim7": 4, "IVm7": 5, "Vm7": 7, "vim7": 9, "viim7": 11,
-        "bII": 1, "bIII": 3, "bVI": 8, "bVII": 10,
-        "bII7": 1, "bIII7": 3, "bVI7": 8, "bVII7": 10
+    // Parse the chord function to handle extensions and modifications
+    const { base, quality, extension } = parseChordFunction(chordFunction);
+
+    // Get the root note based on the chord function
+    const root = getRootNote(base, key);
+    if (!root) {
+        console.error(`Could not determine root note for ${base} in key ${key}`);
+        return null;
+    }
+
+    // Build the full chord name
+    return buildChordName(root, quality, extension);
+}
+
+// Helper function to normalize key names
+function normalizeKeyName(key) {
+    const keyMap = {
+        'Bb': 'A#',
+        'Db': 'C#',
+        'Eb': 'D#',
+        'Gb': 'F#',
+        'Ab': 'G#'
+    };
+    return keyMap[key] || key;
+}
+
+// Parse chord function into components
+function parseChordFunction(chordFunction) {
+    const regex = /^([ivIV]+)(sus[24])?([°ø]|dim|aug)*(M|maj|m|min)*(\d*)$/;
+    const match = chordFunction.match(regex);
+
+    if (!match) {
+        console.error(`Invalid chord function format: ${chordFunction}`);
+        return { base: chordFunction, quality: '', extension: '' };
+    }
+
+    const [_, base, suspended, diminished, minor, seventh] = match;
+
+    let quality = 'major';
+    if (base.toLowerCase() === base) quality = 'minor';
+    if (diminished) quality = diminished === '°' ? 'dim' : 'half-dim';
+    if (minor === 'm' || minor === 'min') quality = 'minor';
+    if (minor === 'M' || minor === 'maj') quality = 'major';
+
+    let extension = seventh || '';
+    if (extension === '7' && quality === 'major') extension = 'dom7';
+
+    return { base, quality, extension, suspended };
+}
+
+// Get root note based on scale degree
+function getRootNote(base, key) {
+    const scaleSteps = {
+        'i': 0, 'I': 0,
+        'ii': 2, 'II': 2,
+        'iii': 4, 'III': 4,
+        'iv': 5, 'IV': 5,
+        'v': 7, 'V': 7,
+        'vi': 9, 'VI': 9,
+        'vii': 11, 'VII': 11
     };
 
-    // Parse the Roman numeral
-    const degree = scaleDegrees[func];
-    if (degree === undefined) {
-        console.error(`Invalid chord function: ${func}`);
-        return "Cmajor"; // Fallback
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const keyIndex = notes.indexOf(key);
+    
+    if (keyIndex === -1) {
+        console.error(`Invalid key: ${key}`);
+        return null;
     }
 
-    // Calculate the root note
-    const rootIndex = (keyIndex + degree) % 12;
-    const root = noteMap[rootIndex];
-
-    // Determine chord quality
-    let quality = "major"; // Default
-    if (func.includes("7b5")) {
-        quality = "min7b5";
-    } else if (func.includes("7")) {
-        if (func.includes("m7")) quality = "min7";
-        else if (func.includes("maj7")) quality = "maj7";
-        else quality = "dom7";
-    } else if (func.includes("m") || func.match(/^[iv]/)) {
-        quality = "minor";
-    } else if (func.includes("°")) {
-        quality = "diminished";
-    } else if (func === func.toUpperCase() && !func.includes("b")) {
-        quality = "major";
+    const interval = scaleSteps[base];
+    if (interval === undefined) {
+        console.error(`Invalid chord base: ${base}`);
+        return null;
     }
 
-    console.log(`Parsed ${func} in key ${key}: ${root}${quality}`);
-    return root + quality;
+    const rootIndex = (keyIndex + interval) % 12;
+    return notes[rootIndex];
 }
 
-       function updateChordDropdownsForKey(progressionName, key) {
-  const container = document.getElementById("chord-grid");
-  container.innerHTML = ""; // Clear current chord selectors
+// Build the complete chord name
+function buildChordName(root, quality, extension) {
+    // Special handling for dominant seventh chords
+    if (extension === 'dom7') {
+        return `${root}dom7`;
+    }
 
-  const chordFunctions = progressions[progressionName];
-  if (!chordFunctions) return;
+    // Handle other chord types
+    let chordName = root;
+    
+    switch (quality) {
+        case 'minor':
+            chordName += 'minor';
+            break;
+        case 'dim':
+            chordName += 'dim';
+            break;
+        case 'half-dim':
+            chordName += 'min7b5';
+            break;
+        case 'aug':
+            chordName += 'aug';
+            break;
+        // major is default, no suffix needed
+    }
 
-  chordFunctions.forEach((func, index) => {
-    const chord = getChordFromFunction(key, func);
+    // Add extensions if present
+    if (extension && extension !== 'dom7') {
+        chordName += extension;
+    }
 
-    const select = document.createElement("select");
-    select.className = "chord-select";
-    select.dataset.index = index;
-
-    // For simplicity, just add the current chord as the only option
-    // (we can later add a full list if needed)
-    const option = document.createElement("option");
-    option.value = chord;
-    option.textContent = chord;
-    select.appendChild(option);
-
-    container.appendChild(select);
-  });
+    return chordName;
 }
 
+// Utility function to transpose notes
+function transposeNote(note, semitones) {
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const noteIndex = notes.indexOf(normalizeKeyName(note));
+    
+    if (noteIndex === -1) {
+        console.error(`Invalid note: ${note}`);
+        return note;
+    }
+
+    const newIndex = (noteIndex + semitones) % 12;
+    return notes[newIndex];
+}
+
+// Example chord mappings for reference
+const chordFunctionMap = {
+    'I': 'major',
+    'i': 'minor',
+    'II7': 'dom7',
+    'ii': 'minor',
+    'ii7': 'min7',
+    'III': 'major',
+    'iii': 'minor',
+    'IV': 'major',
+    'iv': 'minor',
+    'V': 'major',
+    'V7': 'dom7',
+    'vi': 'minor',
+    'vi7': 'min7',
+    'vii': 'dim',
+    'vii7b5': 'min7b5'
+};
+
+// Usage examples:
+/*
+console.log(getChordFromFunction('V7', 'C'));  // -> 'Gdom7'
+console.log(getChordFromFunction('ii', 'F'));  // -> 'Gminor'
+console.log(getChordFromFunction('I', 'Bb'));  // -> 'A#major'
+console.log(getChordFromFunction('vi7', 'A#')); // -> 'Gdom7'
+*/
     function findNearestSampledNote(note, octave) {
     let minDistance = Infinity;
     let nearestNote = null;
@@ -718,48 +809,19 @@ function getChordFromFunction(key, func) {
 
     // Audio initialization
    // Update this function to be async
-async function initializeAudio() {
-    try {
-        if (!audioContext) {
-            audioContext = await initAudioContext();
-        }
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-        if (!Object.keys(soundBuffers).length) {
-            await loadSounds();
-        }
-        if (!samplesLoaded && Object.keys(pianoSampleBuffers).length === 0) { // Guard against duplicate loading
-            await loadPianoSamples();
-        }
-        return audioContext.state === 'running';
-    } catch (error) {
-        console.error("Failed to initialize audio context:", error);
-        updateLoadingStatus("Audio initialization failed. Please refresh the page.");
-        return false;
+// Replace the existing initializeAudio function with:
+function initializeAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // Add event listener for user interaction
+        document.addEventListener('click', function initAudioOnFirstClick() {
+            audioContext.resume().then(() => {
+                console.log('Audio context resumed successfully');
+                document.removeEventListener('click', initAudioOnFirstClick);
+            });
+        }, { once: true });
     }
-}
-
-       async function initializeAudio() {
-    try {
-        if (!audioContext) {
-            audioContext = await initAudioContext();
-        }
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-        if (!Object.keys(soundBuffers).length) {
-            await loadSounds();
-        }
-        if (!samplesLoaded && Object.keys(pianoSampleBuffers).length === 0) {
-            await loadPianoSamples();
-        }
-        return audioContext.state === 'running';
-    } catch (error) {
-        console.error("Audio initialization error:", error);
-        updateLoadingStatus("Audio initialization failed. Please refresh the page.");
-        return false;
-    }
+    return audioContext;
 }
 
     document.addEventListener('click', async function initAudioOnFirstClick() {
@@ -824,6 +886,39 @@ async function setupReverb() {
         reverbNode.buffer = impulse;
         reverbNode.connect(audioContext.destination);
     }
+}
+
+function loadSample(note) {
+    return new Promise((resolve, reject) => {
+        if (samples[note]) {
+            resolve(samples[note]);
+            return;
+        }
+
+        const fallbackNote = getFallbackNote(note);
+        if (samples[fallbackNote]) {
+            console.log(`Using fallback sample ${fallbackNote} for ${note}`);
+            resolve(samples[fallbackNote]);
+            return;
+        }
+
+        // If no fallback available, create oscillator
+        const freq = noteToFrequency(note);
+        const osc = audioContext.createOscillator();
+        osc.frequency.value = freq;
+        console.log(`Using oscillator fallback for ${note} at ${freq}Hz`);
+        resolve({ oscillator: osc, frequency: freq });
+    });
+}
+
+function getFallbackNote(note) {
+    // Map of notes to their closest available sample
+    const fallbackMap = {
+        'C2': 'C3',
+        'B1': 'B2',
+        // Add more mappings as needed
+    };
+    return fallbackMap[note] || note;
 }
        
     async function createDrumSound(type) {
@@ -1424,13 +1519,28 @@ function mapRomanQualityToDropdown(quality) {
     return qualityMap[quality.toLowerCase()] || 'major';
 }
 
-function loadProgression(progressionName) {
-    const progressionData = PROGRESSIONS[progressionName];
-    const defaultKey = progressionData.defaultKey;
-    // Update key select dropdown first
-    document.getElementById('keySelect').value = defaultKey;
-    // Then update all measures based on this key
-    updateProgressionKey(defaultKey);
+function loadProgression(progressionName, key) {
+    const progression = progressions[progressionName];
+    if (!progression) {
+        console.error(`Progression ${progressionName} not found`);
+        return;
+    }
+
+    key = normalizeKeyName(key);
+    console.log(`Loading progression: ${progressionName} in key ${key}`);
+
+    return progression.map((measure, index) => {
+        const chord = getChordFromFunction(measure.chordFunction, key);
+        if (!chord) {
+            console.error(`Invalid chord function: ${measure.chordFunction} in key ${key}`);
+            return null;
+        }
+        return {
+            ...measure,
+            chord: chord,
+            scale: getScaleForChord(chord, key)
+        };
+    }).filter(Boolean); // Remove null entries
 }
        
  
@@ -1859,53 +1969,6 @@ function createMeasure(measureNumber) {
     return measure;
 }
        
-function loadProgression(progressionName) {
-    console.log(`Loading progression: ${progressionName}`, PROGRESSIONS[progressionName]?.chords);
-    const progressionData = PROGRESSIONS[progressionName];
-    if (!progressionData || !progressionData.chords) {
-        console.error(`Invalid progression data for ${progressionName}`);
-        return;
-    }
-
-    const measuresContainer = document.getElementById('measures');
-    measuresContainer.innerHTML = ''; // Clear existing measures
-
-    const chords = progressionData.chords;
-    const defaultKey = progressionData.defaultKey;
-
-    chords.forEach((chordFunc, index) => {
-        const measure = createMeasure(index + 1);
-        const rootNoteSelect = measure.querySelector('.root-note');
-        const chordQualitySelect = measure.querySelector('.chord-quality');
-        const secondKeySelect = measure.querySelector('.second-key');
-        const scaleSelect = measure.querySelector('.scale-select');
-
-        // Get chord from Roman numeral in the default key
-        const chord = getChordFromFunction(defaultKey, chordFunc);
-        const rootMatch = chord.match(/^([A-G]#?)/);
-        const qualityMatch = chord.match(/major|minor|dom7|min7|maj7|min7b5|diminished/);
-        
-        const root = rootMatch ? rootMatch[1] : 'C';
-        const quality = qualityMatch ? qualityMatch[0] : 'major';
-
-        rootNoteSelect.value = root;
-        chordQualitySelect.value = quality;
-        secondKeySelect.value = root; // Sync scale key with chord root
-        scaleSelect.value = suggestScaleForQuality(quality);
-
-        console.log(`Measure ${index + 1}: Loaded ${root}${quality}, Scale: ${root} ${scaleSelect.value}`);
-        measuresContainer.appendChild(measure);
-    });
-
-    // Update key dropdown
-    const keySelect = document.getElementById('keySelect');
-    if (keySelect) {
-        keySelect.value = defaultKey;
-    }
-
-    addFirstChordListener();
-    console.log(`Progression ${progressionName} loaded with ${chords.length} measures in key ${defaultKey}`);
-}
 
 // Helper function to suggest scales based on chord quality
 function suggestScaleForQuality(quality) {
