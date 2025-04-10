@@ -145,8 +145,10 @@
             opacity: 0.5;
         }
         .measure.active {
-            background-color: #c3e6cb;
             border: 2px solid #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+            transform: scale(1.02);
+            transition: all 0.2s ease;
         }
         .measure-number {
             position: absolute;
@@ -173,6 +175,21 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        @media (max-width: 768px) {
+            .fretboards-grid {
+                grid-template-columns: 1fr;
+            }
+            .controls {
+                flex-direction: column;
+            }
+            .beat {
+                width: 30px;
+                height: 60px;
+                font-size: 12px;
+            }
+        }
+        
         .volume-control {
             display: flex;
             align-items: center;
@@ -960,6 +977,18 @@ async function playNote(note, string, fret) {
                 'Fs2': 92.50, 'Fs3': 185.00, 'Fs4': 369.99, 'Fs5': 739.99, 'Fs6': 1479.98
             };
 
+                const attackTime = 0.02;
+                const decayTime = 0.1;
+                const sustainLevel = 0.7;
+                const releaseTime = 0.3;
+                
+                // Add ADSR envelope
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + attackTime);
+                gainNode.gain.linearRampToValueAtTime(volume * sustainLevel, audioContext.currentTime + attackTime + decayTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+            }
+            
             for (const [key, sampleFreq] of Object.entries(SAMPLE_FREQUENCIES)) {
                 const diff = Math.abs(frequency - sampleFreq);
                 if (diff < minDiff) {
@@ -1340,30 +1369,27 @@ function mapRomanQualityToDropdown(quality) {
     return qualityMap[quality.toLowerCase()] || 'major';
 }
 
-function loadProgressionOptions() {
-    const select = document.getElementById('progression-select');
-    select.innerHTML = '<option value="none">None</option>';
-    for (const progression in PROGRESSIONS) {
-        const option = document.createElement('option');
-        option.value = progression;
-        option.textContent = progression.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        select.appendChild(option);
-    }
-    console.log("Progression options loaded:", Object.keys(PROGRESSIONS));
+function loadProgression(progressionName) {
+    const progressionData = PROGRESSIONS[progressionName];
+    const defaultKey = progressionData.defaultKey;
+    // Update key select dropdown first
+    document.getElementById('keySelect').value = defaultKey;
+    // Then update all measures based on this key
+    updateProgressionKey(defaultKey);
 }
        
  
   
-// Suggest a scale based on chord quality
-function suggestScaleForQuality(quality) {
-    switch (quality) {
-        case '7': return 'mixolydian';
-        case 'm7': return 'dorian';
-        case 'maj7': return 'major';
-        case 'm': return 'minor';
-        case 'min7b5': return 'locrian';
-        default: return 'major';
-    }
+function suggestScaleForQuality(quality, chordRoot) {
+    const suggestions = {
+        'major': ['major', 'lydian', 'mixolydian'],
+        'minor': ['dorian', 'minor', 'phrygian'],
+        'dom7': ['mixolydian', 'bebopDominant', 'blues'],
+        'min7': ['dorian', 'minor', 'melodicMinor'],
+        'maj7': ['major', 'lydian', 'bebopMajor'],
+        'min7b5': ['locrian', 'diminishedHW', 'diminishedWH']
+    };
+    return suggestions[quality] || ['major'];
 }
 
 function startPlayback() {
@@ -1557,6 +1583,11 @@ function createFretboard(container, tuning) {
     function updateFretboardNotes(container, rootNote, scale, tuning) {
         container.querySelectorAll('.note').forEach(note => note.remove());
 
+            // Use DocumentFragment for batch DOM updates
+        const fragment = document.createDocumentFragment();
+        // Build notes in fragment
+        container.appendChild(fragment);
+        
         if (container.id === 'chord-fretboard') {
             const measures = document.getElementsByClassName('measure');
             if (measures.length > 0 && currentMeasure < measures.length) {
@@ -1615,6 +1646,15 @@ function createFretboard(container, tuning) {
         }
     }
 
+    function generateScaleExercise(root, scaleType) {
+    const scale = generateScale(root, scaleType);
+    return {
+        ascending: scale,
+        descending: [...scale].reverse(),
+        patterns: generateScalePatterns(scale)
+    };
+}
+       
     function createBeats() {
     const container = document.querySelector('.beats-container');
     container.innerHTML = '';
