@@ -1920,6 +1920,88 @@ function suggestScaleForQuality(quality) {
         default: return 'major';
     }
 }
+    function loadProgressionOptions() {
+    const progressionSelect = document.getElementById('progression-select');
+    if (!progressionSelect) {
+        console.error('Progression select element not found');
+        return;
+    }
+
+    // Clear existing options except 'none'
+    progressionSelect.innerHTML = '<option value="none">None</option>';
+
+    // Add all progressions from the PROGRESSIONS object
+    for (const [key, value] of Object.entries(PROGRESSIONS)) {
+        const option = document.createElement('option');
+        option.value = key;
+        // Convert key from snake_case to Title Case for display
+        option.textContent = key.split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        progressionSelect.appendChild(option);
+    }
+
+    // Set default value to jazz_blues
+    progressionSelect.value = 'jazz_blues';
+    
+    // Load the default progression
+    loadProgression('jazz_blues');
+}
+
+window.onload = () => {
+    // Initialize chord fretboard
+    const chordFretboard = document.getElementById('chord-fretboard');
+    if (chordFretboard) {
+        createFretboard(chordFretboard, TUNINGS.standard);
+        updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
+    }
+
+    // Initialize audio context
+    initializeAudio().then(() => {
+        console.log("Audio context initialized");
+    }).catch(error => {
+        console.error("Error initializing audio context:", error);
+    });
+
+    // Create initial UI elements if not already created
+    if (!document.querySelector('.beat')) {
+        createBeats();
+    }
+    
+    if (!document.querySelector('.fretboards-grid div')) {
+        initializeStaticFretboards();
+    }
+
+    // Initialize drag and drop functionality
+    initializeDragAndDrop();
+
+    // Load progression options if not already loaded
+    if (document.getElementById('progression-select').children.length <= 1) {
+        loadProgressionOptions();
+    }
+
+    // Ensure measures exist
+    const measures = document.getElementById('measures');
+    if (!measures.children.length) {
+        addMeasure();
+        addMeasure();
+        const firstMeasure = measures.children[0];
+        const secondMeasure = measures.children[1];
+        if (firstMeasure && secondMeasure) {
+            firstMeasure.querySelector('.root-note').value = 'C';
+            firstMeasure.querySelector('.chord-quality').value = 'major';
+            firstMeasure.querySelector('.second-key').value = 'C';
+            firstMeasure.querySelector('.scale-select').value = 'major';
+            secondMeasure.querySelector('.root-note').value = 'G';
+            secondMeasure.querySelector('.chord-quality').value = 'dom7';
+            secondMeasure.querySelector('.second-key').value = 'G';
+            secondMeasure.querySelector('.scale-select').value = 'mixolydian';
+        }
+    }
+
+    // Add first chord listener
+    addFirstChordListener();
+};
        
 function addMeasure() {
     const measuresDiv = document.getElementById('measures');
@@ -2322,105 +2404,61 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.error('Error initializing measures:', error);
             alert('Error initializing chord progression. Please refresh the page.');
         }
- window.onload = async () => {
-    try {
-        console.log('Window load event triggered - initializing application components...');
+ window.onload = () => {
+    // Initialize chord fretboard
+    const chordFretboard = document.getElementById('chord-fretboard');
+    if (chordFretboard) {
+        createFretboard(chordFretboard, TUNINGS.standard);
+        updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
+    }
 
-        // Configuration object for default values and settings
-        const config = {
-            defaultTuning: TUNINGS.standard,
-            defaultKey: 'C',
-            defaultQuality: 'major',
-            initRetryAttempts: 3,
-            initRetryDelay: 1000, // milliseconds
-        };
+    // Initialize audio context
+    initializeAudio().then(() => {
+        console.log("Audio context initialized");
+    }).catch(error => {
+        console.error("Error initializing audio context:", error);
+    });
 
-        // Utility function to retry operations
-        async function retryOperation(operation, maxAttempts = config.initRetryAttempts) {
-            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                try {
-                    await operation();
-                    return;
-                } catch (error) {
-                    console.warn(`Attempt ${attempt}/${maxAttempts} failed:`, error);
-                    if (attempt === maxAttempts) throw error;
-                    await new Promise(resolve => setTimeout(resolve, config.initRetryDelay));
-                }
-            }
+    // Create initial UI elements if not already created
+    if (!document.querySelector('.beat')) {
+        createBeats();
+    }
+    
+    if (!document.querySelector('.fretboards-grid div')) {
+        initializeStaticFretboards();
+    }
+
+    // Initialize drag and drop functionality
+    initializeDragAndDrop();
+
+    // Load progression options if not already loaded
+    if (document.getElementById('progression-select').children.length <= 1) {
+        loadProgressionOptions();
+    }
+
+    // Ensure measures exist
+    const measures = document.getElementById('measures');
+    if (!measures.children.length) {
+        addMeasure();
+        addMeasure();
+        const firstMeasure = measures.children[0];
+        const secondMeasure = measures.children[1];
+        if (firstMeasure && secondMeasure) {
+            firstMeasure.querySelector('.root-note').value = 'C';
+            firstMeasure.querySelector('.chord-quality').value = 'major';
+            firstMeasure.querySelector('.second-key').value = 'C';
+            firstMeasure.querySelector('.scale-select').value = 'major';
+            secondMeasure.querySelector('.root-note').value = 'G';
+            secondMeasure.querySelector('.chord-quality').value = 'dom7';
+            secondMeasure.querySelector('.second-key').value = 'G';
+            secondMeasure.querySelector('.scale-select').value = 'mixolydian';
         }
+    }
 
-        // Utility function to safely get DOM elements
-        function getElement(id) {
-            const element = document.getElementById(id);
-            if (!element) throw new Error(`Critical element not found: ${id}`);
-            return element;
-        }
-
-        // Initialize audio system if not already initialized
-        if (!window.audioContext) {
-            await retryOperation(async () => {
-                try {
-                    await initializeAudio();
-                    console.log('Audio system initialized successfully');
-                } catch (error) {
-                    console.error('Failed to initialize audio system:', error);
-                    throw error;
-                }
-            });
-        }
-
-        // Initialize fretboard with retry mechanism
-        await retryOperation(async () => {
-            const chordFretboard = getElement('chord-fretboard');
-            if (!chordFretboard) {
-                throw new Error('Chord fretboard element not found');
-            }
-
-            // Clear existing fretboard if necessary
-            while (chordFretboard.firstChild) {
-                chordFretboard.removeChild(chordFretboard.firstChild);
-            }
-
-            // Create and update fretboard
-            createFretboard(chordFretboard, config.defaultTuning);
-            updateFretboardNotes(
-                chordFretboard,
-                config.defaultKey,
-                config.defaultQuality,
-                config.defaultTuning
-            );
-
-            console.log('Fretboard initialized successfully');
-        });
-
-        // Verify and initialize UI state
-        await retryOperation(async () => {
-            // Verify key selection
-            const keySelect = getElement('keySelect');
-            if (keySelect.value !== config.defaultKey) {
-                keySelect.value = config.defaultKey;
-                // Trigger change event to ensure UI updates
-                keySelect.dispatchEvent(new Event('change'));
-            }
-
-            // Verify chord quality selection
-            const qualitySelect = document.querySelector('.chord-quality');
-            if (qualitySelect && qualitySelect.value !== config.defaultQuality) {
-                qualitySelect.value = config.defaultQuality;
-                qualitySelect.dispatchEvent(new Event('change'));
-            }
-
-            // Initialize or verify progression state
-            const progressionSelect = getElement('progression-select');
-            if (progressionSelect && progressionSelect.value === 'none') {
-                // Load default progression if none selected
-                await loadProgression('jazz_blues');
-            }
-        });
-
-        // Verify audio visualization components
-        await retryOperation(async () => {
-            const visual
+    // Add first chord listener
+    addFirstChordListener();
+};
+        
 </script>
 </body>
 </html>
