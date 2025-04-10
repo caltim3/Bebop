@@ -288,23 +288,22 @@
         <h3>Create a progression or pick one from the dropdown. Choose which key and scale to go with it.</h3>
         <label for="progression-select">Select Progression:</label>
         <select id="progression-select">
-            <option value="none">None</option>
+            <!-- Options will be populated by JavaScript -->
         </select>
-        </select>
-        <label for="keySelect">Select Key:</label>
-            <select id="keySelect">
-              <option value="C">C</option>
-              <option value="C#">C#</option>
-              <option value="D">D</option>
-              <option value="D#">D#</option>
-              <option value="E">E</option>
-              <option value="F">F</option>
-              <option value="F#">F#</option>
-              <option value="G">G</option>
-              <option value="G#">G#</option>
-              <option value="A">A</option>
-              <option value="A#">A#</option>
-              <option value="B">B</option>
+        
+        <select id="key-select">
+            <option value="C">C</option>
+            <option value="G">G</option>
+            <option value="D">D</option>
+            <option value="A">A</option>
+            <option value="E">E</option>
+            <option value="B">B</option>
+            <option value="F#">F#</option>
+            <option value="Bb">Bb</option>
+            <option value="Eb">Eb</option>
+            <option value="Ab">Ab</option>
+            <option value="Db">Db</option>
+            <option value="Gb">Gb</option>
         </select>
 
 <div id="measures">
@@ -525,55 +524,205 @@ function transposeNote(note, semitones) {
         '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
     };
 
-const PROGRESSIONS = {
-    "jazz_blues": {
-        chords: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "ii7", "V7", "I7", "V7"],
-        defaultKey: "Bb"
-    },
-    "minor_blues": {
-        chords: ["Im7", "IVm7", "Im7", "Im7", "bVI7", "V7", "Im7", "IVm7", "Im7", "bVII7", "Im7", "V7"],
-        defaultKey: "C" // Common minor blues key, adjust if you have a preference
-    },
-    "rhythm_changes": {
-        chords: ["I", "vi", "ii", "V", "I", "vi", "ii", "V", "I", "IV", "I", "I", "ii", "V", "I", "V7"],
-        defaultKey: "Bb" // Traditional key for rhythm changes
-    },
-    "2_5_1": {
-        chords: ["ii", "V7", "I"],
-        defaultKey: "C" // Common teaching key
-    },
-    "6_2_5_1": {
-        chords: ["vi", "ii", "V7", "I"],
-        defaultKey: "C" // Common teaching key
-    },
-    "dark_eyes": {
-        chords: ["V7", "I", "V7", "I", "V7", "I7", "V7", "I7", "V7", "I", "V7", "I7", "V7"],
-        defaultKey: "D" // A7 as V7 in D minor
-    },
-    "black_orpheus": {
-        chords: ["Im", "IVm7", "bVII7", "bIII", "bVI", "II7b5", "V7", "Im", "IVm7", "bVII7", "bIII", "bVI", "II7b5", "V7", "Im"],
-        defaultKey: "A" // A minor traditional key
-    },
-    "autumn_leaves_bb": {
-        chords: ["vi7", "II7", "I", "IV", "vii7b5", "III7", "ii7", "vi7"],
-        defaultKey: "Bb" // Bb major/G minor
-    },
-    "stella_by_starlight": {
-        chords: ["I", "vii7b5", "III7", "vi7", "II7", "v7", "I7", "I", "vii7b5", "III7", "vi7", "ii7", "v7", "I7"],
-        defaultKey: "Bb" // Bb major traditional key
-    },
-    "summertime": {
-        chords: ["Im", "Im", "IVm7", "bVII7", "bIII", "bVI", "II7b5", "V7", "Im"],
-        defaultKey: "A" // A minor traditional key
-    },
-    "girl_from_ipanema": {
-        chords: ["I", "II7", "ii7", "V7", "vi7", "II7", "ii7", "V7", "I"],
-        defaultKey: "F" // F major traditional key
-    },
-    "all_the_things_you_are": {
-        chords: ["vi7", "ii7", "V7", "I", "vi7", "II7", "V", "v7", "i7", "IV7", "bVII7", "III", "iii7", "VI7", "II", "ii7", "V7", "i7"],
-        defaultKey: "Ab" // Ab major, starting on Fm7
-    }
+const progressions = {
+    'jazz_blues': [
+        { chordFunction: 'I7', duration: 4 },
+        { chordFunction: 'IV7', duration: 4 },
+        { chordFunction: 'I7', duration: 4 },
+        { chordFunction: 'I7', duration: 4 },
+        { chordFunction: 'IV7', duration: 4 },
+        { chordFunction: 'IV7', duration: 4 },
+        { chordFunction: 'I7', duration: 4 },
+        { chordFunction: 'I7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IV7', duration: 4 },
+        { chordFunction: 'I7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 }
+    ],
+    'autumn_leaves_bb': [
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'IVMaj7', duration: 4 },
+        { chordFunction: 'vii7b5', duration: 4 },
+        { chordFunction: 'III7', duration: 4 },
+        { chordFunction: 'vi7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 }
+    ],
+    '6_2_5_1': [
+        { chordFunction: 'vi', duration: 4 },
+        { chordFunction: 'ii', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'I', duration: 4 }
+    ],
+    'rhythm_changes': [
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'vi7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'vi7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'iii7', duration: 4 },
+        { chordFunction: 'VI7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'vi7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 }
+    ],
+    'minor_251': [
+        { chordFunction: 'ii7b5', duration: 4 },
+        { chordFunction: 'V7b9', duration: 4 },
+        { chordFunction: 'i7', duration: 4 },
+        { chordFunction: 'i7', duration: 4 }
+    ],
+    'major_251': [
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 }
+    ],
+    'coltrane_changes': [
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'bIII7', duration: 4 },
+        { chordFunction: 'bVIMaj7', duration: 4 },
+        { chordFunction: 'I7', duration: 4 }
+    ],
+    'bird_blues': [
+        { chordFunction: 'I7', duration: 4 },
+        { chordFunction: 'IV7', duration: 4 },
+        { chordFunction: 'I7', duration: 4 },
+        { chordFunction: 'vi7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'I7', duration: 4 },
+        { chordFunction: 'III7', duration: 4 },
+        { chordFunction: 'vi7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'I7', duration: 4 }
+    ],
+    'modal_251': [
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7sus4', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 }
+    ],
+    'so_what': [
+        { chordFunction: 'i7', duration: 8 },
+        { chordFunction: 'bIIMaj7', duration: 8 },
+        { chordFunction: 'i7', duration: 8 },
+        { chordFunction: 'bIIMaj7', duration: 8 }
+    ],
+    'giant_steps': [
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'bIII7', duration: 4 },
+        { chordFunction: 'bVIMaj7', duration: 4 },
+        { chordFunction: 'bVIII7', duration: 4 },
+        { chordFunction: 'bIIIMaj7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 }
+    ],
+    'blue_bossa': [
+        { chordFunction: 'i7', duration: 4 },
+        { chordFunction: 'iv7', duration: 4 },
+        { chordFunction: 'ii7b5', duration: 4 },
+        { chordFunction: 'V7b9', duration: 4 },
+        { chordFunction: 'i7', duration: 4 },
+        { chordFunction: 'iv7', duration: 4 },
+        { chordFunction: 'ii7b5', duration: 4 },
+        { chordFunction: 'V7b9', duration: 4 }
+    ],
+    'take_five': [
+        { chordFunction: 'i7', duration: 5 },
+        { chordFunction: 'bVII7', duration: 5 },
+        { chordFunction: 'i7', duration: 5 },
+        { chordFunction: 'bVII7', duration: 5 }
+    ],
+    'all_the_things': [
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'vii7b5', duration: 4 },
+        { chordFunction: 'iii7', duration: 4 },
+        { chordFunction: 'VI7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 8 }
+    ],
+    'misty': [
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'bVII7', duration: 4 },
+        { chordFunction: 'iii7', duration: 4 },
+        { chordFunction: 'VI7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 8 }
+    ],
+    'dark_eyes': [
+        { chordFunction: 'i7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'i7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IV7', duration: 4 },
+        { chordFunction: 'bVII7', duration: 4 },
+        { chordFunction: 'i7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 }
+    ],
+    'girl_from_ipanema': [
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'IVMaj7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 }
+    ],
+    'summertime': [
+        { chordFunction: 'i7', duration: 4 },
+        { chordFunction: 'iv7', duration: 4 },
+        { chordFunction: 'i7', duration: 4 },
+        { chordFunction: 'bVI7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'i7', duration: 4 }
+    ],
+    'black_orpheus': [
+        { chordFunction: 'i7', duration: 4 },
+        { chordFunction: 'bVII7', duration: 4 },
+        { chordFunction: 'bVI7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'i7', duration: 4 },
+        { chordFunction: 'bVII7', duration: 4 },
+        { chordFunction: 'bVI7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 }
+    ],
+    'all_the_things_you_are': [
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'IVMaj7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'IVMaj7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 }
+    ],
+    'stella_by_starlight': [
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 },
+        { chordFunction: 'IMaj7', duration: 4 },
+        { chordFunction: 'bVII7', duration: 4 },
+        { chordFunction: 'bVI7', duration: 4 },
+        { chordFunction: 'ii7', duration: 4 },
+        { chordFunction: 'V7', duration: 4 }
+    ]
 };
 
 
@@ -746,6 +895,11 @@ const chordFunctionMap = {
     'vii7b5': 'min7b5'
 };
 
+function getCurrentKey() {
+    const keySelect = document.getElementById('key-select');
+    return keySelect ? keySelect.value : 'C'; // Default to C if no key selected
+}
+       
 // Usage examples:
 /*
 console.log(getChordFromFunction('V7', 'C'));  // -> 'Gdom7'
@@ -1983,32 +2137,29 @@ function suggestScaleForQuality(quality) {
         default: return 'major';
     }
 }
-    function loadProgressionOptions() {
+function loadProgressionOptions() {
     const progressionSelect = document.getElementById('progression-select');
     if (!progressionSelect) {
         console.error('Progression select element not found');
         return;
     }
 
-    // Clear existing options except 'none'
-    progressionSelect.innerHTML = '<option value="none">None</option>';
+    // Clear existing options
+    progressionSelect.innerHTML = '';
 
-    // Add all progressions from the PROGRESSIONS object
-    for (const [key, value] of Object.entries(PROGRESSIONS)) {
+    // Add options for each progression
+    Object.keys(progressions).forEach(progName => {
         const option = document.createElement('option');
-        option.value = key;
-        // Convert key from snake_case to Title Case for display
-        option.textContent = key.split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
+        option.value = progName;
+        option.textContent = progName.replace(/_/g, ' ').toUpperCase();
         progressionSelect.appendChild(option);
-    }
+    });
 
-    // Set default value to jazz_blues
-    progressionSelect.value = 'jazz_blues';
-    
-    // Load the default progression
-    loadProgression('jazz_blues');
+    // Load the first progression by default
+    const firstProgression = Object.keys(progressions)[0];
+    if (firstProgression) {
+        loadProgression(firstProgression, getCurrentKey());
+    }
 }
 
 window.onload = () => {
@@ -2271,6 +2422,25 @@ function getElement(id) {
     return element;
 }
 
+function addEventListeners() {
+    const progressionSelect = document.getElementById('progression-select');
+    const keySelect = document.getElementById('key-select');
+
+    if (progressionSelect) {
+        progressionSelect.addEventListener('change', function() {
+            loadProgression(this.value, getCurrentKey());
+        });
+    }
+
+    if (keySelect) {
+        keySelect.addEventListener('change', function() {
+            const currentProgression = document.getElementById('progression-select').value;
+            loadProgression(currentProgression, this.value);
+        });
+    }
+}
+
+       
 // Main initialization function
 async function initializeApplication() {
     if (initialized) return; // Prevent double initialization
