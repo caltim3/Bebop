@@ -1986,6 +1986,7 @@ function createFretboardContainer(index) {
         this.classList.remove('dragging');
     }
 
+<script>
 document.addEventListener('DOMContentLoaded', function () {
     // Create initial UI elements
     createBeats();
@@ -2099,29 +2100,27 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Ensure first chord listener is added if measures exist
-        // Add initial measures if none exist
-        addMeasure();
-        addMeasure();
-        const firstMeasure = measures.children[0];
-        const secondMeasure = measures.children[1];
-        if (firstMeasure && secondMeasure) {
-            // First measure: C major
-            firstMeasure.querySelector('.root-note').value = 'C';
-            firstMeasure.querySelector('.chord-quality').value = 'major';
-            firstMeasure.querySelector('.second-key').value = 'C';
-            firstMeasure.querySelector('.scale-select').value = 'major';
+    const measures = document.getElementById('measures'); // Define measures here
+    addMeasure();
+    addMeasure();
+    const firstMeasure = measures.children[0];
+    const secondMeasure = measures.children[1];
+    if (firstMeasure && secondMeasure) {
+        // First measure: C major
+        firstMeasure.querySelector('.root-note').value = 'C';
+        firstMeasure.querySelector('.chord-quality').value = 'major';
+        firstMeasure.querySelector('.second-key').value = 'C';
+        firstMeasure.querySelector('.scale-select').value = 'major';
         
-            // Second measure: G7 (not C7)
-            secondMeasure.querySelector('.root-note').value = 'G';  // Make sure this is set to 'G'
-            secondMeasure.querySelector('.chord-quality').value = 'dom7';
-            secondMeasure.querySelector('.second-key').value = 'G';
-            secondMeasure.querySelector('.scale-select').value = 'mixolydian';
-            
-            addFirstChordListener();
-        }
+        // Second measure: G7 (not C7)
+        secondMeasure.querySelector('.root-note').value = 'G';  // Make sure this is set to 'G'
+        secondMeasure.querySelector('.chord-quality').value = 'dom7';
+        secondMeasure.querySelector('.second-key').value = 'G';
+        secondMeasure.querySelector('.scale-select').value = 'mixolydian';
+        
+        addFirstChordListener();
     }
 });
-
   window.onload = () => {
     // Double-check fretboard initialization
     const chordFretboard = document.getElementById('chord-fretboard');
