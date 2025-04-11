@@ -1687,7 +1687,7 @@ function createFretboard(container, tuning) {
             if (soundType === 'click' || soundType === 'woodblock') {
                 if (!isEighth) {
                     const states = [
-                        { volume: '1', color: '#1F618D', sound: soundType },
+                        { volume: '1', color: '#274C77', sound: soundType },
                         { volume: '0.3', color: '#4CAF50', sound: soundType },
                         { volume: '0', color: '#9E9E9E', sound: 'default' }
                     ];
@@ -1707,10 +1707,10 @@ function createFretboard(container, tuning) {
                 const isSnare = pattern.snare[i];
                 
                 const states = [
-                    { volume: '1', color: '#1F618D', sound: 'kick' },
-                    { volume: '1', color: '#4CAF50', sound: 'snare' },
-                    { volume: '0.7', color: '#9E9E9E', sound: 'hihat' },
-                    { volume: '0', color: '#9E9E9E', sound: 'default' }
+                    { volume: '1', color: '#274C77', sound: 'kick' },
+                    { volume: '1', color: '#6096BA', sound: 'snare' },
+                    { volume: '0.7', color: '#8B8C89', sound: 'hihat' },
+                    { volume: '0', color: '#8B8C89', sound: 'default' }
                 ];
                 
                 let currentIndex = states.findIndex(state => 
