@@ -499,21 +499,20 @@ const SAMPLE_NOTE_MAP = {
     'D#': 'Ds'
 };
 
-const ENHARMONIC_MAP = {
-    'C#': 'Db',
-    'D#': 'Eb',
-    'F#': 'Gb',
-    'G#': 'Ab',
-    'A#': 'Bb',
-    // Reverse mappings
-    'Db': 'Db',
-    'Eb': 'Eb',
-    'Gb': 'Gb',
-    'Ab': 'Ab',
-    'Bb': 'Bb'
-};
-    // Function to standardize note names to flat notation
 function standardizeNoteName(note) {
+    const ENHARMONIC_MAP = {
+        'C#': 'Db',
+        'D#': 'Eb',
+        'F#': 'Gb',
+        'G#': 'Ab',
+        'A#': 'Bb',
+        // Reverse mappings
+        'Db': 'Db',
+        'Eb': 'Eb',
+        'Gb': 'Gb',
+        'Ab': 'Ab',
+        'Bb': 'Bb'
+    };
     return ENHARMONIC_MAP[note] || note;
 }
 
@@ -1756,7 +1755,7 @@ function loadProgression(progressionKey) {
 
     // Set the key selector to the default key for this progression
     const defaultKey = progression.defaultKey;
-    document.getElementById('keySelect').value = defaultKey.replace(/m$|min$/, ''); // Remove minor indicator for select value
+    document.getElementById('keySelect').value = standardizeNoteName(defaultKey.replace(/m$|min$/, ''));
 
     progression.progression.forEach((chordFunc, index) => {
         const chord = getChordFromFunction(defaultKey, chordFunc);
@@ -1821,7 +1820,7 @@ function loadProgression(progressionKey) {
     updateMeasureNumbers();
     addFirstChordListener();
 }
- 
+       
 function addMeasure() {
     const measuresDiv = document.getElementById('measures');
     const newMeasure = document.createElement('div');
