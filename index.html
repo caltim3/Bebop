@@ -287,19 +287,20 @@
               <option value="bird_blues">Bird Blues</option>
 </select>  
         <label for="keySelect">Select Key:</label>
-            <select id="keySelect">
-              <option value="C">C</option>
-              <option value="C#">C#</option>
-              <option value="D">D</option>
-              <option value="D#">D#</option>
-              <option value="E">E</option>
-              <option value="F">F</option>
-              <option value="F#">F#</option>
-              <option value="G">G</option>
-              <option value="G#">G#</option>
-              <option value="A">A</option>
-              <option value="A#">A#</option>
-              <option value="B">B</option>
+           <select id="keySelect">
+                <option value="C">C</option>
+                <option value="Db">Db</option>
+                <option value="D">D</option>
+                <option value="Eb">Eb</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+                <option value="Gb">Gb</option>
+                <option value="G">G</option>
+                <option value="Ab">Ab</option>
+                <option value="A">A</option>
+                <option value="Bb">Bb</option>
+                <option value="B">B</option>
+            </select>
         </select>
 
 <div id="measures">
@@ -459,8 +460,31 @@ async function initAudioContext() {
     };
 
     // Musical constants
-    const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
+    const SAMPLE_NOTE_MAP = {
+    'Gb': 'Fs',  // Map Gb to Fs for sample lookup
+    'Db': 'Cs',  // Though we don't have this sample
+    'Eb': 'Ds',  // Map Eb to Ds for sample lookup
+    'Ab': 'Gs',  // Though we don't have this sample
+    'Bb': 'As',  // Though we don't have this sample
+    // Add reverse mappings
+    'F#': 'Fs',
+    'D#': 'Ds'
+};
+
+    // Function to standardize note names to flat notation
+function standardizeNoteName(note) {
+    return ENHARMONIC_MAP[note] || note;
+}
+
+// Update the existing getNoteIndex function
+function getNoteIndex(note) {
+    const standardizedNote = standardizeNoteName(note);
+    return NOTES.indexOf(standardizedNote);
+}
+       
+       
 function getSemitoneDistance(fromNote, toNote) {
     const fromIndex = NOTES.indexOf(fromNote);
     const toIndex = NOTES.indexOf(toNote);
@@ -596,7 +620,7 @@ function getNoteIndex(note) {
 
 // Get chord from Roman numeral (e.g. "ii", "V7") based on a root key
 function getChordFromFunction(key, func) {
-    const keyIndex = getNoteIndex(key);
+    const keyIndex = getNoteIndex(standardizeNoteName(key));
     const scaleDegrees = {
         "I": 0, "ii": 2, "iii": 4, "IV": 5, "V": 7, "vi": 9, "vii°": 11,
         "I7": 0, "II7": 2, "III7": 4, "IV7": 5, "V7": 7, "VI7": 9, "VII7": 11,
@@ -611,7 +635,7 @@ function getChordFromFunction(key, func) {
         return "C"; // Fallback
     }
 
-    const note = noteMap[(keyIndex + degree) % 12];
+    const note = NOTES[(keyIndex + degree) % 12];
     let quality = '';
 
     // Check if the Roman numeral is lowercase (indicating minor)
@@ -655,18 +679,39 @@ function getChordFromFunction(key, func) {
   });
 }
 
-    function findNearestSampledNote(note, octave) {
+    // Add this mapping object near your other constants
+const SAMPLE_NOTE_MAP = {
+    'Gb': 'Fs',  // Map Gb to Fs for sample lookup
+    'Db': 'Cs',  // Though we don't have this sample
+    'Eb': 'Ds',  // Map Eb to Ds for sample lookup
+    'Ab': 'Gs',  // Though we don't have this sample
+    'Bb': 'As',  // Though we don't have this sample
+    // Add reverse mappings
+    'F#': 'Fs',
+    'D#': 'Ds'
+};
+
+// Update the findNearestSampledNote function
+function findNearestSampledNote(note, octave) {
     let minDistance = Infinity;
     let nearestNote = null;
     let nearestOctave = octave;
 
+    // Convert note to sample format if needed
+    const sampleNote = SAMPLE_NOTE_MAP[note] || note;
     const noteIndex = NOTES.indexOf(note);
+
     for (let sampledNote of SAMPLED_NOTES) {
-        const sampledIndex = NOTES.indexOf(sampledNote === 'Fs' ? 'F#' : sampledNote === 'Ds' ? 'D#' : sampledNote);
+        // Convert the sampled note back to regular notation for comparison
+        const compareNote = sampledNote === 'Fs' ? 'F#' : 
+                          sampledNote === 'Ds' ? 'D#' : 
+                          sampledNote;
+        const sampledIndex = NOTES.indexOf(standardizeNoteName(compareNote));
+        
         const distance = Math.abs(noteIndex - sampledIndex);
         if (distance < minDistance) {
             minDistance = distance;
-            nearestNote = sampledNote;
+            nearestNote = sampledNote; // Keep the original sample name (Fs/Ds)
 
             // Adjust octave if we're crossing C
             if (noteIndex < sampledIndex && noteIndex < 3 && sampledIndex > 8) {
@@ -679,14 +724,19 @@ function getChordFromFunction(key, func) {
 
     return {
         sampleKey: `${nearestNote}${nearestOctave}v12`,
-        semitoneDiff: (noteIndex - NOTES.indexOf(nearestNote === 'Fs' ? 'F#' : nearestNote === 'Ds' ? 'D#' : nearestNote) + 12) % 12
+        semitoneDiff: (noteIndex - NOTES.indexOf(standardizeNoteName(nearestNote === 'Fs' ? 'F#' : 
+                                                                     nearestNote === 'Ds' ? 'D#' : 
+                                                                     nearestNote)) + 12) % 12
     };
 }
-       function getPitchShiftedNote(note, octave) {
-    const nearest = findNearestSampledNote(note, octave);
+
+// Update getPitchShiftedNote to handle the mapping
+function getPitchShiftedNote(note, octave) {
+    // First standardize the note name for consistent handling
+    const standardNote = standardizeNoteName(note);
+    const nearest = findNearestSampledNote(standardNote, octave);
     
     // Calculate the playback rate based on semitone difference
-    // Each semitone is approximately a 5.9% change in frequency (2^(1/12))
     const playbackRate = Math.pow(2, nearest.semitoneDiff / 12);
     
     return {
@@ -831,6 +881,7 @@ async function setupReverb() {
     return buffer;
 }
 
+      
 async function loadPianoSamples() {
     log('Starting piano sample loading...');
     if (!audioContext) {
@@ -1147,6 +1198,10 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
             }
         }
     }
+}
+
+        function createKeyOptions() {
+    return NOTES.map(note => `<option value="${note}">${note}</option>`).join('');
 }
        
 // Helper function to play a buffer
@@ -1797,30 +1852,30 @@ function addMeasure() {
         });
     }
 
-    function createFretboardContainer(index) {
-        const container = document.createElement('div');
-        container.className = 'fretboard-container';
-        container.innerHTML = `
-            <div class="scale-display" id="scale-display-${index}">C major</div>
-            <div class="controls">
-                <select class="tuning-select">
-                    <option value="standard">Standard (EADGBE)</option>
-                    <option value="dropD">Drop D (DADGBE)</option>
-                    <option value="openG">Open G (DGDGBD)</option>
-                    <option value="DADGAD">DADGAD</option>
-                    <option value="openE">Open E (EBEG#BE)</option>
-                </select>
-                <select class="keySelect" id="key-${index}">
-                    ${NOTES.map(note => `<option value="${note}">${note}</option>`).join('')}
-                </select>
-                <select class="scale-select" id="scale-${index}">
-                    ${Object.keys(SCALES).map(scale => `<option value="${scale}">${scale}</option>`).join('')}
-                </select>
-            </div>
-            <div class="fretboard" id="fretboard-${index}"></div>
-        `;
-        return container;
-    }
+function createFretboardContainer(index) {
+    const container = document.createElement('div');
+    container.className = 'fretboard-container';
+    container.innerHTML = `
+        <div class="scale-display" id="scale-display-${index}">C major</div>
+        <div class="controls">
+            <select class="tuning-select">
+                <option value="standard">Standard (EADGBE)</option>
+                <option value="dropD">Drop D (DADGBE)</option>
+                <option value="openG">Open G (DGDGBD)</option>
+                <option value="DADGAD">DADGAD</option>
+                <option value="openE">Open E (EBEG#BE)</option>
+            </select>
+            <select class="keySelect" id="key-${index}">
+                ${createKeyOptions()}
+            </select>
+            <select class="scale-select" id="scale-${index}">
+                ${Object.keys(SCALES).map(scale => `<option value="${scale}">${scale}</option>`).join('')}
+            </select>
+        </div>
+        <div class="fretboard" id="fretboard-${index}"></div>
+    `;
+    return container;
+}
 
     function initializeStaticFretboards() {
         const grid = document.querySelector('.fretboards-grid');
@@ -1887,6 +1942,18 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeStaticFretboards();
     initializeDragAndDrop();
 
+    // Generate key options HTML
+    const keyOptions = createKeyOptions();
+    
+    // Update all key selectors with flat notation
+    document.getElementById('keySelect').innerHTML = keyOptions;
+    document.querySelectorAll('.root-note, .second-key').forEach(select => {
+        select.innerHTML = keyOptions;
+    });
+    document.querySelectorAll('.fretboards-grid .keySelect').forEach(select => {
+        select.innerHTML = keyOptions;
+    });
+
     // Initialize chord fretboard
     const chordFretboard = document.getElementById('chord-fretboard');
     if (chordFretboard) {
@@ -1896,7 +1963,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Add key select event listener for transposition
     document.getElementById('keySelect').addEventListener('change', function() {
-        const newKey = this.value;
+        const newKey = standardizeNoteName(this.value);
         const selectedProgression = document.getElementById('progression-select').value;
         if (selectedProgression !== 'none') {
             updateProgressionKey(newKey);
@@ -1912,14 +1979,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Add start-stop button event listener
-document.getElementById('start-stop').addEventListener('click', function () {
-    if (!audioContext) initAudioContext();
-    if (isPlaying) {
-        stopPlayback();
-    } else {
-        startPlayback();
-    }
-});
+    document.getElementById('start-stop').addEventListener('click', function () {
+        if (!audioContext) initAudioContext();
+        if (isPlaying) {
+            stopPlayback();
+        } else {
+            startPlayback();
+        }
+    });
 
     // Add tempo slider event listener
     document.getElementById('tempo').addEventListener('input', function () {
@@ -1964,13 +2031,13 @@ document.getElementById('start-stop').addEventListener('click', function () {
         }
     });
 
-    // Add metronome volume slider event listener (NEW FIX)
+    // Add metronome volume slider event listener
     document.getElementById('metronome-volume').addEventListener('input', function () {
         const metronomeVolume = parseFloat(this.value);
-        console.log(`Metronome volume set to: ${metronomeVolume}`); // Debugging log
+        console.log(`Metronome volume set to: ${metronomeVolume}`);
         if (isPlaying) {
             stopPlayback();
-            startPlayback(); // Restart playback to apply new volume immediately
+            startPlayback();
         }
     });
 
