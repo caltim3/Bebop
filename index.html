@@ -211,6 +211,10 @@
     </style>
 </head>
 <body>
+    <body>
+    <button id="theme-toggle" style="position: fixed; top: 10px; right: 10px; z-index: 1000; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Toggle Light/Dark Mode
+    </button>
     <div class="app-section" id="chord-fretboard-section">
         <h1>BEBOP BLUEPRINT</h1>
         <h3>Fretflow - Dynamic Fretboard with Scales that Move with the Chord Progression</h3>
@@ -438,6 +442,28 @@
     let pianoSampleBuffers = {};
     let samplesLoaded = false;
 
+    document.getElementById('theme-toggle').addEventListener('click', function () {
+    const body = document.body;
+    const appSections = document.querySelectorAll('.app-section');
+
+    // Toggle a class on the body to indicate dark mode
+    body.classList.toggle('dark-mode');
+
+    // Update the background color of app sections
+    appSections.forEach(section => {
+        if (body.classList.contains('dark-mode')) {
+            section.style.backgroundColor = '#1f618d'; // Blue background for dark mode
+            section.style.color = 'white'; // Optional: Change text color for better contrast
+        } else {
+            section.style.backgroundColor = 'white'; // Default white background for light mode
+            section.style.color = '#333'; // Default text color
+        }
+    });
+
+    // Update the button text
+    this.textContent = body.classList.contains('dark-mode') ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+});
+       
 async function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
