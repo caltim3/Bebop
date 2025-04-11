@@ -2073,24 +2073,24 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Ensure first chord listener is added if measures exist
-    const measures = document.getElementById('measures');
-    if (measures.children.length > 0) {
-        addFirstChordListener();
-    } else {
         // Add initial measures if none exist
         addMeasure();
         addMeasure();
         const firstMeasure = measures.children[0];
         const secondMeasure = measures.children[1];
         if (firstMeasure && secondMeasure) {
+            // First measure: C major
             firstMeasure.querySelector('.root-note').value = 'C';
             firstMeasure.querySelector('.chord-quality').value = 'major';
             firstMeasure.querySelector('.second-key').value = 'C';
             firstMeasure.querySelector('.scale-select').value = 'major';
-            secondMeasure.querySelector('.root-note').value = 'G';
+        
+            // Second measure: G7 (not C7)
+            secondMeasure.querySelector('.root-note').value = 'G';  // Make sure this is set to 'G'
             secondMeasure.querySelector('.chord-quality').value = 'dom7';
             secondMeasure.querySelector('.second-key').value = 'G';
             secondMeasure.querySelector('.scale-select').value = 'mixolydian';
+            
             addFirstChordListener();
         }
     }
