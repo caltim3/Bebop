@@ -447,22 +447,23 @@ async function initAudioContext() {
 }
       
     // Piano sample configuration
-    const SAMPLED_NOTES = ['A', 'C', 'Ds', 'Fs'];
-    const PIANO_CONFIG = {
-        octaves: {
-            'A': [2, 3, 4, 5, 6],
-            'C': [2, 3, 4, 5, 6],
-            'Fs': [2, 3, 4, 5, 6],
-            'Ds': [2, 3, 4, 5, 6]
-        },
-        velocities: [12],
-        fileFormat: 'ogg'
-    };
+    // Piano sample configuration
+const SAMPLED_NOTES = ['A', 'C', 'Ds', 'Fs'];
+const PIANO_CONFIG = {
+    octaves: {
+        'A': [2, 3, 4, 5, 6],
+        'C': [2, 3, 4, 5, 6],
+        'Fs': [2, 3, 4, 5, 6],
+        'Ds': [2, 3, 4, 5, 6]
+    },
+    velocities: [12],
+    fileFormat: 'ogg'
+};
 
-    // Musical constants
-    const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+// Musical constants
+const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
-    const SAMPLE_NOTE_MAP = {
+const SAMPLE_NOTE_MAP = {
     'Gb': 'Fs',  // Map Gb to Fs for sample lookup
     'Db': 'Cs',  // Though we don't have this sample
     'Eb': 'Ds',  // Map Eb to Ds for sample lookup
@@ -473,6 +474,19 @@ async function initAudioContext() {
     'D#': 'Ds'
 };
 
+const ENHARMONIC_MAP = {
+    'C#': 'Db',
+    'D#': 'Eb',
+    'F#': 'Gb',
+    'G#': 'Ab',
+    'A#': 'Bb',
+    // Reverse mappings
+    'Db': 'Db',
+    'Eb': 'Eb',
+    'Gb': 'Gb',
+    'Ab': 'Ab',
+    'Bb': 'Bb'
+};
     // Function to standardize note names to flat notation
 function standardizeNoteName(note) {
     return ENHARMONIC_MAP[note] || note;
@@ -678,18 +692,6 @@ function getChordFromFunction(key, func) {
     container.appendChild(select);
   });
 }
-
-    // Add this mapping object near your other constants
-const SAMPLE_NOTE_MAP = {
-    'Gb': 'Fs',  // Map Gb to Fs for sample lookup
-    'Db': 'Cs',  // Though we don't have this sample
-    'Eb': 'Ds',  // Map Eb to Ds for sample lookup
-    'Ab': 'Gs',  // Though we don't have this sample
-    'Bb': 'As',  // Though we don't have this sample
-    // Add reverse mappings
-    'F#': 'Fs',
-    'D#': 'Ds'
-};
 
 // Update the findNearestSampledNote function
 function findNearestSampledNote(note, octave) {
