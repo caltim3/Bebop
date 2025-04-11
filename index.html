@@ -270,13 +270,22 @@
         <h3>Create a progression or pick one from the dropdown. Choose which key and scale to go with it.</h3>
         <label for="progression-select">Select Progression:</label>
         <select id="progression-select">
-            <option value="none">None</option>
-            <option value="jazz_blues">Jazz Blues</option>
-            <option value="minor_blues">Minor Blues</option>
-            <option value="rhythm_changes">Rhythm Changes</option>
-            <option value="2_5_1">2-5-1</option>
-            <option value="6_2_5_1">6-2-5-1</option>
-        </select>
+              <option value="jazz_blues">Jazz Blues</option>
+              <option value="minor_blues">Minor Blues</option>
+              <option value="rhythm_changes">Rhythm Changes</option>
+              <option value="2_5_1">II-V-I</option>
+              <option value="6_2_5_1">VI-II-V-I</option>
+              <option value="dark_eyes">Dark Eyes</option>
+              <option value="black_orpheus">Black Orpheus</option>
+              <option value="all_the_things_you_are">All The Things You Are</option>
+              <option value="all_of_me">All of Me</option>
+              <option value="stella_by_starlight">Stella By Starlight</option>
+              <option value="autumn_leaves">Autumn Leaves</option>
+              <option value="summertime">Summertime</option>
+              <option value="girl_from_ipanema">Girl From Ipanema</option>
+              <option value="coltrane_changes">Coltrane Changes</option>
+              <option value="bird_blues">Bird Blues</option>
+</select>  
         <label for="keySelect">Select Key:</label>
             <select id="keySelect">
               <option value="C">C</option>
@@ -512,30 +521,67 @@ function transposeNote(note, semitones) {
     };
 
    const progressions = {
-          "jazz_blues": [
-            "I7", "IV7", "I7", "I7",
-            "IV7", "IV7", "I7", "VI7",
-            "II7", "V7", "I7", "V7"
-          ],
-          "minor_blues": [
-            "Im7", "IVm7", "Im7", "Im7",
-            "bVI7", "V7", "Im7", "IVm7",
-            "Im7", "bVII7", "Im7", "V7"
-          ],
-          "rhythm_changes": [
-            "I", "vi", "ii", "V",
-            "I", "vi", "ii", "V",
-            "I", "IV", "I", "I",
-            "ii", "V", "I", "V7"
-          ],
-          "2_5_1": [
-            "ii", "V", "I"
-          ],
-          "6_2_5_1": [
-            "vi", "ii", "V", "I"
-          ]
-        };
-
+  "jazz_blues": {
+    defaultKey: "Bb",
+    progression: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "II7", "V7", "I7", "V7"]
+  },
+  "minor_blues": {
+    defaultKey: "Am",
+    progression: ["Im7", "IVm7", "Im7", "Im7", "bVI7", "V7", "Im7", "IVm7", "Im7", "bVII7", "Im7", "V7"]
+  },
+  "rhythm_changes": {
+    defaultKey: "Bb",
+    progression: ["I", "vi", "ii", "V", "I", "vi", "ii", "V", "I", "IV", "I", "I", "ii", "V", "I", "V7"]
+  },
+  "2_5_1": {
+    defaultKey: "C",
+    progression: ["ii", "V", "I"]
+  },
+  "6_2_5_1": {
+    defaultKey: "C",
+    progression: ["vi", "ii", "V", "I"]
+  },
+  "dark_eyes": {
+    defaultKey: "Am",
+    progression: ["i", "iv", "V7", "i", "iv", "V7", "i", "V7/iv", "iv", "V7/III", "III", "i", "iv", "V7", "i", "V7"]
+  },
+  "black_orpheus": {
+    defaultKey: "Am",
+    progression: ["im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7", "bIIImaj7", "bVImaj7", "iim7b5", "V7b9", "im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7"]
+  },
+  "all_the_things_you_are": {
+    defaultKey: "Ab",
+    progression: ["vim7", "iim7", "V7", "Imaj7", "IVmaj7", "iiim7", "VI7", "IImaj7", "iim7", "vm7", "I7", "IVmaj7", "Imaj7", "iim7", "V7", "bIIImaj7", "iim7", "V7", "bIIImaj7", "iim7", "vm7", "I7", "IVmaj7", "Imaj7"]
+  },
+  "all_of_me": {
+    defaultKey: "C",
+    progression: ["Imaj7", "III7", "VI7", "iim7", "III7", "vim7", "II7", "iim7", "V7", "Imaj7", "III7", "VI7", "iim7", "IV", "bv", "Imaj7", "V7"]
+  },
+  "stella_by_starlight": {
+    defaultKey: "Bb",
+    progression: ["iim7b5", "V7b9", "im7", "IV7", "vm7", "I7", "IVmaj7", "bVIImaj7", "iiim7b5", "VI7b9", "im7", "IV7", "vm7", "I7", "IVmaj7", "VI7b9"]
+  },
+  "autumn_leaves": {
+    defaultKey: "Bb",
+    progression: ["iim7b5", "V7b9", "im7", "ivm7", "bVII7", "bIIImaj7", "bVImaj7", "iim7b5", "V7b9", "im7", "ivm7", "bVII7", "bIIImaj7", "bVImaj7", "V7b9"]
+  },
+  "summertime": {
+    defaultKey: "Am",
+    progression: ["i", "V7", "i", "V7", "i", "V7", "i", "V7", "iv", "i", "V7", "i", "iv", "i", "V7", "i"]
+  },
+  "girl_from_ipanema": {
+    defaultKey: "F",
+    progression: ["Imaj7", "II7", "iim7", "V7", "Imaj7", "II7", "iim7", "V7", "Imaj7", "bII7", "Vmaj7", "vim7", "iim7", "V7", "Imaj7", "vim7", "iim7", "V7"]
+  },
+  "coltrane_changes": {
+    defaultKey: "C",
+    progression: ["Imaj7", "bIII7", "bVImaj7", "VII7", "IIImaj7", "V7", "Imaj7", "bIII7", "bVImaj7", "VII7", "IIImaj7", "V7"]
+  },
+  "bird_blues": {
+    defaultKey: "F",
+    progression: ["I7", "IV7", "I7", "vim7", "I7", "IV7", "IV7", "bvo7", "I7", "vim7", "II7", "iim7", "V7"]
+  }
+};
 
        // Master note map
 const noteMap = [
@@ -1579,9 +1625,11 @@ function createFretboard(container, tuning) {
     const measuresDiv = document.getElementById('measures');
     measuresDiv.innerHTML = ''; // Clear existing measures
 
-    const key = document.getElementById('keySelect').value || 'C'; // Default to C if no key selected
+    // Set the key selector to the default key for this progression
+    document.getElementById('keySelect').value = progression.defaultKey;
+    const key = progression.defaultKey; // Use the default key
 
-    progression.forEach((chordFunc, index) => {
+    progression.progression.forEach((chordFunc, index) => {
         const chord = getChordFromFunction(key, chordFunc);
         const [root, quality] = parseChord(chord);
 
