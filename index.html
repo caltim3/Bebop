@@ -1624,7 +1624,7 @@ function createFretboard(container, tuning) {
         }
     }
 
-    function createBeats() {
+   function createBeats() {
     const container = document.querySelector('.beats-container');
     container.innerHTML = '';
     const timeSignature = parseInt(document.getElementById('time-signature').value);
@@ -1639,16 +1639,20 @@ function createFretboard(container, tuning) {
         if (timeSignature === 4) {
             const isEighth = i % 2 === 1;
             beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
-            if (i === 0 || i === 4) {
+            
+            // Get the pattern for the current beat
+            const pattern = DRUM_PATTERNS[timeSignature];
+            
+            if (pattern.kick[i]) {
                 beat.dataset.volume = '1';
-                beat.dataset.sound = 'default';
+                beat.dataset.sound = 'kick';
                 beat.style.backgroundColor = '#1F618D';
-            } else if (i % 2 === 0) {
-                beat.dataset.volume = '0.3';
-                beat.dataset.sound = 'default';
+            } else if (pattern.snare[i]) {
+                beat.dataset.volume = '1';
+                beat.dataset.sound = 'snare';
                 beat.style.backgroundColor = '#4CAF50';
             } else {
-                beat.dataset.volume = '0';
+                beat.dataset.volume = '0.3';
                 beat.dataset.sound = 'default';
                 beat.style.backgroundColor = '#9E9E9E';
             }
@@ -1657,7 +1661,7 @@ function createFretboard(container, tuning) {
             if (timeSignature === 6) {
                 beat.dataset.volume = (i === 0 || i === 3) ? '1' : '0.3';
                 beat.dataset.sound = 'default';
-                beat.style.backgroundColor = (i === 0 || i === 3) ? '#1F618D' : '#4CAF50';
+                beat.style.backgroundColor = (i === 0 || i === 3) ? '#258bcf' : '#4CAF50';
             } else if (timeSignature === 7) {
                 beat.dataset.volume = (i === 0 || i === 4) ? '1' : '0.3';
                 beat.dataset.sound = 'default';
@@ -1665,11 +1669,11 @@ function createFretboard(container, tuning) {
             } else if (timeSignature === 12) {
                 beat.dataset.volume = (i % 3 === 0) ? '1' : '0.3';
                 beat.dataset.sound = 'default';
-                beat.style.backgroundColor = (i % 3 === 0) ? '#1F618D' : '#4CAF50';
+                beat.style.backgroundColor = (i % 3 === 0) ? '#258bcf' : '#4CAF50';
             } else {
                 beat.dataset.volume = i === 0 ? '1' : '0.3';
                 beat.dataset.sound = 'default';
-                beat.style.backgroundColor = i === 0 ? '#1F618D' : '#4CAF50';
+                beat.style.backgroundColor = i === 0 ? '#258bcf' : '#4CAF50';
             }
         }
 
@@ -1680,11 +1684,13 @@ function createFretboard(container, tuning) {
 
             if (soundType === 'click' || soundType === 'woodblock') {
                 const states = [
-                    { volume: '1', color: '#1F618D', sound: 'default' },
+                    { volume: '1', color: '#258bcf', sound: 'default' },
                     { volume: '0.3', color: '#4CAF50', sound: 'default' },
                     { volume: '0', color: '#9E9E9E', sound: 'default' }
                 ];
-                const currentIndex = states.findIndex(state => state.volume === currentVolume.toString() && state.sound === currentSound);
+                const currentIndex = states.findIndex(state => 
+                    state.volume === currentVolume.toString() && state.sound === currentSound
+                );
                 const nextIndex = (currentIndex + 1) % states.length;
                 const nextState = states[nextIndex];
                 this.dataset.volume = nextState.volume;
@@ -1695,7 +1701,7 @@ function createFretboard(container, tuning) {
                 const isKick = pattern.kick[i];
                 const isSnare = pattern.snare[i];
                 const states = [
-                    { volume: '1', color: '#1F618D', sound: isKick ? 'kick' : isSnare ? 'snare' : 'default' },
+                    { volume: '1', color: '#258bcf', sound: isKick ? 'kick' : isSnare ? 'snare' : 'default' },
                     { volume: '0.3', color: '#4CAF50', sound: isKick ? 'kick' : isSnare ? 'snare' : 'default' },
                     { volume: '0', color: '#9E9E9E', sound: 'default' },
                     { volume: '1', color: '#BD2031', sound: isKick ? 'snare' : isSnare ? 'kick' : 'default' },
