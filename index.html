@@ -1475,7 +1475,10 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
     async function playMetronomeSound(volume) {
     if (!audioContext || audioContext.state === 'suspended') {
         await initializeAudio();
-        return;
+        if (audioContext.state !== 'running') {
+            console.error('AudioContext not running');
+            return;
+        }
     }
 
     const soundType = document.getElementById('sound-type').value;
@@ -1485,48 +1488,61 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
     const currentBeatElement = beats[currentBeat];
     const finalVolume = volume * metronomeVolume;
 
-    if (!currentBeatElement || finalVolume <= 0) return;
+    if (!currentBeatElement || finalVolume <= 0) {
+        console.warn('No beat element or volume is zero');
+        return;
+    }
 
     const beatSound = currentBeatElement.dataset.sound || 'default';
 
     if (soundType === 'click') {
-        playBuffer(soundBuffers['click'] || await createDrumSound('click'), finalVolume);
+        playBuffer(soundBuffers['click'], finalVolume, false);
     } else if (soundType === 'woodblock') {
-        playBuffer(soundBuffers['woodblock'] || await createDrumSound('woodblock'), finalVolume);
+        playBuffer(soundBuffers['woodblock'], finalVolume, false);
     } else if (soundType === 'drums') {
-        if (timeSignature === 4) {
-            playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
-            if (beatSound === 'kick') {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (beatSound === 'snare') {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            }
-        } else {
-            const pattern = DRUM_PATTERNS[timeSignature];
-            if (pattern.hihat[currentBeat]) {
-                playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
-            }
-            if (beatSound === 'kick') {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (beatSound === 'snare') {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            } else if (pattern.kick[currentBeat]) {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (pattern.snare[currentBeat]) {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            }
+        const pattern = DRUM_PATTERNS[timeSignature.toString()];
+        if (!pattern) {
+            console.warn(`No drum pattern for time signature ${timeSignature}`);
+            return;
+        }
+        if (beatSound === 'kick' || pattern.kick[currentBeat]) {
+            playBuffer(soundBuffers['kick'], finalVolume, false);
+        } else if (beatSound === 'snare' || pattern.snare[currentBeat]) {
+            playBuffer(soundBuffers['snare'], finalVolume, false);
+        }
+        if (pattern.hihat[currentBeat]) {
+            playBuffer(soundBuffers['hihat'], finalVolume * 0.7, false);
         }
     }
 }
        
 // Helper function to play a buffer
-function playBuffer(buffer, volume) {
+function playBuffer(buffer, volume, useReverb = true) {
+    if (!buffer || !audioContext || audioContext.state !== 'running') return;
     const source = audioContext.createBufferSource();
     const gainNode = audioContext.createGain();
     source.buffer = buffer;
-    gainNode.gain.value = volume;
+    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+    
+    // Create main gain node for mixing
+    const mainGainNode = audioContext.createGain();
+    const dryGainNode = audioContext.createGain();
+    const wetGainNode = audioContext.createGain();
+    
+    dryGainNode.gain.setValueAtTime(0.7, audioContext.currentTime);
+    wetGainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    
     source.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    gainNode.connect(mainGainNode);
+    mainGainNode.connect(dryGainNode);
+    mainGainNode.connect(wetGainNode);
+    dryGainNode.connect(audioContext.destination);
+    if (useReverb && reverbNode) {
+        wetGainNode.connect(reverbNode);
+    } else {
+        wetGainNode.connect(audioContext.destination);
+    }
+    
     source.start();
 }
        
@@ -1976,7 +1992,6 @@ function createFretboard(container, tuning) {
     const container = document.querySelector('.beats-container');
     container.innerHTML = '';
     const timeSignature = parseInt(document.getElementById('time-signature').value);
-
     const totalBeats = timeSignature === 4 ? 8 : timeSignature;
 
     for (let i = 0; i < totalBeats; i++) {
@@ -1984,6 +1999,7 @@ function createFretboard(container, tuning) {
         beat.className = 'beat';
         beat.dataset.beat = i;
 
+        // Assign text and initial styles based on time signature
         if (timeSignature === 4) {
             const isEighth = i % 2 === 1;
             beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
@@ -2021,9 +2037,10 @@ function createFretboard(container, tuning) {
             }
         }
 
+        // Click handler for beat customization
         beat.addEventListener('click', function() {
             const soundType = document.getElementById('sound-type').value;
-            let currentVolume = parseFloat(this.dataset.volume);
+            let currentVolume = parseFloat(this.dataset.volume) || 0.3;
             let currentSound = this.dataset.sound || 'default';
 
             if (soundType === 'click' || soundType === 'woodblock') {
@@ -2032,14 +2049,16 @@ function createFretboard(container, tuning) {
                     { volume: '0.3', color: '#4CAF50', sound: 'default' },
                     { volume: '0', color: '#9E9E9E', sound: 'default' }
                 ];
-                const currentIndex = states.findIndex(state => state.volume === currentVolume.toString() && state.sound === currentSound);
+                const currentIndex = states.findIndex(state => 
+                    state.volume === currentVolume.toString() && state.sound === currentSound
+                );
                 const nextIndex = (currentIndex + 1) % states.length;
                 const nextState = states[nextIndex];
                 this.dataset.volume = nextState.volume;
                 this.dataset.sound = nextState.sound;
                 this.style.backgroundColor = nextState.color;
             } else if (soundType === 'drums') {
-                const pattern = DRUM_PATTERNS[timeSignature];
+                const pattern = DRUM_PATTERNS[timeSignature.toString()] || DRUM_PATTERNS['4'];
                 const isKick = pattern.kick[i];
                 const isSnare = pattern.snare[i];
                 const states = [
@@ -2053,7 +2072,7 @@ function createFretboard(container, tuning) {
                 let currentIndex = states.findIndex(state => 
                     state.volume === currentVolume.toString() && state.sound === currentSound
                 );
-                if (currentIndex === -1) currentIndex = 0; // Fallback to start
+                if (currentIndex === -1) currentIndex = 0; // Fallback to start if no match
                 const nextIndex = (currentIndex + 1) % states.length;
                 const nextState = states[nextIndex];
                 this.dataset.volume = nextState.volume;
