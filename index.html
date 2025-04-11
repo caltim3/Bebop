@@ -1715,31 +1715,31 @@ function createFretboard(container, tuning) {
         newMeasure.className = 'measure';
         newMeasure.draggable = true;
         newMeasure.innerHTML = `
-        <span class="measure-number">${index + 1}</span>
-        <div class="chord-controls">
-        <select class="root-note">
-        ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
-        </select>
-        <select class="chord-quality">
-        <option value="major" ${quality === '' ? 'selected' : ''}>Major</option>
-        <option value="minor" ${quality === 'm' ? 'selected' : ''}>Minor</option>
-        <option value="dom7" ${quality === '7' ? 'selected' : ''}>7</option>
-        <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
-        <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
-        <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
-        </select>
-        </div>
-        <div class="scale-controls">
-        <select class="second-key">
-        ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
-        </select>
-        <select class="scale-select">
-        ${Object.keys(SCALES).map(scale => {
-            const selected = suggestScaleForQuality(quality) === scale ? 'selected' : '';
-            return `<option value="${scale}" ${selected}>${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`;
-        }).join('')}
-        </select>
-        </div>
+            <span class="measure-number">${index + 1}</span>
+            <div class="chord-controls">
+                <select class="root-note">
+                    ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
+                </select>
+                <select class="chord-quality">
+                    <option value="major" ${quality === '' ? 'selected' : ''}>Major</option>
+                    <option value="minor" ${quality === 'm' ? 'selected' : ''}>Minor</option>
+                    <option value="dom7" ${quality === '7' ? 'selected' : ''}>7</option>
+                    <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
+                    <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
+                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
+                </select>
+            </div>
+            <div class="scale-controls">
+                <select class="second-key">
+                    ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
+                </select>
+                <select class="scale-select">
+                    ${Object.keys(SCALES).map(scale => {
+                        const selected = suggestScaleForQuality(quality) === scale ? 'selected' : '';
+                        return `<option value="${scale}" ${selected}>${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`;
+                    }).join('')}
+                </select>
+            </div>
         `;
 
         // Add event listeners and drag-drop handlers
@@ -1770,35 +1770,7 @@ function createFretboard(container, tuning) {
     updateMeasureNumbers();
     addFirstChordListener();
 }
-        // Add event listeners and drag-drop handlers
-        const rootNoteSelect = newMeasure.querySelector('.root-note');
-        const secondKeySelect = newMeasure.querySelector('.second-key');
-        const qualitySelect = newMeasure.querySelector('.chord-quality');
-        const scaleSelect = newMeasure.querySelector('.scale-select');
-
-        rootNoteSelect.addEventListener('change', function() {
-            secondKeySelect.value = this.value;
-            if (index === 0) {
-                updateProgressionKey(this.value);
-            }
-        });
-
-        qualitySelect.addEventListener('change', function() {
-            scaleSelect.value = suggestScaleForQuality(this.value);
-        });
-
-        newMeasure.addEventListener('dragstart', dragStart);
-        newMeasure.addEventListener('dragover', dragOver);
-        newMeasure.addEventListener('drop', drop);
-        newMeasure.addEventListener('dragend', dragEnd);
-
-        measuresDiv.appendChild(newMeasure);
-    });
-
-    updateMeasureNumbers();
-    addFirstChordListener();
-}
-
+ 
 function addMeasure() {
     const measuresDiv = document.getElementById('measures');
     const newMeasure = document.createElement('div');
