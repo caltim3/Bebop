@@ -1640,25 +1640,25 @@ function createFretboard(container, tuning) {
                 // Determine which drum sound to play
                 if (pattern.kick[i]) {
                     beat.dataset.sound = 'kick';
-                    beat.style.backgroundColor = '#800080'; // Blue for kick
+                    beat.style.backgroundColor = '#274C77'; // Blue for kick
                 } else if (pattern.snare[i]) {
                     beat.dataset.sound = 'snare';
-                    beat.style.backgroundColor = '#4CAF50'; // Green for snare
+                    beat.style.backgroundColor = '#A3CEF1'; // Green for snare
                 } else {
                     beat.dataset.sound = 'hihat';
                     beat.dataset.volume = '0.7';
-                    beat.style.backgroundColor = '#9E9E9E'; // Grey for hi-hat
+                    beat.style.backgroundColor = '#8B8C89'; // Grey for hi-hat
                 }
             } else {
                 // Click and Woodblock handling
                 if (!isEighth) {
                     beat.dataset.volume = '1';
                     beat.dataset.sound = soundType;
-                    beat.style.backgroundColor = '#800080';
+                    beat.style.backgroundColor = '#274C77';
                 } else {
                     beat.dataset.volume = '0.3';
                     beat.dataset.sound = 'default';
-                    beat.style.backgroundColor = '#9E9E9E';
+                    beat.style.backgroundColor = '#8B8C89';
                 }
             }
         } else {
