@@ -65,14 +65,19 @@
             border-right: 1px solid rgba(0, 0, 0, 0.3);
             z-index: 1;
         }
+
         .string-line {
             position: absolute;
             left: 0;
             width: 100%;
-            height: 1px;
-            background: silver;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-            z-index: 0;
+            height: 2px; // Increased from 1px
+            background: linear-gradient(to bottom, 
+                rgba(192,192,192,0.3), 
+                rgba(192,192,192,1) 50%, 
+                rgba(192,192,192,0.3)
+            );
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            z-index: 1;
         }
         .fret-number {
             position: absolute;
@@ -1009,45 +1014,27 @@ function findNearestSampledNote(note, octave) {
         return false;
     }
 }
-    // Audio initialization
-   // Update this function to be async
-// Replace the existing initializeAudio function with:
 async function initializeAudio() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        await audioContext.resume();
         
-        // Add event listener for user interaction
-        document.addEventListener('click', function initAudioOnFirstClick() {
-            audioContext.resume().then(() => {
-                console.log('[FretFlow Debug] Audio context resumed successfully');
-                document.removeEventListener('click', initAudioOnFirstClick);
-            });
-        }, { once: true });
-
         try {
-            await loadSounds();
-            await setupReverb();
-            await loadPianoSamples(); // Ensure piano samples are loaded
+            await Promise.all([
+                loadSounds(),
+                setupReverb(),
+                loadPianoSamples()
+            ]);
             
-            // Initialize reverb if not already done
-            if (!reverbNode) {
-                await setupReverb();
-            }
-            
-            console.log("[FretFlow Debug] Audio initialized successfully");
-            return audioContext;
+            console.log("Audio initialized successfully");
+            return true;
         } catch (error) {
             console.error("Error during audio initialization:", error);
-            // Create fallback audio nodes if needed
-            if (!reverbNode) {
-                await setupReverb();
-            }
-            return audioContext; // Return context even if some initialization failed
+            return false;
         }
     }
-    return audioContext;
+    return true;
 }
-
 // Add this new function
 async function setupReverb() {
     if (!audioContext) audioContext = await initAudioContext();
@@ -1141,70 +1128,43 @@ async function loadPianoSamples() {
     if (!audioContext) {
         await initializeAudio();
     }
-
-    const loadPromises = [];
-    // './' means "current directory" - where your HTML file is located
-    const baseUrl = "./";
-
-    for (let note of SAMPLED_NOTES) {
-        for (let octave of PIANO_CONFIG.octaves[note]) {
-            const sampleName = `${note}${octave}v12`;
-            const fileName = `${sampleName}.ogg`;
-            const url = baseUrl + fileName;
-
-            const loadPromise = (async () => {
-                try {
-                    log(`Attempting to load: ${fileName}`);
-                    const response = await fetch(url);
-
-                    if (!response.ok) {
-                        log(`Failed to load ${fileName}: ${response.status} ${response.statusText}`);
-                        return null;
-                    }
-
-                    const arrayBuffer = await response.arrayBuffer();
-                    try {
-                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                        log(`Successfully loaded ${sampleName}`);
-                        return { name: sampleName, buffer: audioBuffer };
-                    } catch (decodeError) {
-                        log(`Failed to decode ${fileName}: ${decodeError.message}`);
-                        return null;
-                    }
-                } catch (error) {
-                    log(`Error loading ${sampleName}: ${error.message}`);
-                    return null;
-                }
-            })();
-
-            loadPromises.push(loadPromise);
-        }
-    }
-
     try {
-        const results = await Promise.all(loadPromises);
-        let loadedCount = 0;
-        results.forEach(result => {
-            if (result) {
-                pianoSampleBuffers[result.name] = result.buffer;
-                loadedCount++;
+        const baseUrl = "./"; // Update this to your actual samples directory
+        const samplePromises = [];
+    
+for (let note of SAMPLED_NOTES) {
+            for (let octave of PIANO_CONFIG.octaves[note]) {
+                const sampleName = `${note}${octave}v12`;
+                const url = `${baseUrl}${sampleName}.${PIANO_CONFIG.fileFormat}`;
+                
+                samplePromises.push(
+                    fetch(url)
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                            return response.arrayBuffer();
+                        })
+                        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+                        .then(audioBuffer => {
+                            pianoSampleBuffers[sampleName] = audioBuffer;
+                            log(`Loaded ${sampleName} successfully`);
+                        })
+                        .catch(error => {
+                            log(`Failed to load ${sampleName}: ${error.message}`);
+                            return null;
+                        })
+                );
             }
-        });
+        }
 
-        samplesLoaded = loadedCount > 0;
-        log(`Piano sample loading completed. Successfully loaded ${loadedCount} samples`);
-        log(`Loaded samples: ${Object.keys(pianoSampleBuffers).join(', ')}`);
-
+        await Promise.allSettled(samplePromises);
+        samplesLoaded = Object.keys(pianoSampleBuffers).length > 0;
+        
         if (!samplesLoaded) {
-            log('Warning: No samples were loaded successfully');
-            updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
-        } else {
-            updateLoadingStatus('Piano samples loaded successfully.');
+            throw new Error('No piano samples were loaded successfully');
         }
     } catch (error) {
-        log(`Error during sample loading: ${error.message}`);
+        log(`Piano sample loading failed: ${error.message}`);
         samplesLoaded = false;
-        updateLoadingStatus('Error loading piano samples. Using fallback synthesizer.');
     }
 }
 
@@ -1708,31 +1668,35 @@ function mapRomanQualityToDropdown(quality) {
 
        
 function loadProgression(progressionName, key) {
+    if (!progressionName || progressionName === 'none') return;
+    
     const progression = progressions[progressionName];
     if (!progression) {
         console.error(`Progression ${progressionName} not found`);
         return;
     }
 
-    key = normalizeKeyName(key);
-    console.log(`Loading progression: ${progressionName} in key ${key}`);
+    const measures = document.getElementById('measures');
+    measures.innerHTML = ''; // Clear existing measures
 
-    return progression.map((measure, index) => {
-        const chord = getChordFromFunction(measure.chordFunction, key);
-        if (!chord) {
-            console.error(`Invalid chord function: ${measure.chordFunction} in key ${key}`);
-            return null;
+    progression.forEach((chordData, index) => {
+        const measure = createMeasure(index + 1);
+        const chord = getChordFromFunction(chordData.chordFunction, key);
+        
+        if (chord) {
+            const [root, quality] = parseChord(chord);
+            measure.querySelector('.root-note').value = root;
+            measure.querySelector('.chord-quality').value = mapQualityToDropdown(quality);
+            measure.querySelector('.second-key').value = root;
+            measure.querySelector('.scale-select').value = suggestScaleForQuality(quality);
         }
-        return {
-            ...measure,
-            chord: chord,
-            scale: getScaleForChord(chord, key)
-        };
-    }).filter(Boolean); // Remove null entries
-}
-       
- 
-  
+        
+        measures.appendChild(measure);
+    });
+
+    updateMeasureNumbers();
+    addFirstChordListener();
+}  
 function suggestScaleForQuality(quality, chordRoot) {
     const suggestions = {
         'major': ['major', 'lydian', 'mixolydian'],
