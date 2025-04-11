@@ -1343,21 +1343,23 @@ let isTransposing = false;
 
 // Helper function to parse chord notation (e.g., "C7" -> ["C", "dom7"])
 function parseChord(chord) {
-    const rootMatch = chord.match(/^[A-G]#?/);
+    // Enhanced regex to capture more complex chord qualities
+    const rootMatch = chord.match(/^[A-G][b#]?/);
     const root = rootMatch ? rootMatch[0] : 'C';
-    const quality = chord.replace(root, '');
-    return [root, quality || 'major'];
+    const quality = chord.substring(rootMatch[0].length);
+    return [root, quality];
 }
 
-// Map chord quality to dropdown values
 function mapQualityToDropdown(quality) {
     switch (quality) {
         case '7': return 'dom7';
+        case '7b9': return 'dom7'; // Map 7b9 to dom7 for now
         case 'm7': return 'min7';
         case 'maj7': return 'maj7';
         case 'm': return 'minor';
         case '': return 'major';
         case 'min7b5': return 'min7b5';
+        case 'm7b5': return 'min7b5'; // Alternative notation
         default: return 'major';
     }
 }
@@ -1717,7 +1719,7 @@ function createFretboard(container, tuning) {
     }
 }
 
-  function loadProgression(progressionKey) {
+function loadProgression(progressionKey) {
     const progression = progressions[progressionKey];
     if (!progression) {
         console.warn("No progression found for key:", progressionKey);
@@ -1747,12 +1749,12 @@ function createFretboard(container, tuning) {
                     ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
                 </select>
                 <select class="chord-quality">
-                    <option value="major" ${quality === '' ? 'selected' : ''}>Major</option>
+                    <option value="major" ${quality === '' || quality === 'maj' ? 'selected' : ''}>Major</option>
                     <option value="minor" ${quality === 'm' ? 'selected' : ''}>Minor</option>
-                    <option value="dom7" ${quality === '7' ? 'selected' : ''}>7</option>
+                    <option value="dom7" ${quality === '7' || quality === '7b9' ? 'selected' : ''}>7</option>
                     <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
                     <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
-                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
+                    <option value="min7b5" ${quality === 'min7b5' || quality === 'm7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
                 </select>
             </div>
             <div class="scale-controls">
@@ -1774,14 +1776,14 @@ function createFretboard(container, tuning) {
         const qualitySelect = newMeasure.querySelector('.chord-quality');
         const scaleSelect = newMeasure.querySelector('.scale-select');
 
-        rootNoteSelect.addEventListener('change', function() {
+        rootNoteSelect.addEventListener('change', function () {
             secondKeySelect.value = this.value;
             if (index === 0) {
                 updateProgressionKey(this.value);
             }
         });
 
-        qualitySelect.addEventListener('change', function() {
+        qualitySelect.addEventListener('change', function () {
             scaleSelect.value = suggestScaleForQuality(this.value);
         });
 
