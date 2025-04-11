@@ -1200,7 +1200,7 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
 }
 
-    async function playMetronomeSound(volume) {
+async function playMetronomeSound(volume) {
     if (!audioContext || audioContext.state === 'suspended') {
         await initializeAudio();
         return;
@@ -1215,34 +1215,24 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
 
     if (!currentBeatElement || finalVolume <= 0) return;
 
-    const beatSound = currentBeatElement.dataset.sound || 'default';
-
     if (soundType === 'click') {
         playBuffer(soundBuffers['click'] || await createDrumSound('click'), finalVolume);
     } else if (soundType === 'woodblock') {
         playBuffer(soundBuffers['woodblock'] || await createDrumSound('woodblock'), finalVolume);
     } else if (soundType === 'drums') {
-        if (timeSignature === 4) {
-            playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
-            if (beatSound === 'kick') {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (beatSound === 'snare') {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            }
-        } else {
-            const pattern = DRUM_PATTERNS[timeSignature];
-            if (pattern.hihat[currentBeat]) {
-                playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
-            }
-            if (beatSound === 'kick') {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (beatSound === 'snare') {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            } else if (pattern.kick[currentBeat]) {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (pattern.snare[currentBeat]) {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            }
+        const pattern = DRUM_PATTERNS[timeSignature];
+        
+        // Always play hi-hat on eighth notes (if in 4/4) or on every beat
+        playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
+        
+        // Play kick on beats 1 and 3
+        if (pattern.kick[currentBeat]) {
+            playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
+        }
+        
+        // Play snare on beats 2 and 4
+        if (pattern.snare[currentBeat]) {
+            playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
         }
     }
 }
@@ -1627,7 +1617,7 @@ function createFretboard(container, tuning) {
     const container = document.querySelector('.beats-container');
     container.innerHTML = '';
     const timeSignature = parseInt(document.getElementById('time-signature').value);
-
+    const soundType = document.getElementById('sound-type').value;
     const totalBeats = timeSignature === 4 ? 8 : timeSignature;
 
     for (let i = 0; i < totalBeats; i++) {
@@ -1639,58 +1629,53 @@ function createFretboard(container, tuning) {
             const isEighth = i % 2 === 1;
             beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
             
-            const soundType = document.getElementById('sound-type').value;
-            const pattern = DRUM_PATTERNS[timeSignature];
-            
             if (soundType === 'drums') {
-                // Drum pattern handling
+                const pattern = DRUM_PATTERNS[timeSignature];
+                
+                // Set default volume and color
+                beat.dataset.volume = '1';
+                
+                // Determine which drum sound to play
                 if (pattern.kick[i]) {
-                    beat.dataset.volume = '1';
                     beat.dataset.sound = 'kick';
-                    beat.style.backgroundColor = '#1F618D';
+                    beat.style.backgroundColor = '#1F618D'; // Blue for kick
                 } else if (pattern.snare[i]) {
-                    beat.dataset.volume = '1';
                     beat.dataset.sound = 'snare';
-                    beat.style.backgroundColor = '#4CAF50';
+                    beat.style.backgroundColor = '#4CAF50'; // Green for snare
+                } else {
+                    beat.dataset.sound = 'hihat';
+                    beat.dataset.volume = '0.7';
+                    beat.style.backgroundColor = '#9E9E9E'; // Grey for hi-hat
+                }
+            } else {
+                // Click and Woodblock handling
+                if (!isEighth) {
+                    beat.dataset.volume = '1';
+                    beat.dataset.sound = soundType;
+                    beat.style.backgroundColor = '#1F618D';
                 } else {
                     beat.dataset.volume = '0.3';
                     beat.dataset.sound = 'default';
                     beat.style.backgroundColor = '#9E9E9E';
                 }
-            } else {
-                // Click and Woodblock handling - only on main beats
-                if (!isEighth) {  // Only on main beats (not "and" beats)
-                    beat.dataset.volume = '1';
-                    beat.dataset.sound = soundType; // 'click' or 'woodblock'
-                    beat.style.backgroundColor = '#1F618D';
-                } else {
-                    beat.dataset.volume = '0';
-                    beat.dataset.sound = 'default';
-                    beat.style.backgroundColor = '#9E9E9E';
-                }
             }
         } else {
-            // Other time signatures remain unchanged
+            // Other time signatures
             beat.textContent = i + 1;
             if (timeSignature === 6) {
                 beat.dataset.volume = (i === 0 || i === 3) ? '1' : '0.3';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = (i === 0 || i === 3) ? '#1F618D' : '#4CAF50';
             } else if (timeSignature === 7) {
                 beat.dataset.volume = (i === 0 || i === 4) ? '1' : '0.3';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = (i === 0 || i === 4) ? '#1F618D' : '#4CAF50';
             } else if (timeSignature === 12) {
                 beat.dataset.volume = (i % 3 === 0) ? '1' : '0.3';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = (i % 3 === 0) ? '#1F618D' : '#4CAF50';
             } else {
                 beat.dataset.volume = i === 0 ? '1' : '0.3';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = i === 0 ? '#1F618D' : '#4CAF50';
             }
+            beat.dataset.sound = 'default';
+            beat.style.backgroundColor = beat.dataset.volume === '1' ? '#1F618D' : '#4CAF50';
         }
 
+        // Add click handler for beat customization
         beat.addEventListener('click', function() {
             const soundType = document.getElementById('sound-type').value;
             let currentVolume = parseFloat(this.dataset.volume);
@@ -1698,7 +1683,7 @@ function createFretboard(container, tuning) {
             const isEighth = i % 2 === 1;
 
             if (soundType === 'click' || soundType === 'woodblock') {
-                if (!isEighth) {  // Only allow toggling on main beats
+                if (!isEighth) {
                     const states = [
                         { volume: '1', color: '#1F618D', sound: soundType },
                         { volume: '0.3', color: '#4CAF50', sound: soundType },
@@ -1709,6 +1694,7 @@ function createFretboard(container, tuning) {
                     );
                     const nextIndex = (currentIndex + 1) % states.length;
                     const nextState = states[nextIndex];
+                    
                     this.dataset.volume = nextState.volume;
                     this.dataset.sound = nextState.sound;
                     this.style.backgroundColor = nextState.color;
@@ -1717,20 +1703,21 @@ function createFretboard(container, tuning) {
                 const pattern = DRUM_PATTERNS[timeSignature];
                 const isKick = pattern.kick[i];
                 const isSnare = pattern.snare[i];
+                
                 const states = [
-                    { volume: '1', color: '#1F618D', sound: isKick ? 'kick' : isSnare ? 'snare' : 'default' },
-                    { volume: '0.3', color: '#4CAF50', sound: isKick ? 'kick' : isSnare ? 'snare' : 'default' },
-                    { volume: '0', color: '#9E9E9E', sound: 'default' },
-                    { volume: '1', color: '#BD2031', sound: isKick ? 'snare' : isSnare ? 'kick' : 'default' },
-                    { volume: '0.3', color: '#006400', sound: isKick ? 'snare' : isSnare ? 'kick' : 'default' },
+                    { volume: '1', color: '#1F618D', sound: 'kick' },
+                    { volume: '1', color: '#4CAF50', sound: 'snare' },
+                    { volume: '0.7', color: '#9E9E9E', sound: 'hihat' },
                     { volume: '0', color: '#9E9E9E', sound: 'default' }
                 ];
+                
                 let currentIndex = states.findIndex(state => 
                     state.volume === currentVolume.toString() && state.sound === currentSound
                 );
                 if (currentIndex === -1) currentIndex = 0;
                 const nextIndex = (currentIndex + 1) % states.length;
                 const nextState = states[nextIndex];
+                
                 this.dataset.volume = nextState.volume;
                 this.dataset.sound = nextState.sound;
                 this.style.backgroundColor = nextState.color;
@@ -1740,7 +1727,7 @@ function createFretboard(container, tuning) {
         container.appendChild(beat);
     }
 }
-
+       
 function loadProgression(progressionKey) {
     const progression = progressions[progressionKey];
     if (!progression) {
