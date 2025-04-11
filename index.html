@@ -1640,7 +1640,7 @@ function createFretboard(container, tuning) {
                 // Determine which drum sound to play
                 if (pattern.kick[i]) {
                     beat.dataset.sound = 'kick';
-                    beat.style.backgroundColor = '#1F618D'; // Blue for kick
+                    beat.style.backgroundColor = '#800080'; // Blue for kick
                 } else if (pattern.snare[i]) {
                     beat.dataset.sound = 'snare';
                     beat.style.backgroundColor = '#4CAF50'; // Green for snare
@@ -1654,7 +1654,7 @@ function createFretboard(container, tuning) {
                 if (!isEighth) {
                     beat.dataset.volume = '1';
                     beat.dataset.sound = soundType;
-                    beat.style.backgroundColor = '#1F618D';
+                    beat.style.backgroundColor = '#800080';
                 } else {
                     beat.dataset.volume = '0.3';
                     beat.dataset.sound = 'default';
