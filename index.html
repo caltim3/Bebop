@@ -2104,30 +2104,32 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error("Error initializing audio context:", error);
     });
 
-    // Ensure first chord listener is added if measures exist
-    const measures = document.getElementById('measures'); // Define measures here
-    addMeasure();
+    // Clear any existing measures and set up default two-measure progression
+    const measures = document.getElementById('measures');
+    measures.innerHTML = '';
+
+    // Add the first measure: C major
     addMeasure();
     const firstMeasure = measures.children[0];
+    firstMeasure.querySelector('.root-note').value = 'C';
+    firstMeasure.querySelector('.chord-quality').value = 'major';
+    firstMeasure.querySelector('.second-key').value = 'C';
+    firstMeasure.querySelector('.scale-select').value = 'major';
+
+    // Add the second measure: G7
+    addMeasure();
     const secondMeasure = measures.children[1];
-    if (firstMeasure && secondMeasure) {
-        // First measure: C major
-        firstMeasure.querySelector('.root-note').value = 'C';
-        firstMeasure.querySelector('.chord-quality').value = 'major';
-        firstMeasure.querySelector('.second-key').value = 'C';
-        firstMeasure.querySelector('.scale-select').value = 'major';
-        
-        // Second measure: G7 (not C7)
-        secondMeasure.querySelector('.root-note').value = 'G';  // Make sure this is set to 'G'
-        secondMeasure.querySelector('.chord-quality').value = 'dom7';
-        secondMeasure.querySelector('.second-key').value = 'G';
-        secondMeasure.querySelector('.scale-select').value = 'mixolydian';
-        
-        addFirstChordListener();
-    }
+    secondMeasure.querySelector('.root-note').value = 'G';
+    secondMeasure.querySelector('.chord-quality').value = 'dom7';
+    secondMeasure.querySelector('.second-key').value = 'G';
+    secondMeasure.querySelector('.scale-select').value = 'mixolydian';
+
+    // Add the first chord listener
+    addFirstChordListener();
 });
-  window.onload = () => {
-    // Double-check fretboard initialization
+
+// Window load event for double-checking fretboard initialization
+window.onload = () => {
     const chordFretboard = document.getElementById('chord-fretboard');
     if (chordFretboard) {
         createFretboard(chordFretboard, TUNINGS.standard);
