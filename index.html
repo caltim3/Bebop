@@ -667,14 +667,14 @@ function getChordFromFunction(key, func) {
     const rootKey = key.replace(/m$|min$/, ''); // Remove minor indicator
     const keyIndex = getNoteIndex(standardizeNoteName(rootKey));
 
-    // Define scale degrees for both major and minor keys
+    // Enhanced scale degrees mapping
     const scaleDegrees = {
         major: {
             "I": 0, "ii": 2, "iii": 4, "IV": 5, "V": 7, "vi": 9, "vii°": 11,
             "I7": 0, "II7": 2, "III7": 4, "IV7": 5, "V7": 7, "VI7": 9, "VII7": 11,
             "Im7": 0, "IIm7": 2, "IIIm7": 4, "IVm7": 5, "Vm7": 7, "VIm7": 9, "VIIm7": 11,
             "Imaj7": 0, "bII7": 1, "bIII7": 3, "bIIImaj7": 3, "bVI7": 8, "bVImaj7": 8,
-            "bVII7": 10, "V7b9": 7
+            "bVII7": 10, "V7b9": 7, "VI7": 9
         },
         minor: {
             "i": 0, "ii°": 2, "III": 3, "iv": 5, "v": 7, "VI": 8, "VII": 10,
@@ -696,26 +696,18 @@ function getChordFromFunction(key, func) {
     const note = NOTES[(keyIndex + degree) % 12];
     let quality = '';
 
-    // Determine chord quality based on function and context
-    if (isMinorKey) {
-        if (func.includes('7b5')) quality = 'min7b5';
-        else if (func.includes('°')) quality = 'dim';
-        else if (func.includes('maj7')) quality = 'maj7';
-        else if (func.includes('m7') || func.match(/^i[mv]7/)) quality = 'm7';
-        else if (func.includes('7')) quality = '7';
-        else if (func.match(/^[a-z]/)) quality = 'm';
-    } else {
-        if (func.includes('7b5')) quality = 'min7b5';
-        else if (func.includes('maj7')) quality = 'maj7';
-        else if (func.includes('m7')) quality = 'm7';
-        else if (func.includes('7')) quality = '7';
-        else if (func.match(/^[a-z]/)) quality = 'm';
-        else if (func.includes('°')) quality = 'dim';
-    }
+    // Enhanced quality determination
+    if (func.includes('maj7')) quality = 'maj7';
+    else if (func.includes('m7b5') || func.includes('ø')) quality = 'min7b5';
+    else if (func.includes('7b9')) quality = '7b9';
+    else if (func.includes('m7') || func.match(/^i[mv]7/)) quality = 'm7';
+    else if (func.includes('7')) quality = '7';
+    else if (func.match(/^[a-z]/) && !func.includes('maj')) quality = 'm';
+    else if (func.includes('°')) quality = 'dim';
+    else quality = 'major';
 
     return note + quality;
-}
-       
+}       
        function updateChordDropdownsForKey(progressionName, key) {
   const container = document.getElementById("chord-grid");
   container.innerHTML = ""; // Clear current chord selectors
@@ -1341,17 +1333,18 @@ function parseChord(chord) {
 }
 
 function mapQualityToDropdown(quality) {
-    switch (quality) {
-        case '7': return 'dom7';
-        case '7b9': return 'dom7'; // Map 7b9 to dom7 for now
-        case 'm7': return 'min7';
-        case 'maj7': return 'maj7';
-        case 'm': return 'minor';
-        case '': return 'major';
-        case 'min7b5': return 'min7b5';
-        case 'm7b5': return 'min7b5'; // Alternative notation
-        default: return 'major';
-    }
+    const qualityMap = {
+        '7': 'dom7',
+        '7b9': 'dom7',
+        'm7': 'min7',
+        'maj7': 'maj7',
+        'm': 'minor',
+        '': 'major',
+        'min7b5': 'min7b5',
+        'm7b5': 'min7b5',
+        'dim': 'dim'
+    };
+    return qualityMap[quality] || 'major';
 }
 
 // Suggest a scale based on chord quality
