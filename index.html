@@ -1295,15 +1295,6 @@ let isTransposing = false;
     updateFretboardForMeasure(0);
 }
 
-    // Update the fretboard
-    const chordFretboard = document.getElementById('chord-fretboard');
-    if (chordFretboard) {
-        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-        const firstMeasure = measures[0];
-        const scaleType = firstMeasure.querySelector('.scale-select').value;
-        updateFretboardNotes(chordFretboard, newKey, scaleType, tuning);
-    }
-
     console.log(`Progression transposed to key: ${newKey}`);
 }
 
