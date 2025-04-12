@@ -1775,7 +1775,23 @@ function loadProgression(progressionKey) {
     // Update fretboard for the first measure
     updateFretboardForMeasure(0);
 }
-           
+
+function updateFretboardForMeasure(index) {
+    const measures = document.getElementsByClassName('measure');
+    if (index >= measures.length) return;
+
+    const measure = measures[index];
+    const chordRoot = measure.querySelector('.root-note').value;
+    const chordQuality = measure.querySelector('.chord-quality').value;
+    const scaleRoot = measure.querySelector('.second-key').value;
+    const scaleType = measure.querySelector('.scale-select').value;
+
+    const chordFretboard = document.getElementById('chord-fretboard');
+    const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+
+    updateFretboardNotes(chordFretboard, scaleRoot, scaleType, tuning);
+    document.getElementById('scale-display').textContent = `${scaleRoot} ${scaleType} over ${chordRoot} ${chordQuality}`;
+}           
            function updateFretboardForMeasure(index) {
     const measures = document.getElementsByClassName('measure');
     if (index >= measures.length) return;
