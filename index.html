@@ -1195,7 +1195,7 @@ function cycleMetronomeSound() {
     return METRONOME_SOUNDS[currentMetronomeSound];
 }
 
-function playMetronomeSound(volume) {
+async function playMetronomeSound(volume) {
     if (!audioContext || audioContext.state === 'suspended') {
         await initializeAudio();
         return;
@@ -1241,7 +1241,7 @@ function playMetronomeSound(volume) {
         }
     }
 }
-
+       
         function createKeyOptions() {
     return NOTES.map(note => `<option value="${note}">${note}</option>`).join('');
 }
@@ -1402,12 +1402,14 @@ function startPlayback() {
         }
     }
 
-    intervalId = setInterval(playBeat, interval);
-    isPlaying = true; // Set flag after starting
+    intervalId = setInterval(async () => {
+        await playBeat();
+    }, interval);
+    
+    isPlaying = true;
     document.getElementById('start-stop').textContent = 'Stop';
     console.log("Playback started");
 }
-
        
 async function playBeat() {
     const beats = document.querySelectorAll('.beat');
@@ -1461,7 +1463,7 @@ async function playBeat() {
         currentMeasure = (currentMeasure + 1) % measures.length;
     }
 }
-
+       
     function stopPlayback() {
     clearInterval(intervalId);
     intervalId = null;
