@@ -669,6 +669,11 @@ function getNoteIndex(note) {
 
 // Get chord from Roman numeral (e.g. "ii", "V7") based on a root key
 function getChordFromFunction(key, func) {
+    if (!key || !func) {
+        console.warn('Invalid parameters:', { key, func });
+        return { root: 'C', quality: 'major' }; // Default fallback
+    }
+
     const isMinorKey = key.endsWith('m') || key.endsWith('min');
     const rootKey = key.replace(/m$|min$/, '');
     const keyIndex = getNoteIndex(standardizeNoteName(rootKey));
@@ -718,6 +723,91 @@ function getChordFromFunction(key, func) {
     }
 
     return note + quality;
+}
+
+function dragStart(e) {
+    if (!e || !e.dataTransfer) return;
+    try {
+        const index = Array.from(document.querySelectorAll('.measure')).indexOf(this);
+        e.dataTransfer.setData('text/plain', index.toString());
+        this.classList.add('dragging');
+    } catch (error) {
+        console.error('Drag start error:', error);
+    }
+}
+
+function dragOver(e) {
+    e.preventDefault();
+}
+
+function drop(e) {
+    e.preventDefault();
+    try {
+        const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+        const toIndex = Array.from(document.querySelectorAll('.measure')).indexOf(this);
+        const measures = document.getElementById('measures');
+        if (!measures) throw new Error('Measures container not found');
+
+        const children = Array.from(measures.children);
+        const [movedMeasure] = children.splice(fromIndex, 1);
+        children.splice(toIndex, 0, movedMeasure);
+        measures.innerHTML = '';
+        children.forEach(child => measures.appendChild(child));
+        updateMeasureNumbers();
+    } catch (error) {
+        console.error('Drop error:', error);
+    }
+}
+
+function dragEnd(e) {
+    this.classList.remove('dragging');
+}
+
+async function playNote(note, string, fret) {
+    if (!note || string === undefined || fret === undefined) {
+        console.error('Invalid parameters for playNote:', { note, string, fret });
+        return;
+    }
+
+    try {
+        if (!audioContext || audioContext.state === 'suspended') {
+            const success = await initializeAudio();
+            if (!success) return;
+        }
+
+        const tuning = TUNINGS[document.getElementById('chord-tuning')?.value] || TUNINGS.standard;
+        const openNote = tuning[string];
+        const openNoteIndex = NOTES.indexOf(openNote);
+        const noteIndex = (openNoteIndex + fret) % 12;
+        const targetNote = NOTES[noteIndex];
+        const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
+        const volume = parseFloat(document.getElementById('chord-fretboard-volume')?.value) || 0.3;
+
+        if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
+            const pitchData = getPitchShiftedNote(targetNote, octave);
+            if (pitchData && pianoSampleBuffers[pitchData.sampleKey]) {
+                const source = audioContext.createBufferSource();
+                const gainNode = audioContext.createGain();
+                source.buffer = pianoSampleBuffers[pitchData.sampleKey];
+                source.playbackRate.value = pitchData.playbackRate;
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 3);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 5);
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                source.start();
+                source.stop(audioContext.currentTime + 5);
+            } else {
+                console.warn(`No sample available for ${targetNote}${octave}, using fallback`);
+                playFallbackNote(targetNote, octave, volume, 5);
+            }
+        } else {
+            console.warn("Samples not loaded, falling back to oscillator");
+            playFallbackNote(targetNote, octave, volume, 5);
+        }
+    } catch (error) {
+        console.error('Error playing note:', error);
+    }
 }
        
        function updateChordDropdownsForKey(progressionName, key) {
@@ -815,21 +905,20 @@ function getPitchShiftedNote(note, octave) {
 async function initializeAudio() {
     try {
         if (!audioContext) {
-            audioContext = await initAudioContext();
-        }
-        if (audioContext.state === 'suspended') {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
             await audioContext.resume();
         }
-        if (!Object.keys(soundBuffers).length) {
-            await loadSounds();
-        }
         if (!samplesLoaded) {
-            await loadPianoSamples();
+            await Promise.all([
+                loadSounds(),
+                loadPianoSamples(),
+                setupReverb()
+            ]);
         }
-        return audioContext.state === 'running';
+        return true;
     } catch (error) {
-        console.error("Failed to initialize audio context:", error);
-        updateLoadingStatus("Audio initialization failed. Please refresh the page.");
+        console.error("Audio initialization error:", error);
+        updateLoadingStatus("Audio initialization failed. Please refresh.");
         return false;
     }
 }
@@ -1772,8 +1861,19 @@ function loadProgression(progressionKey) {
     updateMeasureNumbers();
     addFirstChordListener();
     updateFretboardForMeasure(0);
-}
 
+    // Add error handling wrapper
+    try {
+        const measures = document.getElementsByClassName('measure');
+        if (measures.length === 0) {
+            throw new Error('No measures created');
+        }
+        console.log(`Successfully loaded progression with ${measures.length} measures`);
+    } catch (error) {
+        console.error('Error in progression loading:', error);
+        updateLoadingStatus('Error loading progression. Please try again.');
+    }
+}
 function createFretboardContainer(index) {
     const container = document.createElement('div');
     container.className = 'fretboard-container';
