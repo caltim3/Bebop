@@ -1390,26 +1390,42 @@ let isTransposing = false;
     console.log(`Progression transposed to key: ${newKey}`);
 
 // Helper function to parse chord notation (e.g., "C7" -> ["C", "dom7"])
-function parseChord(chord) {
-    // Enhanced regex to capture more complex chord qualities
-    const rootMatch = chord.match(/^[A-G][b#]?/);
-    const root = rootMatch ? rootMatch[0] : 'C';
-    const quality = chord.substring(rootMatch[0].length);
-    return [root, quality];
-}
+// Add this function if you don't have it
+function parseChord(chordString) {
+    if (!chordString || typeof chordString !== 'string') {
+        console.warn('Invalid chord string:', chordString);
+        return ['C', 'major']; // Default fallback
+    }
 
-function mapQualityToDropdown(quality) {
-    switch (quality) {
-        case 'dom7': return 'dom7';
-        case 'min7': return 'min7';
-        case 'maj7': return 'maj7';
-        case 'minor': return 'minor';
-        case 'major': return 'major';
-        case 'min7b5': return 'min7b5';
-        default: return 'major';
+    try {
+        // Match the root note (letter A-G with optional # or b)
+        const rootMatch = chordString.match(/^[A-G][#b]?/);
+        if (!rootMatch) {
+            console.warn('No valid root found in chord:', chordString);
+            return ['C', 'major'];
+        }
+
+        const root = rootMatch[0];
+        const quality = chordString.slice(root.length);
+
+        // Map the remaining string to a chord quality
+        let mappedQuality;
+        switch (quality) {
+            case '7': mappedQuality = 'dom7'; break;
+            case 'maj7': mappedQuality = 'maj7'; break;
+            case 'm7': case 'min7': mappedQuality = 'min7'; break;
+            case 'm7b5': case 'min7b5': mappedQuality = 'min7b5'; break;
+            case 'm': case 'min': mappedQuality = 'minor'; break;
+            case '': case 'maj': mappedQuality = 'major'; break;
+            default: mappedQuality = 'major';
+        }
+
+        return [root, mappedQuality];
+    } catch (error) {
+        console.error('Error parsing chord:', error);
+        return ['C', 'major']; // Fallback for any errors
     }
 }
-
 function suggestScaleForQuality(quality) {
     switch (quality) {
         case 'dom7': return 'mixolydian';
@@ -1788,52 +1804,86 @@ function loadProgression(progressionKey) {
     console.log(`Loading progression: ${progressionKey}`, progression);
 
     const measuresDiv = document.getElementById('measures');
-    measuresDiv.innerHTML = ''; // Clear existing measures
+    if (!measuresDiv) {
+        console.error('Measures container not found');
+        return;
+    }
+
+    measuresDiv.innerHTML = '';
 
     // Set the key selector to the default key
     const defaultKey = progression.defaultKey;
-    document.getElementById('keySelect').value = standardizeNoteName(defaultKey.replace(/m$|min$/, ''));
+    const keySelect = document.getElementById('keySelect');
+    if (keySelect) {
+        keySelect.value = standardizeNoteName(defaultKey.replace(/m$|min$/, ''));
+    }
 
     progression.progression.forEach((chordFunc, index) => {
-        const chord = getChordFromFunction(defaultKey, chordFunc);
-        const [root, quality] = parseChord(chord);
+        try {
+            const chord = getChordFromFunction(defaultKey, chordFunc);
+            // Add error checking for chord
+            if (!chord) {
+                throw new Error(`Invalid chord returned for ${chordFunc}`);
+            }
 
-        const newMeasure = document.createElement('div');
-        newMeasure.className = 'measure';
-        newMeasure.draggable = true;
-        newMeasure.innerHTML = `
-            <span class="measure-number">${index + 1}</span>
-            <div class="chord-controls">
-                <select class="root-note">
-                    ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
-                </select>
-                <select class="chord-quality">
-                    <option value="major" ${quality === 'major' ? 'selected' : ''}>Major</option>
-                    <option value="minor" ${quality === 'minor' ? 'selected' : ''}>Minor</option>
-                    <option value="dom7" ${quality === 'dom7' ? 'selected' : ''}>7</option>
-                    <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
-                    <option value="min7" ${quality === 'min7' ? 'selected' : ''}>Min7</option>
-                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
-                </select>
-            </div>
-            <div class="scale-controls">
-                <select class="second-key">
-                    ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
-                </select>
-                <select class="scale-select">
-                    ${Object.keys(SCALES).map(scale => {
-                        const selected = suggestScaleForQuality(quality) === scale ? 'selected' : '';
-                        return `<option value="${scale}" ${selected}>${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`;
-                    }).join('')}
-                </select>
-            </div>
-        `;
+            const [chordRoot, chordQuality] = parseChord(chord);
+            if (!chordRoot || !chordQuality) {
+                throw new Error(`Invalid chord parsing result for ${chord}`);
+            }
 
-        const rootNoteSelect = newMeasure.querySelector('.root-note');
-        const secondKeySelect = newMeasure.querySelector('.second-key');
-        const qualitySelect = newMeasure.querySelector('.chord-quality');
-        const scaleSelect = newMeasure.querySelector('.scale-select');
+            const newMeasure = document.createElement('div');
+            newMeasure.className = 'measure';
+            newMeasure.draggable = true;
+            newMeasure.innerHTML = `
+                <span class="measure-number">${index + 1}</span>
+                <div class="chord-controls">
+                    <select class="root-note">
+                        ${NOTES.map(note => `<option value="${note}" ${note === chordRoot ? 'selected' : ''}>${note}</option>`).join('')}
+                    </select>
+                    <select class="chord-quality">
+                        <option value="major" ${chordQuality === 'major' ? 'selected' : ''}>Major</option>
+                        <option value="minor" ${chordQuality === 'minor' ? 'selected' : ''}>Minor</option>
+                        <option value="dom7" ${chordQuality === 'dom7' ? 'selected' : ''}>7</option>
+                        <option value="maj7" ${chordQuality === 'maj7' ? 'selected' : ''}>Maj7</option>
+                        <option value="min7" ${chordQuality === 'min7' ? 'selected' : ''}>Min7</option>
+                        <option value="min7b5" ${chordQuality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
+                    </select>
+                </div>
+                <div class="scale-controls">
+                    <select class="second-key">
+                        ${NOTES.map(note => `<option value="${note}" ${note === chordRoot ? 'selected' : ''}>${note}</option>`).join('')}
+                    </select>
+                    <select class="scale-select">
+                        ${Object.keys(SCALES).map(scale => {
+                            const selected = suggestScaleForQuality(chordQuality) === scale ? 'selected' : '';
+                            return `<option value="${scale}" ${selected}>${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`;
+                        }).join('')}
+                    </select>
+                </div>
+            `;
 
+            // Add event listeners...
+            addMeasureEventListeners(newMeasure, index);
+
+            measuresDiv.appendChild(newMeasure);
+        } catch (error) {
+            console.error(`Error creating measure ${index}:`, error);
+        }
+    });
+
+    updateMeasureNumbers();
+    addFirstChordListener();
+    updateFretboardForMeasure(0);
+}
+
+// Helper function to add measure event listeners
+function addMeasureEventListeners(measure, index) {
+    const rootNoteSelect = measure.querySelector('.root-note');
+    const secondKeySelect = measure.querySelector('.second-key');
+    const qualitySelect = measure.querySelector('.chord-quality');
+    const scaleSelect = measure.querySelector('.scale-select');
+
+    if (rootNoteSelect && secondKeySelect) {
         rootNoteSelect.addEventListener('change', function () {
             secondKeySelect.value = this.value;
             if (index === 0) {
@@ -1841,39 +1891,30 @@ function loadProgression(progressionKey) {
             }
             updateFretboardForMeasure(index);
         });
+    }
 
+    if (qualitySelect && scaleSelect) {
         qualitySelect.addEventListener('change', function () {
             scaleSelect.value = suggestScaleForQuality(this.value);
             updateFretboardForMeasure(index);
         });
-
-        secondKeySelect.addEventListener('change', () => updateFretboardForMeasure(index));
-        scaleSelect.addEventListener('change', () => updateFretboardForMeasure(index));
-
-        newMeasure.addEventListener('dragstart', dragStart);
-        newMeasure.addEventListener('dragover', dragOver);
-        newMeasure.addEventListener('drop', drop);
-        newMeasure.addEventListener('dragend', dragEnd);
-
-        measuresDiv.appendChild(newMeasure);
-    });
-
-    updateMeasureNumbers();
-    addFirstChordListener();
-    updateFretboardForMeasure(0);
-
-    // Add error handling wrapper
-    try {
-        const measures = document.getElementsByClassName('measure');
-        if (measures.length === 0) {
-            throw new Error('No measures created');
-        }
-        console.log(`Successfully loaded progression with ${measures.length} measures`);
-    } catch (error) {
-        console.error('Error in progression loading:', error);
-        updateLoadingStatus('Error loading progression. Please try again.');
     }
+
+    if (secondKeySelect) {
+        secondKeySelect.addEventListener('change', () => updateFretboardForMeasure(index));
+    }
+
+    if (scaleSelect) {
+        scaleSelect.addEventListener('change', () => updateFretboardForMeasure(index));
+    }
+
+    measure.addEventListener('dragstart', dragStart);
+    measure.addEventListener('dragover', dragOver);
+    measure.addEventListener('drop', drop);
+    measure.addEventListener('dragend', dragEnd);
 }
+
+       
 function createFretboardContainer(index) {
     const container = document.createElement('div');
     container.className = 'fretboard-container';
