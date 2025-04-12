@@ -1771,11 +1771,41 @@ function loadProgression(progressionKey) {
 
     updateMeasureNumbers();
     addFirstChordListener();
-
-    // Update fretboard for the first measure
     updateFretboardForMeasure(0);
 }
 
+function createFretboardContainer(index) {
+    const container = document.createElement('div');
+    container.className = 'fretboard-container';
+    
+    // Create key options first
+    const keyOptions = NOTES.map(note => `<option value="${note}">${note}</option>`).join('');
+    const scaleOptions = Object.keys(SCALES).map(scale => 
+        `<option value="${scale}">${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`
+    ).join('');
+
+    container.innerHTML = `
+        <div class="scale-display" id="scale-display-${index}">C major</div>
+        <div class="controls">
+            <select class="tuning-select">
+                <option value="standard">Standard (EADGBE)</option>
+                <option value="dropD">Drop D (DADGBE)</option>
+                <option value="openG">Open G (DGDGBD)</option>
+                <option value="DADGAD">DADGAD</option>
+                <option value="openE">Open E (EBEG#BE)</option>
+            </select>
+            <select class="keySelect" id="key-${index}">
+                ${keyOptions}
+            </select>
+            <select class="scale-select" id="scale-${index}">
+                ${scaleOptions}
+            </select>
+        </div>
+        <div class="fretboard" id="fretboard-${index}"></div>
+    `;
+    return container;
+}
+       
 function updateFretboardForMeasure(index) {
     const measures = document.getElementsByClassName('measure');
     if (index >= measures.length) return;
@@ -1793,30 +1823,6 @@ function updateFretboardForMeasure(index) {
     document.getElementById('scale-display').textContent = `${scaleRoot} ${scaleType} over ${chordRoot} ${chordQuality}`;
 }
 
-function createFretboardContainer(index) {
-    const container = document.createElement('div');
-    container.className = 'fretboard-container';
-    container.innerHTML = `
-        <div class="scale-display" id="scale-display-${index}">C major</div>
-        <div class="controls">
-            <select class="tuning-select">
-                <option value="standard">Standard (EADGBE)</option>
-                <option value="dropD">Drop D (DADGBE)</option>
-                <option value="openG">Open G (DGDGBD)</option>
-                <option value="DADGAD">DADGAD</option>
-                <option value="openE">Open E (EBEG#BE)</option>
-            </select>
-            <select class="keySelect" id="key-${index}">
-                ${createKeyOptions()}
-            </select>
-            <select class="scale-select" id="scale-${index}">
-                ${Object.keys(SCALES).map(scale => `<option value="${scale}">${scale}</option>`).join('')}
-            </select>
-        </div>
-        <div class="fretboard" id="fretboard-${index}"></div>
-    `;
-    return container;
-}
 
 function initializeStaticFretboards() {
     const grid = document.querySelector('.fretboards-grid');
