@@ -544,12 +544,11 @@ function transposeNote(note, semitones) {
     const noteIndex = NOTES.indexOf(note);
     if (noteIndex === -1) {
         console.error(`Invalid note: ${note}`);
-        return note;
+        return note; // Return the original note if invalid
     }
     const newIndex = (noteIndex + semitones + 12) % 12;
     return NOTES[newIndex];
-}
-       
+}       
     const SCALES = {
         major: [0, 2, 4, 5, 7, 9, 11],
         minor: [0, 2, 3, 5, 7, 8, 10],
