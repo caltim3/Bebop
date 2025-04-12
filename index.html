@@ -1666,8 +1666,6 @@ function createBeats() {
                 }
             } else if (soundType === 'drums') {
                 const pattern = DRUM_PATTERNS[timeSignature];
-                const isKick = pattern.kick[i];
-                const isSnare = pattern.snare[i];
                 
                 const states = [
                     { volume: '1', color: '#274C77', sound: 'kick' },
@@ -1692,7 +1690,7 @@ function createBeats() {
         container.appendChild(beat);
     }
 }
-       
+           
 function loadProgression(progressionKey) {
     const progression = progressions[progressionKey];
     if (!progression) {
