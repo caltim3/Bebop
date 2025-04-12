@@ -1187,7 +1187,7 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
 }
 
-    async const METRONOME_SOUNDS = ['default', 'kick', 'kick-half', 'snare', 'snare-half', 'hihat', 'silent'];
+    const METRONOME_SOUNDS = ['default', 'kick', 'kick-half', 'snare', 'snare-half', 'hihat', 'silent'];
 let currentMetronomeSound = 0;
 
 function cycleMetronomeSound() {
