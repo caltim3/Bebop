@@ -208,6 +208,11 @@
             border-radius: 5px;
             z-index: 1000;
         }
+
+        body.dark-mode .fretboard-container {
+            background: #6096ba;
+}
+        
     </style>
 </head>
 <body>
@@ -472,7 +477,7 @@ const ENHARMONIC_MAP = {
     'F#': 'Gb',
     'G#': 'Ab',
     'A#': 'Bb',
-    // Reverse mappings for consistency
+    // Add reverse mappings
     'Db': 'Db',
     'Eb': 'Eb',
     'Gb': 'Gb',
@@ -480,6 +485,14 @@ const ENHARMONIC_MAP = {
     'Bb': 'Bb'
 };
 
+       function standardizeNoteName(note) {
+            return ENHARMONIC_MAP[note] || note;
+}
+
+// Update getNoteIndex to use standardized notes
+        function getNoteIndex(note) {
+            return NOTES.indexOf(standardizeNoteName(note));
+}
        
 async function initAudioContext() {
     if (!audioContext) {
@@ -1623,6 +1636,16 @@ function createFretboard(container, tuning) {
     container.innerHTML = '';
     const timeSignature = parseInt(document.getElementById('time-signature').value);
 
+    const BEAT_STATES = [
+        { volume: '1', color: '#1F618D', sound: 'default' },
+        { volume: '1', color: '#BD2031', sound: 'kick' },
+        { volume: '0.5', color: '#8B0000', sound: 'kick' },
+        { volume: '1', color: '#006400', sound: 'snare' },
+        { volume: '0.5', color: '#004200', sound: 'snare' },
+        { volume: '1', color: '#4CAF50', sound: 'hihat' },
+        { volume: '0', color: '#9E9E9E', sound: 'silent' }
+    ];
+
     const totalBeats = timeSignature === 4 ? 8 : timeSignature;
 
     for (let i = 0; i < totalBeats; i++) {
@@ -1631,22 +1654,39 @@ function createFretboard(container, tuning) {
         beat.dataset.beat = i;
 
         if (timeSignature === 4) {
+            // Handle 4/4 time with eighth notes
             const isEighth = i % 2 === 1;
             beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
-            if (i === 0 || i === 4) {
+            
+            // Set default pattern for 4/4
+            if (i === 0) {
+                // Beat 1: Kick
                 beat.dataset.volume = '1';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = '#1F618D';
-            } else if (i % 2 === 0) {
-                beat.dataset.volume = '0.3';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = '#4CAF50';
+                beat.dataset.sound = 'kick';
+                beat.style.backgroundColor = '#BD2031';
+            } else if (i === 2) {
+                // Beat 2: Snare
+                beat.dataset.volume = '1';
+                beat.dataset.sound = 'snare';
+                beat.style.backgroundColor = '#006400';
+            } else if (i === 4) {
+                // Beat 3: Kick
+                beat.dataset.volume = '1';
+                beat.dataset.sound = 'kick';
+                beat.style.backgroundColor = '#BD2031';
+            } else if (i === 6) {
+                // Beat 4: Snare
+                beat.dataset.volume = '1';
+                beat.dataset.sound = 'snare';
+                beat.style.backgroundColor = '#006400';
             } else {
-                beat.dataset.volume = '0';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = '#9E9E9E';
+                // Eighth notes: Hi-hat
+                beat.dataset.volume = '0.7';
+                beat.dataset.sound = 'hihat';
+                beat.style.backgroundColor = '#4CAF50';
             }
         } else {
+            // Handle other time signatures with quarter notes
             beat.textContent = i + 1;
             if (timeSignature === 6) {
                 beat.dataset.volume = (i === 0 || i === 3) ? '1' : '0.3';
@@ -1668,49 +1708,32 @@ function createFretboard(container, tuning) {
         }
 
         beat.addEventListener('click', function() {
-            const soundType = document.getElementById('sound-type').value;
-            let currentVolume = parseFloat(this.dataset.volume);
-            let currentSound = this.dataset.sound || 'default';
-
-            if (soundType === 'click' || soundType === 'woodblock') {
-                const states = [
-                    { volume: '1', color: '#1F618D', sound: 'default' },
-                    { volume: '0.3', color: '#4CAF50', sound: 'default' },
-                    { volume: '0', color: '#9E9E9E', sound: 'default' }
-                ];
-                const currentIndex = states.findIndex(state => state.volume === currentVolume.toString() && state.sound === currentSound);
-                const nextIndex = (currentIndex + 1) % states.length;
-                const nextState = states[nextIndex];
-                this.dataset.volume = nextState.volume;
-                this.dataset.sound = nextState.sound;
-                this.style.backgroundColor = nextState.color;
-            } else if (soundType === 'drums') {
-                const pattern = DRUM_PATTERNS[timeSignature];
-                const isKick = pattern.kick[i];
-                const isSnare = pattern.snare[i];
-                const states = [
-                    { volume: '1', color: '#1F618D', sound: isKick ? 'kick' : isSnare ? 'snare' : 'default' },
-                    { volume: '0.3', color: '#4CAF50', sound: isKick ? 'kick' : isSnare ? 'snare' : 'default' },
-                    { volume: '0', color: '#9E9E9E', sound: 'default' },
-                    { volume: '1', color: '#BD2031', sound: isKick ? 'snare' : isSnare ? 'kick' : 'default' },
-                    { volume: '0.3', color: '#006400', sound: isKick ? 'snare' : isSnare ? 'kick' : 'default' },
-                    { volume: '0', color: '#9E9E9E', sound: 'default' }
-                ];
-                let currentIndex = states.findIndex(state => 
-                    state.volume === currentVolume.toString() && state.sound === currentSound
-                );
-                if (currentIndex === -1) currentIndex = 0; // Fallback to start
-                const nextIndex = (currentIndex + 1) % states.length;
-                const nextState = states[nextIndex];
-                this.dataset.volume = nextState.volume;
-                this.dataset.sound = nextState.sound;
-                this.style.backgroundColor = nextState.color;
+            const currentState = {
+                volume: this.dataset.volume,
+                color: this.style.backgroundColor,
+                sound: this.dataset.sound
+            };
+            
+            let nextStateIndex = 0;
+            const currentStateIndex = BEAT_STATES.findIndex(state => 
+                state.volume === currentState.volume && 
+                state.sound === currentState.sound
+            );
+            
+            if (currentStateIndex !== -1) {
+                nextStateIndex = (currentStateIndex + 1) % BEAT_STATES.length;
             }
+            
+            const nextState = BEAT_STATES[nextStateIndex];
+            this.dataset.volume = nextState.volume;
+            this.dataset.sound = nextState.sound;
+            this.style.backgroundColor = nextState.color;
         });
 
         container.appendChild(beat);
     }
 }
+       
 
   function loadProgression(progressionKey) {
     const progression = progressions[progressionKey];
@@ -1992,6 +2015,13 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeStaticFretboards();
     initializeDragAndDrop();
 
+    if (measures.children.length === 0) {
+    loadProgression({
+        defaultKey: "C",
+        progression: ["I", "V7"]
+    });
+}
+    
     // Generate key options HTML
     const keyOptions = createKeyOptions();
     
