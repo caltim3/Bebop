@@ -671,7 +671,7 @@ function getNoteIndex(note) {
 function getChordFromFunction(key, func) {
     if (!key || !func) {
         console.warn('Invalid parameters:', { key, func });
-        return { root: 'C', quality: 'major' }; // Default fallback
+        return 'C'; // Default fallback
     }
 
     const isMinorKey = key.endsWith('m') || key.endsWith('min');
@@ -684,13 +684,33 @@ function getChordFromFunction(key, func) {
             "I7": 0, "II7": 2, "III7": 4, "IV7": 5, "V7": 7, "VI7": 9, "VII7": 11,
             "Im7": 0, "IIm7": 2, "IIIm7": 4, "IVm7": 5, "Vm7": 7, "VIm7": 9, "VIIm7": 11,
             "Imaj7": 0, "IVmaj7": 5, "bII7": 1, "bIII7": 3, "bIIImaj7": 3,
-            "bVI7": 8, "bVImaj7": 8, "bVII7": 10, "V7b9": 7
+            "bVI7": 8, "bVImaj7": 8, "bVII7": 10, "V7b9": 7,
+            "iii7": 4, "vi7": 9, "ii7": 2, "vii7": 11,
+            "IIIm7": 4, "VIm7": 9, "IIm7": 2, "VIIm7": 11,
+            "I6": 0, "IV6": 5, "V6": 7,
+            "i6": 0, "iv6": 5, "v6": 7,
+            "I9": 0, "II9": 2, "V9": 7,
+            "i9": 0, "ii9": 2, "v9": 7,
+            "I13": 0, "IV13": 5, "V13": 7,
+            "i13": 0, "iv13": 5, "v13": 7
         },
         minor: {
             "i": 0, "ii°": 2, "III": 3, "iv": 5, "v": 7, "VI": 8, "VII": 10,
             "i7": 0, "ii7b5": 2, "III7": 3, "iv7": 5, "v7": 7, "VI7": 8, "VII7": 10,
             "im7": 0, "iim7b5": 2, "IIImaj7": 3, "ivm7": 5, "vm7": 7, "VImaj7": 8,
-            "bVI7": 8, "bVII7": 10, "V7b9": 7
+            "bVI7": 8, "bVII7": 10, "V7b9": 7,
+            "i6": 0, "iv6": 5, "v6": 7,
+            "i9": 0, "iv9": 5, "v9": 7,
+            "i13": 0, "iv13": 5, "v13": 7,
+            "imaj7": 0, "ivmaj7": 5, "vmaj7": 7,
+            "iø7": 2, "iiø7": 2, "viiø7": 11,
+            "i°7": 0, "ii°7": 2, "vii°7": 11,
+            "III+": 3, "VI+": 8,
+            "bIII": 3, "bVI": 8, "bII": 1, "bV": 6,
+            "bIIImaj7": 3, "bVImaj7": 8,
+            "bII7": 1, "bV7": 6,
+            "bIII7": 3, "bVI7": 8,
+            "bVII7": 10
         }
     };
 
@@ -705,26 +725,83 @@ function getChordFromFunction(key, func) {
     const note = NOTES[(keyIndex + degree) % 12];
     let quality = '';
 
+    // Determine chord quality based on function symbol
     if (isMinorKey) {
-        if (func.includes('7b5') || func.includes('°')) quality = 'min7b5';
+        if (func.includes('7b5') || func.includes('ø7')) quality = 'min7b5';
+        else if (func.includes('°7')) quality = 'dim7';
         else if (func.includes('maj7')) quality = 'maj7';
         else if (func.includes('m7') || func.match(/^i[mv]7/)) quality = 'min7';
         else if (func.includes('7')) quality = 'dom7';
+        else if (func.includes('+')) quality = 'aug';
+        else if (func.includes('°')) quality = 'dim';
         else if (func.match(/^[a-z]/)) quality = 'minor';
         else quality = 'major';
     } else {
         if (func.includes('7b5')) quality = 'min7b5';
         else if (func.includes('maj7')) quality = 'maj7';
-        else if (func.includes('m7')) quality = 'min7';
+        else if (func.includes('m7') || func.match(/^[a-z].*7/)) quality = 'min7';
         else if (func.includes('7') || func.includes('7b9')) quality = 'dom7';
+        else if (func.includes('6')) quality = 'major6';
+        else if (func.includes('9')) quality = 'dom9';
+        else if (func.includes('13')) quality = 'dom13';
+        else if (func.includes('°')) quality = 'dim';
         else if (func.match(/^[a-z]/)) quality = 'minor';
-        else if (func.includes('°')) quality = 'min7b5';
         else quality = 'major';
     }
 
+    // Special handling for extensions
+    if (func.includes('b9')) {
+        quality += 'b9';
+    }
+
+    // Handle altered dominants
+    if (func.includes('alt')) {
+        quality += 'alt';
+    }
+
+    // Add debugging
+    console.log(`Processed chord: key=${key}, func=${func}, note=${note}, quality=${quality}`);
+
     return note + quality;
 }
+function addMeasureEventListeners(measure, index) {
+    const rootNoteSelect = measure.querySelector('.root-note');
+    const secondKeySelect = measure.querySelector('.second-key');
+    const qualitySelect = measure.querySelector('.chord-quality');
+    const scaleSelect = measure.querySelector('.scale-select');
 
+    if (rootNoteSelect && secondKeySelect) {
+        rootNoteSelect.addEventListener('change', function () {
+            secondKeySelect.value = this.value;
+            if (index === 0) {
+                updateProgressionKey(this.value);
+            }
+            updateFretboardForMeasure(index);
+        });
+    }
+
+    if (qualitySelect && scaleSelect) {
+        qualitySelect.addEventListener('change', function () {
+            scaleSelect.value = suggestScaleForQuality(this.value);
+            updateFretboardForMeasure(index);
+        });
+    }
+
+    if (secondKeySelect) {
+        secondKeySelect.addEventListener('change', () => updateFretboardForMeasure(index));
+    }
+
+    if (scaleSelect) {
+        scaleSelect.addEventListener('change', () => updateFretboardForMeasure(index));
+    }
+
+    measure.addEventListener('dragstart', dragStart);
+    measure.addEventListener('dragover', dragOver);
+    measure.addEventListener('drop', drop);
+    measure.addEventListener('dragend', dragEnd);
+}
+       
+       
 function dragStart(e) {
     if (!e || !e.dataTransfer) return;
     try {
@@ -1389,8 +1466,6 @@ let isTransposing = false;
 
     console.log(`Progression transposed to key: ${newKey}`);
 
-// Helper function to parse chord notation (e.g., "C7" -> ["C", "dom7"])
-// Add this function if you don't have it
 function parseChord(chordString) {
     if (!chordString || typeof chordString !== 'string') {
         console.warn('Invalid chord string:', chordString);
@@ -1426,8 +1501,8 @@ function parseChord(chordString) {
         return ['C', 'major']; // Fallback for any errors
     }
 }
-function suggestScaleForQuality(quality) {
-    switch (quality) {
+   function suggestScaleForQuality(quality) {
+        switch (quality) {
         case 'dom7': return 'mixolydian';
         case 'min7': return 'dorian';
         case 'maj7': return 'major';
@@ -1821,7 +1896,6 @@ function loadProgression(progressionKey) {
     progression.progression.forEach((chordFunc, index) => {
         try {
             const chord = getChordFromFunction(defaultKey, chordFunc);
-            // Add error checking for chord
             if (!chord) {
                 throw new Error(`Invalid chord returned for ${chordFunc}`);
             }
@@ -1875,7 +1949,7 @@ function loadProgression(progressionKey) {
     addFirstChordListener();
     updateFretboardForMeasure(0);
 }
-
+       
 // Helper function to add measure event listeners
 function addMeasureEventListeners(measure, index) {
     const rootNoteSelect = measure.querySelector('.root-note');
