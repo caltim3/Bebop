@@ -1631,11 +1631,12 @@ function createFretboard(container, tuning) {
         }
     }
 
-    function createBeats() {
+function createBeats() {
     const container = document.querySelector('.beats-container');
-    container.innerHTML = '';
+    container.innerHTML = ''; // Clear existing beats
     const timeSignature = parseInt(document.getElementById('time-signature').value);
 
+    // Define the possible states for each beat
     const BEAT_STATES = [
         { volume: '1', color: '#1F618D', sound: 'default' },
         { volume: '1', color: '#BD2031', sound: 'kick' },
@@ -1646,6 +1647,7 @@ function createFretboard(container, tuning) {
         { volume: '0', color: '#9E9E9E', sound: 'silent' }
     ];
 
+    // Determine the total number of beats based on the time signature
     const totalBeats = timeSignature === 4 ? 8 : timeSignature;
 
     for (let i = 0; i < totalBeats; i++) {
@@ -1653,77 +1655,53 @@ function createFretboard(container, tuning) {
         beat.className = 'beat';
         beat.dataset.beat = i;
 
+        // Set default beat states for 4/4 time
         if (timeSignature === 4) {
-            // Handle 4/4 time with eighth notes
-            const isEighth = i % 2 === 1;
+            const isEighth = i % 2 === 1; // Check if it's an eighth note
             beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
-            
-            // Set default pattern for 4/4
-            if (i === 0) {
-                // Beat 1: Kick
+
+            if (i === 0 || i === 4) {
+                // Kick on beats 1 and 3
                 beat.dataset.volume = '1';
                 beat.dataset.sound = 'kick';
                 beat.style.backgroundColor = '#BD2031';
-            } else if (i === 2) {
-                // Beat 2: Snare
-                beat.dataset.volume = '1';
-                beat.dataset.sound = 'snare';
-                beat.style.backgroundColor = '#006400';
-            } else if (i === 4) {
-                // Beat 3: Kick
-                beat.dataset.volume = '1';
-                beat.dataset.sound = 'kick';
-                beat.style.backgroundColor = '#BD2031';
-            } else if (i === 6) {
-                // Beat 4: Snare
+            } else if (i === 2 || i === 6) {
+                // Snare on beats 2 and 4
                 beat.dataset.volume = '1';
                 beat.dataset.sound = 'snare';
                 beat.style.backgroundColor = '#006400';
             } else {
-                // Eighth notes: Hi-hat
+                // Hi-hat on all eighth notes
                 beat.dataset.volume = '0.7';
                 beat.dataset.sound = 'hihat';
                 beat.style.backgroundColor = '#4CAF50';
             }
         } else {
-            // Handle other time signatures with quarter notes
+            // Default behavior for other time signatures (quarter notes)
             beat.textContent = i + 1;
-            if (timeSignature === 6) {
-                beat.dataset.volume = (i === 0 || i === 3) ? '1' : '0.3';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = (i === 0 || i === 3) ? '#1F618D' : '#4CAF50';
-            } else if (timeSignature === 7) {
-                beat.dataset.volume = (i === 0 || i === 4) ? '1' : '0.3';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = (i === 0 || i === 4) ? '#1F618D' : '#4CAF50';
-            } else if (timeSignature === 12) {
-                beat.dataset.volume = (i % 3 === 0) ? '1' : '0.3';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = (i % 3 === 0) ? '#1F618D' : '#4CAF50';
-            } else {
-                beat.dataset.volume = i === 0 ? '1' : '0.3';
-                beat.dataset.sound = 'default';
-                beat.style.backgroundColor = i === 0 ? '#1F618D' : '#4CAF50';
-            }
+            beat.dataset.volume = i === 0 ? '1' : '0.3';
+            beat.dataset.sound = 'default';
+            beat.style.backgroundColor = i === 0 ? '#1F618D' : '#4CAF50';
         }
 
-        beat.addEventListener('click', function() {
+        // Add click event listener to toggle through beat states
+        beat.addEventListener('click', function () {
             const currentState = {
                 volume: this.dataset.volume,
                 color: this.style.backgroundColor,
                 sound: this.dataset.sound
             };
-            
+
             let nextStateIndex = 0;
-            const currentStateIndex = BEAT_STATES.findIndex(state => 
-                state.volume === currentState.volume && 
+            const currentStateIndex = BEAT_STATES.findIndex(state =>
+                state.volume === currentState.volume &&
                 state.sound === currentState.sound
             );
-            
+
             if (currentStateIndex !== -1) {
                 nextStateIndex = (currentStateIndex + 1) % BEAT_STATES.length;
             }
-            
+
             const nextState = BEAT_STATES[nextStateIndex];
             this.dataset.volume = nextState.volume;
             this.dataset.sound = nextState.sound;
@@ -2014,13 +1992,6 @@ document.addEventListener('DOMContentLoaded', function () {
     createBeats();
     initializeStaticFretboards();
     initializeDragAndDrop();
-
-    if (measures.children.length === 0) {
-    loadProgression({
-        defaultKey: "C",
-        progression: ["I", "V7"]
-    });
-}
     
     // Generate key options HTML
     const keyOptions = createKeyOptions();
@@ -2039,6 +2010,29 @@ document.addEventListener('DOMContentLoaded', function () {
     if (chordFretboard) {
         createFretboard(chordFretboard, TUNINGS.standard);
         updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
+    }
+
+    // Initialize measures with default I-V progression
+    const measures = document.getElementById('measures');
+    if (measures.children.length === 0) {
+        // Add initial measures
+        addMeasure();
+        addMeasure();
+        const firstMeasure = measures.children[0];
+        const secondMeasure = measures.children[1];
+        if (firstMeasure && secondMeasure) {
+            firstMeasure.querySelector('.root-note').value = 'C';
+            firstMeasure.querySelector('.chord-quality').value = 'major';
+            firstMeasure.querySelector('.second-key').value = 'C';
+            firstMeasure.querySelector('.scale-select').value = 'major';
+            secondMeasure.querySelector('.root-note').value = 'G';
+            secondMeasure.querySelector('.chord-quality').value = 'dom7';
+            secondMeasure.querySelector('.second-key').value = 'G';
+            secondMeasure.querySelector('.scale-select').value = 'mixolydian';
+            addFirstChordListener();
+        }
+    } else {
+        addFirstChordListener();
     }
 
     // Add key select event listener for transposition
@@ -2127,31 +2121,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }).catch(error => {
         console.error("Error initializing audio context:", error);
     });
-
-    // Ensure first chord listener is added if measures exist
-    const measures = document.getElementById('measures');
-    if (measures.children.length > 0) {
-        addFirstChordListener();
-    } else {
-        // Add initial measures if none exist
-        addMeasure();
-        addMeasure();
-        const firstMeasure = measures.children[0];
-        const secondMeasure = measures.children[1];
-        if (firstMeasure && secondMeasure) {
-            firstMeasure.querySelector('.root-note').value = 'C';
-            firstMeasure.querySelector('.chord-quality').value = 'major';
-            firstMeasure.querySelector('.second-key').value = 'C';
-            firstMeasure.querySelector('.scale-select').value = 'major';
-            secondMeasure.querySelector('.root-note').value = 'G';
-            secondMeasure.querySelector('.chord-quality').value = 'dom7';
-            secondMeasure.querySelector('.second-key').value = 'G';
-            secondMeasure.querySelector('.scale-select').value = 'mixolydian';
-            addFirstChordListener();
-        }
-    }
 });
-
+       
   window.onload = () => {
     // Double-check fretboard initialization
     const chordFretboard = document.getElementById('chord-fretboard');
