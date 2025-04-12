@@ -662,52 +662,57 @@ function getNoteIndex(note) {
 
 // Get chord from Roman numeral (e.g. "ii", "V7") based on a root key
 function getChordFromFunction(key, func) {
-    // Check if the key is minor (ends with 'm' or 'min')
     const isMinorKey = key.endsWith('m') || key.endsWith('min');
-    const rootKey = key.replace(/m$|min$/, ''); // Remove minor indicator
+    const rootKey = key.replace(/m$|min$/, '');
     const keyIndex = getNoteIndex(standardizeNoteName(rootKey));
 
-    // Enhanced scale degrees mapping
     const scaleDegrees = {
         major: {
             "I": 0, "ii": 2, "iii": 4, "IV": 5, "V": 7, "vi": 9, "vii°": 11,
             "I7": 0, "II7": 2, "III7": 4, "IV7": 5, "V7": 7, "VI7": 9, "VII7": 11,
             "Im7": 0, "IIm7": 2, "IIIm7": 4, "IVm7": 5, "Vm7": 7, "VIm7": 9, "VIIm7": 11,
-            "Imaj7": 0, "bII7": 1, "bIII7": 3, "bIIImaj7": 3, "bVI7": 8, "bVImaj7": 8,
-            "bVII7": 10, "V7b9": 7, "VI7": 9
+            "Imaj7": 0, "IVmaj7": 5, "bII7": 1, "bIII7": 3, "bIIImaj7": 3,
+            "bVI7": 8, "bVImaj7": 8, "bVII7": 10, "V7b9": 7
         },
         minor: {
             "i": 0, "ii°": 2, "III": 3, "iv": 5, "v": 7, "VI": 8, "VII": 10,
             "i7": 0, "ii7b5": 2, "III7": 3, "iv7": 5, "v7": 7, "VI7": 8, "VII7": 10,
             "im7": 0, "iim7b5": 2, "IIImaj7": 3, "ivm7": 5, "vm7": 7, "VImaj7": 8,
-            "bVI7": 8, "bVII7": 10, "V7b9": 7, "Im7": 0, "IVm7": 5
+            "bVI7": 8, "bVII7": 10, "V7b9": 7
         }
     };
 
-    // Choose the appropriate scale degrees based on key type
     const degrees = isMinorKey ? scaleDegrees.minor : scaleDegrees.major;
     const degree = degrees[func];
 
     if (degree === undefined) {
         console.error(`Invalid chord function: ${func} in ${isMinorKey ? 'minor' : 'major'} context`);
-        return null;
+        return "C"; // Fallback to C major
     }
 
     const note = NOTES[(keyIndex + degree) % 12];
     let quality = '';
 
-    // Enhanced quality determination
-    if (func.includes('maj7')) quality = 'maj7';
-    else if (func.includes('m7b5') || func.includes('ø')) quality = 'min7b5';
-    else if (func.includes('7b9')) quality = '7b9';
-    else if (func.includes('m7') || func.match(/^i[mv]7/)) quality = 'm7';
-    else if (func.includes('7')) quality = '7';
-    else if (func.match(/^[a-z]/) && !func.includes('maj')) quality = 'm';
-    else if (func.includes('°')) quality = 'dim';
-    else quality = 'major';
+    if (isMinorKey) {
+        if (func.includes('7b5') || func.includes('°')) quality = 'min7b5';
+        else if (func.includes('maj7')) quality = 'maj7';
+        else if (func.includes('m7') || func.match(/^i[mv]7/)) quality = 'min7';
+        else if (func.includes('7')) quality = 'dom7';
+        else if (func.match(/^[a-z]/)) quality = 'minor';
+        else quality = 'major';
+    } else {
+        if (func.includes('7b5')) quality = 'min7b5';
+        else if (func.includes('maj7')) quality = 'maj7';
+        else if (func.includes('m7')) quality = 'min7';
+        else if (func.includes('7') || func.includes('7b9')) quality = 'dom7';
+        else if (func.match(/^[a-z]/)) quality = 'minor';
+        else if (func.includes('°')) quality = 'min7b5';
+        else quality = 'major';
+    }
 
     return note + quality;
-}       
+}
+       
        function updateChordDropdownsForKey(progressionName, key) {
   const container = document.getElementById("chord-grid");
   container.innerHTML = ""; // Clear current chord selectors
@@ -1068,13 +1073,11 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
         return;
     }
 
-    // Fade out current chord if it exists
     if (currentChordGain) {
         currentChordGain.gain.setValueAtTime(currentChordGain.gain.value, time);
         currentChordGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
     }
 
-    // Set up gain nodes for mixing dry/wet signal
     const mainGainNode = audioContext.createGain();
     const dryGainNode = audioContext.createGain();
     const wetGainNode = audioContext.createGain();
@@ -1089,77 +1092,65 @@ function playChord(root, quality, time = audioContext.currentTime, duration = 1)
 
     currentChordGain = mainGainNode;
 
-    // Define chord notes based on root and quality
     const rootIndex = NOTES.indexOf(root);
     const chordNotes = [root];
-    
-    // Add third
-    const thirdIndex = (rootIndex + (quality.includes('minor') ? 3 : 4)) % 12;
-    chordNotes.push(NOTES[thirdIndex]);
-    
-    // Add fifth
-    const fifthIndex = (rootIndex + 7) % 12;
-    chordNotes.push(NOTES[fifthIndex]);
-    
-    // Add seventh if needed
-    if (quality.includes('7')) {
-        const seventhIndex = (rootIndex + (quality.includes('maj7') ? 11 : 10)) % 12;
-        chordNotes.push(NOTES[seventhIndex]);
-    }
 
-    // Add diminished fifth for min7b5
-    if (quality === 'min7b5') {
-        chordNotes[2] = NOTES[(rootIndex + 6) % 12]; // Replace perfect 5th with diminished 5th
+    const qualityMap = {
+        'major': { third: 4, fifth: 7 },
+        'minor': { third: 3, fifth: 7 },
+        'dom7': { third: 4, fifth: 7, seventh: 10 },
+        'maj7': { third: 4, fifth: 7, seventh: 11 },
+        'min7': { third: 3, fifth: 7, seventh: 10 },
+        'min7b5': { third: 3, fifth: 6, seventh: 10 }
+    };
+
+    const chord = qualityMap[quality] || qualityMap['major'];
+    chordNotes.push(NOTES[(rootIndex + chord.third) % 12]);
+    chordNotes.push(NOTES[(rootIndex + chord.fifth) % 12]);
+    if (chord.seventh !== undefined) {
+        chordNotes.push(NOTES[(rootIndex + chord.seventh) % 12]);
     }
 
     console.log(`Playing chord: ${root} ${quality}`, chordNotes);
-    
-    // ADSR envelope parameters
+
     const attackTime = 0.08;
     const decayTime = 0.15;
     const sustainLevel = 0.7;
     const releaseTime = 0.4;
 
     if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
-        // Use piano samples with different octaves for better voicing
         chordNotes.forEach((note, index) => {
-            // Spread the notes across octaves for fuller sound
-            const noteOctave = 3 + (index === 0 ? -1 : 0); // Root note one octave lower
-            
+            const noteOctave = 3 + (index === 0 ? -1 : 0);
             const pitchData = getPitchShiftedNote(note, noteOctave);
             if (pitchData && pianoSampleBuffers[pitchData.sampleKey]) {
                 const source = audioContext.createBufferSource();
                 const noteGain = audioContext.createGain();
-                
+
                 source.buffer = pianoSampleBuffers[pitchData.sampleKey];
                 source.playbackRate.value = pitchData.playbackRate;
-                
-                // Apply ADSR envelope
+
                 noteGain.gain.setValueAtTime(0, time);
                 noteGain.gain.linearRampToValueAtTime(chordVolume * 0.25, time + attackTime);
                 noteGain.gain.linearRampToValueAtTime(chordVolume * 0.25 * sustainLevel, time + attackTime + decayTime);
                 noteGain.gain.setValueAtTime(chordVolume * 0.25 * sustainLevel, time + duration - releaseTime);
                 noteGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-                
+
                 source.connect(noteGain);
                 noteGain.connect(mainGainNode);
-                
+
                 source.start(time);
                 source.stop(time + duration);
-                
-                console.log(`Played chord note ${note}${noteOctave} using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
             } else {
-                console.warn(`No sample available for ${note}${noteOctave}, using fallback`);
                 playFallbackChordNote(note, noteOctave, chordVolume * 0.25, time, duration, mainGainNode);
             }
         });
     } else {
-        // Fallback to oscillators if samples not loaded
         chordNotes.forEach((note, index) => {
             const noteOctave = 3 + (index === 0 ? -1 : 0);
             playFallbackChordNote(note, noteOctave, chordVolume * 0.25, time, duration, mainGainNode);
         });
     }
+}
 
     // Log chord completion
     console.log(`Chord playback completed: ${root} ${quality}`);
@@ -1277,27 +1268,19 @@ let isTransposing = false;
     
     function updateProgressionKey(newKey) {
     const measures = document.getElementsByClassName('measure');
-    if (measures.length <= 1) return;
-
     const selectedProgression = document.getElementById('progression-select').value;
-    if (selectedProgression === 'none') return;
+    if (selectedProgression === 'none' || measures.length === 0) return;
 
-    // Get the progression's Roman numeral structure
-    const progressionChords = progressions[selectedProgression];
-    if (!progressionChords) {
-        console.error(`No progression found for ${selectedProgression}`);
-        return;
-    }
+    const progression = progressions[selectedProgression];
+    if (!progression) return;
 
-    // Update all measures based on the new key
     Array.from(measures).forEach((measure, index) => {
-        const chordFunc = progressionChords[index];
-        if (!chordFunc) return; // Skip if no chord defined for this measure
+        const chordFunc = progression.progression[index];
+        if (!chordFunc) return;
 
         const newChord = getChordFromFunction(newKey, chordFunc);
         const [root, quality] = parseChord(newChord);
 
-        // Update chord controls
         const rootNoteSelect = measure.querySelector('.root-note');
         const qualitySelect = measure.querySelector('.chord-quality');
         const secondKeySelect = measure.querySelector('.second-key');
@@ -1305,11 +1288,12 @@ let isTransposing = false;
 
         rootNoteSelect.value = root;
         qualitySelect.value = mapQualityToDropdown(quality);
-        secondKeySelect.value = root; // Sync scale key with chord root
-
-        // Suggest a default scale based on chord quality
+        secondKeySelect.value = root;
         scaleSelect.value = suggestScaleForQuality(quality);
     });
+
+    updateFretboardForMeasure(0);
+}
 
     // Update the fretboard
     const chordFretboard = document.getElementById('chord-fretboard');
@@ -1333,32 +1317,29 @@ function parseChord(chord) {
 }
 
 function mapQualityToDropdown(quality) {
-    const qualityMap = {
-        '7': 'dom7',
-        '7b9': 'dom7',
-        'm7': 'min7',
-        'maj7': 'maj7',
-        'm': 'minor',
-        '': 'major',
-        'min7b5': 'min7b5',
-        'm7b5': 'min7b5',
-        'dim': 'dim'
-    };
-    return qualityMap[quality] || 'major';
-}
-
-// Suggest a scale based on chord quality
-function suggestScaleForQuality(quality) {
     switch (quality) {
-        case '7': return 'mixolydian';
-        case 'm7': return 'dorian';
-        case 'maj7': return 'major';
-        case 'm': return 'minor';
-        case 'min7b5': return 'locrian';
+        case 'dom7': return 'dom7';
+        case 'min7': return 'min7';
+        case 'maj7': return 'maj7';
+        case 'minor': return 'minor';
+        case 'major': return 'major';
+        case 'min7b5': return 'min7b5';
         default: return 'major';
     }
 }
 
+function suggestScaleForQuality(quality) {
+    switch (quality) {
+        case 'dom7': return 'mixolydian';
+        case 'min7': return 'dorian';
+        case 'maj7': return 'major';
+        case 'minor': return 'minor';
+        case 'major': return 'major';
+        case 'min7b5': return 'locrian';
+        default: return 'major';
+    }
+}
+       
 function startPlayback() {
     if (!audioContext) initAudioContext();
     if (isPlaying) return; // Prevent multiple intervals
@@ -1414,38 +1395,32 @@ async function playBeat() {
 
     const measures = document.getElementsByClassName('measure');
     const timeSignature = parseInt(document.getElementById('time-signature').value);
-    
+
     if (measures.length > 0) {
         const currentMeasureElement = measures[currentMeasure];
         if (currentMeasureElement) {
-            const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-            const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
-            const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
-            const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+            const root = currentMeasureElement.querySelector('.root-note').value;
+            const quality = currentMeasureElement.querySelector('.chord-quality').value;
+            const scaleRoot = currentMeasureElement.querySelector('.second-key').value;
+            const scaleType = currentMeasureElement.querySelector('.scale-select').value;
 
-            if (root && quality && scaleRoot && scaleType) {
-                const chordTuning = TUNINGS[document.getElementById('chord-tuning').value];
-                updateFretboardNotes(document.getElementById('chord-fretboard'), scaleRoot, scaleType, chordTuning);
+            const chordTuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+            updateFretboardNotes(document.getElementById('chord-fretboard'), scaleRoot, scaleType, chordTuning);
 
-                const beatDuration = 60 / tempo;
-                if (timeSignature === 4) {
-                    if (currentBeat === 0) {
-                        playChord(root, quality, audioContext.currentTime, beatDuration * 2, false);
-                    } else if (currentBeat === 4) {
-                        playChord(root, quality, audioContext.currentTime, beatDuration * 2, true);
-                    }
-                } else if (currentBeat === 0) {
-                    playChord(root, quality, audioContext.currentTime, beatDuration * 4, false);
+            const beatDuration = 60 / tempo;
+            if (timeSignature === 4) {
+                if (currentBeat % 4 === 0) { // Play chord on beats 1 and 3 (quarter notes)
+                    playChord(root, quality, audioContext.currentTime, beatDuration * 4);
                 }
+            } else if (currentBeat === 0) {
+                playChord(root, quality, audioContext.currentTime, beatDuration * timeSignature);
             }
         }
     }
 
-    if (measures.length > 0) {
-        document.querySelectorAll('.measure').forEach((measure, index) => {
-            measure.classList.toggle('active', index === currentMeasure);
-        });
-    }
+    document.querySelectorAll('.measure').forEach((measure, index) => {
+        measure.classList.toggle('active', index === currentMeasure);
+    });
 
     const totalBeats = timeSignature === 4 ? 8 : timeSignature;
     currentBeat = (currentBeat + 1) % totalBeats;
@@ -1453,7 +1428,7 @@ async function playBeat() {
         currentMeasure = (currentMeasure + 1) % measures.length;
     }
 }
-
+ 
     function stopPlayback() {
     clearInterval(intervalId);
     intervalId = null;
@@ -1735,7 +1710,7 @@ function loadProgression(progressionKey) {
     const measuresDiv = document.getElementById('measures');
     measuresDiv.innerHTML = ''; // Clear existing measures
 
-    // Set the key selector to the default key for this progression
+    // Set the key selector to the default key
     const defaultKey = progression.defaultKey;
     document.getElementById('keySelect').value = standardizeNoteName(defaultKey.replace(/m$|min$/, ''));
 
@@ -1753,12 +1728,12 @@ function loadProgression(progressionKey) {
                     ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
                 </select>
                 <select class="chord-quality">
-                    <option value="major" ${quality === '' || quality === 'maj' ? 'selected' : ''}>Major</option>
-                    <option value="minor" ${quality === 'm' ? 'selected' : ''}>Minor</option>
-                    <option value="dom7" ${quality === '7' || quality === '7b9' ? 'selected' : ''}>7</option>
+                    <option value="major" ${quality === 'major' ? 'selected' : ''}>Major</option>
+                    <option value="minor" ${quality === 'minor' ? 'selected' : ''}>Minor</option>
+                    <option value="dom7" ${quality === 'dom7' ? 'selected' : ''}>7</option>
                     <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
-                    <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
-                    <option value="min7b5" ${quality === 'min7b5' || quality === 'm7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
+                    <option value="min7" ${quality === 'min7' ? 'selected' : ''}>Min7</option>
+                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
                 </select>
             </div>
             <div class="scale-controls">
@@ -1774,6 +1749,58 @@ function loadProgression(progressionKey) {
             </div>
         `;
 
+        const rootNoteSelect = newMeasure.querySelector('.root-note');
+        const secondKeySelect = newMeasure.querySelector('.second-key');
+        const qualitySelect = newMeasure.querySelector('.chord-quality');
+        const scaleSelect = newMeasure.querySelector('.scale-select');
+
+        rootNoteSelect.addEventListener('change', function () {
+            secondKeySelect.value = this.value;
+            if (index === 0) {
+                updateProgressionKey(this.value);
+            }
+            updateFretboardForMeasure(index);
+        });
+
+        qualitySelect.addEventListener('change', function () {
+            scaleSelect.value = suggestScaleForQuality(this.value);
+            updateFretboardForMeasure(index);
+        });
+
+        secondKeySelect.addEventListener('change', () => updateFretboardForMeasure(index));
+        scaleSelect.addEventListener('change', () => updateFretboardForMeasure(index));
+
+        newMeasure.addEventListener('dragstart', dragStart);
+        newMeasure.addEventListener('dragover', dragOver);
+        newMeasure.addEventListener('drop', drop);
+        newMeasure.addEventListener('dragend', dragEnd);
+
+        measuresDiv.appendChild(newMeasure);
+    });
+
+    updateMeasureNumbers();
+    addFirstChordListener();
+
+    // Update fretboard for the first measure
+    updateFretboardForMeasure(0);
+}
+       function updateFretboardForMeasure(index) {
+    const measures = document.getElementsByClassName('measure');
+    if (index >= measures.length) return;
+
+    const measure = measures[index];
+    const chordRoot = measure.querySelector('.root-note').value;
+    const chordQuality = measure.querySelector('.chord-quality').value;
+    const scaleRoot = measure.querySelector('.second-key').value;
+    const scaleType = measure.querySelector('.scale-select').value;
+
+    const chordFretboard = document.getElementById('chord-fretboard');
+    const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+
+    updateFretboardNotes(chordFretboard, scaleRoot, scaleType, tuning);
+    document.getElementById('scale-display').textContent = `${scaleRoot} ${scaleType} over ${chordRoot} ${chordQuality}`;
+}
+       
         // Add event listeners and drag-drop handlers
         const rootNoteSelect = newMeasure.querySelector('.root-note');
         const secondKeySelect = newMeasure.querySelector('.second-key');
@@ -1992,15 +2019,11 @@ function createFretboardContainer(index) {
     }
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Create initial UI elements
     createBeats();
     initializeStaticFretboards();
     initializeDragAndDrop();
 
-    // Generate key options HTML
     const keyOptions = createKeyOptions();
-    
-    // Update all key selectors with flat notation
     document.getElementById('keySelect').innerHTML = keyOptions;
     document.querySelectorAll('.root-note, .second-key').forEach(select => {
         select.innerHTML = keyOptions;
@@ -2009,14 +2032,12 @@ document.addEventListener('DOMContentLoaded', function () {
         select.innerHTML = keyOptions;
     });
 
-    // Initialize chord fretboard
     const chordFretboard = document.getElementById('chord-fretboard');
     if (chordFretboard) {
         createFretboard(chordFretboard, TUNINGS.standard);
-        updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
+        updateFretboardNotes(chordFretboard, 'Bb', 'mixolydian', TUNINGS.standard);
     }
 
-    // Add key select event listener for transposition
     document.getElementById('keySelect').addEventListener('change', function() {
         const newKey = standardizeNoteName(this.value);
         const selectedProgression = document.getElementById('progression-select').value;
@@ -2025,7 +2046,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Add progression select event listener
     document.getElementById('progression-select').addEventListener('change', function() {
         const selectedProgression = this.value;
         if (selectedProgression !== 'none') {
@@ -2033,7 +2053,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Add start-stop button event listener
     document.getElementById('start-stop').addEventListener('click', function () {
         if (!audioContext) initAudioContext();
         if (isPlaying) {
@@ -2043,7 +2062,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Add tempo slider event listener
     document.getElementById('tempo').addEventListener('input', function () {
         tempo = parseInt(this.value);
         document.getElementById('tempo-display').textContent = `${tempo} BPM`;
@@ -2053,7 +2071,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Add time signature event listener
     document.getElementById('time-signature').addEventListener('change', function () {
         createBeats();
         if (isPlaying) {
@@ -2062,7 +2079,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Add tap tempo button event listener
     document.getElementById('tap-tempo').addEventListener('click', function () {
         const now = Date.now();
         if (now - lastTapTime > 2000) tapTimes = [];
@@ -2086,7 +2102,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Add metronome volume slider event listener
     document.getElementById('metronome-volume').addEventListener('input', function () {
         const metronomeVolume = parseFloat(this.value);
         console.log(`Metronome volume set to: ${metronomeVolume}`);
@@ -2096,37 +2111,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Initialize audio context
     initializeAudio().then(() => {
         console.log("Audio context initialized");
     }).catch(error => {
         console.error("Error initializing audio context:", error);
     });
 
-    // Clear any existing measures and set up default two-measure progression
-    const measures = document.getElementById('measures');
-    measures.innerHTML = '';
-
-    // Add the first measure: C major
-    addMeasure();
-    const firstMeasure = measures.children[0];
-    firstMeasure.querySelector('.root-note').value = 'C';
-    firstMeasure.querySelector('.chord-quality').value = 'major';
-    firstMeasure.querySelector('.second-key').value = 'C';
-    firstMeasure.querySelector('.scale-select').value = 'major';
-
-    // Add the second measure: G7
-    addMeasure();
-    const secondMeasure = measures.children[1];
-    secondMeasure.querySelector('.root-note').value = 'G';
-    secondMeasure.querySelector('.chord-quality').value = 'dom7';
-    secondMeasure.querySelector('.second-key').value = 'G';
-    secondMeasure.querySelector('.scale-select').value = 'mixolydian';
-
-    // Add the first chord listener
-    addFirstChordListener();
+    // Load Jazz Blues by default
+    document.getElementById('progression-select').value = 'jazz_blues';
+    loadProgression('jazz_blues');
 });
-
+       
 // Window load event for double-checking fretboard initialization
 window.onload = () => {
     const chordFretboard = document.getElementById('chord-fretboard');
