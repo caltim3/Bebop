@@ -438,15 +438,6 @@
     let pianoSampleBuffers = {};
     let samplesLoaded = false;
 
-async function initAudioContext() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        await loadSounds();
-        await setupReverb();
-    }
-    return audioContext;
-}
-      
     // Piano sample configuration
     // Piano sample configuration
 const SAMPLED_NOTES = ['A', 'C', 'Ds', 'Fs'];
@@ -481,12 +472,25 @@ const ENHARMONIC_MAP = {
     'F#': 'Gb',
     'G#': 'Ab',
     'A#': 'Bb',
-    'Db': 'C#',
-    'Eb': 'D#',
-    'Gb': 'F#',
-    'Ab': 'G#',
-    'Bb': 'A#'
+    // Reverse mappings for consistency
+    'Db': 'Db',
+    'Eb': 'Eb',
+    'Gb': 'Gb',
+    'Ab': 'Ab',
+    'Bb': 'Bb'
 };
+
+       
+async function initAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        await loadSounds();
+        await setupReverb();
+    }
+    return audioContext;
+}
+      
+       
     // Function to standardize note names to flat notation
 function standardizeNoteName(note) {
     return ENHARMONIC_MAP[note] || note;
