@@ -15,17 +15,25 @@
       padding: 20px;
       background-color: #1f618d;
       transition: background-color 0.3s;
-    }
-    body.dark-mode {
-      background-color: #333;
-    }
-    .app-section {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-    }
+/* Update these CSS rules */
+body.dark-mode {
+    background-color: #1f618d;
+}
+
+.app-section {
+    background: white;
+    transition: background-color 0.3s;
+}
+
+body.dark-mode .app-section {
+    background: #6096ba;
+    color: white;
+}
+
+body.dark-mode .fretboard-container {
+    background: #6096ba;
+    color: white;
+}
     .fretboards-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -1430,7 +1438,14 @@
     document.addEventListener("DOMContentLoaded", function () {
       createBeats();
       initializeStaticFretboards();
-      loadProgression("iv"); // Load the default I-V progression at launch
+      // Set the default value in the select element
+    const progressionSelect = document.getElementById("progression-select");
+    progressionSelect.value = "iv";
+    
+    // Load the I-V progression
+    loadProgression("iv");
+    addFirstChordListener();
+    // ... rest of the initialization code ...
       addFirstChordListener();
       document.getElementById("keySelect").innerHTML = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"].map(n => `<option value="${n}">${n}</option>`).join("");
       document.querySelectorAll(".root-note, .second-key").forEach(select => {
