@@ -1791,53 +1791,65 @@ function updateFretboardForMeasure(index) {
 
     updateFretboardNotes(chordFretboard, scaleRoot, scaleType, tuning);
     document.getElementById('scale-display').textContent = `${scaleRoot} ${scaleType} over ${chordRoot} ${chordQuality}`;
-}           
-           function updateFretboardForMeasure(index) {
-    const measures = document.getElementsByClassName('measure');
-    if (index >= measures.length) return;
-
-    const measure = measures[index];
-    const chordRoot = measure.querySelector('.root-note').value;
-    const chordQuality = measure.querySelector('.chord-quality').value;
-    const scaleRoot = measure.querySelector('.second-key').value;
-    const scaleType = measure.querySelector('.scale-select').value;
-
-    const chordFretboard = document.getElementById('chord-fretboard');
-    const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-
-    updateFretboardNotes(chordFretboard, scaleRoot, scaleType, tuning);
-    document.getElementById('scale-display').textContent = `${scaleRoot} ${scaleType} over ${chordRoot} ${chordQuality}`;
 }
-       
-        // Add event listeners and drag-drop handlers
-        const rootNoteSelect = newMeasure.querySelector('.root-note');
-        const secondKeySelect = newMeasure.querySelector('.second-key');
-        const qualitySelect = newMeasure.querySelector('.chord-quality');
-        const scaleSelect = newMeasure.querySelector('.scale-select');
 
-        rootNoteSelect.addEventListener('change', function () {
-            secondKeySelect.value = this.value;
-            if (index === 0) {
-                updateProgressionKey(this.value);
-            }
+function createFretboardContainer(index) {
+    const container = document.createElement('div');
+    container.className = 'fretboard-container';
+    container.innerHTML = `
+        <div class="scale-display" id="scale-display-${index}">C major</div>
+        <div class="controls">
+            <select class="tuning-select">
+                <option value="standard">Standard (EADGBE)</option>
+                <option value="dropD">Drop D (DADGBE)</option>
+                <option value="openG">Open G (DGDGBD)</option>
+                <option value="DADGAD">DADGAD</option>
+                <option value="openE">Open E (EBEG#BE)</option>
+            </select>
+            <select class="keySelect" id="key-${index}">
+                ${createKeyOptions()}
+            </select>
+            <select class="scale-select" id="scale-${index}">
+                ${Object.keys(SCALES).map(scale => `<option value="${scale}">${scale}</option>`).join('')}
+            </select>
+        </div>
+        <div class="fretboard" id="fretboard-${index}"></div>
+    `;
+    return container;
+}
+
+function initializeStaticFretboards() {
+    const grid = document.querySelector('.fretboards-grid');
+    grid.innerHTML = '';
+
+    for (let i = 1; i <= 4; i++) {
+        const container = createFretboardContainer(i);
+        grid.appendChild(container);
+
+        const fretboard = container.querySelector('.fretboard');
+        createFretboard(fretboard, TUNINGS.standard);
+        updateFretboardNotes(fretboard, 'C', 'major', TUNINGS.standard);
+
+        container.querySelector('.tuning-select').addEventListener('change', function() {
+            const tuning = TUNINGS[this.value];
+            const key = container.querySelector(`#key-${i}`).value;
+            const scale = container.querySelector(`#scale-${i}`).value;
+            updateFretboardNotes(fretboard, key, scale, tuning);
         });
 
-        qualitySelect.addEventListener('change', function () {
-            scaleSelect.value = suggestScaleForQuality(this.value);
+        container.querySelector(`#key-${i}`).addEventListener('change', function() {
+            const tuning = TUNINGS[container.querySelector('.tuning-select').value];
+            const scale = container.querySelector(`#scale-${i}`).value;
+            updateFretboardNotes(fretboard, this.value, scale, tuning);
         });
 
-        newMeasure.addEventListener('dragstart', dragStart);
-        newMeasure.addEventListener('dragover', dragOver);
-        newMeasure.addEventListener('drop', drop);
-        newMeasure.addEventListener('dragend', dragEnd);
-
-        measuresDiv.appendChild(newMeasure);
-    });
-
-    updateMeasureNumbers();
-    addFirstChordListener();
-}
-       
+        container.querySelector(`#scale-${i}`).addEventListener('change', function() {
+            const tuning = TUNINGS[container.querySelector('.tuning-select').value];
+            const key = container.querySelector(`#key-${i}`).value;
+            updateFretboardNotes(fretboard, key, this.value, tuning);
+        });
+    }
+}       
 function addMeasure() {
     const measuresDiv = document.getElementById('measures');
     const newMeasure = document.createElement('div');
