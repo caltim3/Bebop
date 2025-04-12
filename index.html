@@ -29,6 +29,15 @@
             margin-bottom: 30px;
         }
         .fretboard-container {
+    background-color: var(--fretboard-bg, white);
+}
+:root {
+    --fretboard-bg: white;
+}
+body.dark-mode {
+    --fretboard-bg: #6096ba;
+}
+.fretboard-container {
             background: white;
             padding: 20px;
             border-radius: 10px;
@@ -423,7 +432,15 @@
     </div>
 
    <script>
-    // Global state
+    
+    const metronome_sounds = ['default', 'kick', 'kick-half', 'snare', 'snare-half', 'hihat', 'silent'];
+    let currentMetronomeSound = 0;
+
+    function cycleMetronomeSound() {
+        currentMetronomeSound = (currentMetronomeSound + 1) % metronome_sounds.length;
+        return metronome_sounds[currentMetronomeSound];
+    }
+// Global state
     let audioContext = null;
     let isPlaying = false;
     let currentBeat = 0;
@@ -462,6 +479,18 @@ const PIANO_CONFIG = {
 };
 
 // Musical constants
+
+    const FLAT_KEYS = {
+        'Ab': 'G#',
+        'Bb': 'A#',
+        'Db': 'C#',
+        'Eb': 'D#',
+        'Gb': 'F#'
+    };
+
+    function standardizeNoteName(note) {
+        return FLAT_KEYS[note] || note;
+    }
 const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 const SAMPLE_NOTE_MAP = {
@@ -559,7 +588,13 @@ function transposeNote(note, semitones) {
         '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
     };
 
-   const progressions = {
+   
+    const defaultProgression = {
+        defaultKey: "C",
+        progression: ["I", "V7"]
+    };
+
+const progressions = {
   "jazz_blues": {
     defaultKey: "Bb",
     progression: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "II7", "V7", "I7", "V7"]
