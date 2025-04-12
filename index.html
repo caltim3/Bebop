@@ -841,9 +841,9 @@ async function initializeAudio() {
         }
     }, { once: true });
 
-   async function loadSounds() {
+async function loadSounds() {
     try {
-        const baseUrl = "./"; // Assumes sound files are in the same directory as index.html
+        const baseUrl = "./";
         const soundFiles = {
             'click': 'Click.wav',
             'hihat': 'HiHat.wav',
@@ -853,19 +853,17 @@ async function initializeAudio() {
         };
 
         for (let [type, filename] of Object.entries(soundFiles)) {
-            try {
-                const response = await fetch(baseUrl + filename);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const arrayBuffer = await response.arrayBuffer();
-                soundBuffers[type] = await audioContext.decodeAudioData(arrayBuffer);
-                log(`Loaded ${type} sound from ${filename}`);
-            } catch (error) {
-                console.error(`Failed to load ${filename}:`, error);
+            console.log(`Attempting to load ${filename}`);
+            const response = await fetch(baseUrl + filename);
+            if (!response.ok) {
+                console.error(`Failed to load ${filename}: HTTP ${response.status}`);
                 soundBuffers[type] = await createDrumSound(type);
-                log(`Using fallback synthetic sound for ${type}`);
+                console.log(`Using fallback synthetic sound for ${type}`);
+                continue;
             }
+            const arrayBuffer = await response.arrayBuffer();
+            soundBuffers[type] = await audioContext.decodeAudioData(arrayBuffer);
+            console.log(`Successfully loaded ${type} sound from ${filename}`);
         }
         
         updateLoadingStatus("Drum sounds loaded");
@@ -1932,100 +1930,59 @@ function addMeasure() {
     }
 
     function initializeDragAndDrop() {
-        const measures = document.getElementById('measures');
-        measures.addEventListener('dragstart', (e) => {
-            const measure = e.target.closest('.measure');
-            if (measure) {
-                e.dataTransfer.setData('text/plain', Array.from(measures.children).indexOf(measure));
-                measure.classList.add('dragging');
-            }
-        });
-        measures.addEventListener('dragend', (e) => {
-            const measure = e.target.closest('.measure');
-            if (measure) measure.classList.remove('dragging');
-        });
-        measures.addEventListener('dragover', (e) => e.preventDefault());
-        measures.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-            const toElement = e.target.closest('.measure');
-            if (!toElement) return;
-            const toIndex = Array.from(measures.children).indexOf(toElement);
-            const children = Array.from(measures.children);
-            const [movedMeasure] = children.splice(fromIndex, 1);
-            children.splice(toIndex, 0, movedMeasure);
-            measures.innerHTML = '';
-            children.forEach(child => measures.appendChild(child));
-            updateMeasureNumbers();
-        });
-    }
-
-// Container creation helper
-">C major</div>
-        <div class="controls">
-            <select class="tuning-select">
-                <option value="standard">Standard (EADGBE)</option>
-                <option value="dropD">Drop D (DADGBE)</option>
-                <option value="openG">Open G (DGDGBD)</option>
-                <option value="DADGAD">DADGAD</option>
-                <option value="openE">Open E (EBEG#BE)</option>
-            </select>
-            <select class="keySelect" id="key-${index}">
-                ${createKeyOptions()}
-            </select>
-            <select class="scale-select" id="scale-${index}">
-                ${Object.keys(SCALES).map(scale => `<option value="${scale}">${scale}</option>`).join('')}
-            </select>
-        </div>
-        <div class="fretboard" id="fretboard-${index}"></div>
-    `;
-    return container;
-}
-
-    `).value;
-                const scale = container.querySelector(`#scale-${i}`).value;
-                updateFretboardNotes(fretboard, key, scale, tuning);
-            });
-
-            container.querySelector(`#key-${i}`).addEventListener('change', function() {
-                const tuning = TUNINGS[container.querySelector('.tuning-select').value];
-                const scale = container.querySelector(`#scale-${i}`).value;
-                updateFretboardNotes(fretboard, this.value, scale, tuning);
-            });
-
-            container.querySelector(`#scale-${i}`).addEventListener('change', function() {
-                const tuning = TUNINGS[container.querySelector('.tuning-select').value];
-                const key = container.querySelector(`#key-${i}`).value;
-                updateFretboardNotes(fretboard, key, this.value, tuning);
-            });
+    const measures = document.getElementById('measures');
+    measures.addEventListener('dragstart', (e) => {
+        const measure = e.target.closest('.measure');
+        if (measure) {
+            e.dataTransfer.setData('text/plain', Array.from(measures.children).indexOf(measure));
+            measure.classList.add('dragging');
         }
-    }
-
-    function dragStart(e) {
-        e.dataTransfer.setData('text/plain', Array.from(document.querySelectorAll('.measure')).indexOf(this));
-        this.classList.add('dragging');
-    }
-
-    function dragOver(e) {
-        e.preventDefault();
-    }
-
-    function drop(e) {
+    });
+    measures.addEventListener('dragend', (e) => {
+        const measure = e.target.closest('.measure');
+        if (measure) measure.classList.remove('dragging');
+    });
+    measures.addEventListener('dragover', (e) => e.preventDefault());
+    measures.addEventListener('drop', (e) => {
         e.preventDefault();
         const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-        const toIndex = Array.from(document.querySelectorAll('.measure')).indexOf(this);
-        const measures = document.getElementById('measures');
+        const toElement = e.target.closest('.measure');
+        if (!toElement) return;
+        const toIndex = Array.from(measures.children).indexOf(toElement);
         const children = Array.from(measures.children);
         const [movedMeasure] = children.splice(fromIndex, 1);
         children.splice(toIndex, 0, movedMeasure);
         measures.innerHTML = '';
         children.forEach(child => measures.appendChild(child));
         updateMeasureNumbers();
-    }
+    });
+}
 
-    function dragEnd(e) {
-        this.classList.remove('dragging');
-    }
+function dragStart(e) {
+    e.dataTransfer.setData('text/plain', Array.from(document.querySelectorAll('.measure')).indexOf(this));
+    this.classList.add('dragging');
+}
+
+function dragOver(e) {
+    e.preventDefault();
+}
+
+function drop(e) {
+    e.preventDefault();
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    const toIndex = Array.from(document.querySelectorAll('.measure')).indexOf(this);
+    const measures = document.getElementById('measures');
+    const children = Array.from(measures.children);
+    const [movedMeasure] = children.splice(fromIndex, 1);
+    children.splice(toIndex, 0, movedMeasure);
+    measures.innerHTML = '';
+    children.forEach(child => measures.appendChild(child));
+    updateMeasureNumbers();
+}
+
+function dragEnd(e) {
+    this.classList.remove('dragging');
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     createBeats();
@@ -2130,8 +2087,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('progression-select').value = 'jazz_blues';
     loadProgression('jazz_blues');
 });
-       
-// Window load event for double-checking fretboard initialization
+
 window.onload = () => {
     const chordFretboard = document.getElementById('chord-fretboard');
     if (chordFretboard) {
@@ -2140,5 +2096,5 @@ window.onload = () => {
     }
 };
 </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92f57445edd6b016',t:'MTc0NDQ4OTUzOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('script');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
