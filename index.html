@@ -211,10 +211,6 @@
     </style>
 </head>
 <body>
-
-    <button id="dark-mode-toggle" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
-        Toggle Dark Mode
-    </button>
     <div class="app-section" id="chord-fretboard-section">
         <h1>BEBOP BLUEPRINT</h1>
         <h3>Fretflow - Dynamic Fretboard with Scales that Move with the Chord Progression</h3>
@@ -465,80 +461,6 @@ const PIANO_CONFIG = {
     fileFormat: 'ogg'
 };
 
-
-const ENHARMONIC_MAP = {
-    'C#': 'Db',
-    'D#': 'Eb',
-    'F#': 'Gb',
-    'G#': 'Ab',
-    'A#': 'Bb',
-    'Db': 'C#',
-    'Eb': 'D#',
-    'Gb': 'F#',
-    'Ab': 'G#',
-    'Bb': 'A#'
-};
-
-function standardizeNoteName(note) {
-    // Prefer flat notation for certain keys
-    const preferFlats = ['Db', 'Eb', 'Ab', 'Bb'];
-    if (ENHARMONIC_MAP[note]) {
-        return preferFlats.includes(ENHARMONIC_MAP[note]) ? ENHARMONIC_MAP[note] : note;
-    }
-    return note;
-}
-
-function initializeMetronome() {
-    const soundTypes = ['default', 'kick', 'kick-half', 'snare', 'snare-half', 'hihat', 'silent'];
-    let currentSoundIndex = 0;
-
-    document.querySelectorAll('.beat').forEach(beat => {
-        beat.addEventListener('click', function() {
-            currentSoundIndex = (currentSoundIndex + 1) % soundTypes.length;
-            this.dataset.sound = soundTypes[currentSoundIndex];
-            updateBeatVisual(this, soundTypes[currentSoundIndex]);
-        });
-    });
-}
-
-function updateBeatVisual(beatElement, soundType) {
-    const colors = {
-        'default': '#1F618D',
-        'kick': '#BD2031',
-        'kick-half': '#FF6B6B',
-        'snare': '#4CAF50',
-        'snare-half': '#81C784',
-        'hihat': '#FFA726',
-        'silent': '#9E9E9E'
-    };
-    beatElement.style.backgroundColor = colors[soundType] || colors.default;
-}
-
-function loadProgression(progressionName) {
-    const progression = progressions[progressionName];
-    if (!progression) return;
-
-    const measuresDiv = document.getElementById('measures');
-    measuresDiv.innerHTML = '';
-
-    // Default to C major if no key selected
-    const keySelect = document.getElementById('keySelect');
-    const currentKey = keySelect.value || 'C';
-
-    progression.progression.forEach((chordFunc, index) => {
-        const chord = getChordFromFunction(currentKey, chordFunc);
-        addMeasureWithChord(chord, index);
-    });
-
-    updateMeasureNumbers();
-    addFirstChordListener();
-}
-
-function addMeasureWithChord(chord, index) {
-    const [root, quality] = parseChord(chord);
-    const measure = createMeasureElement(root, quality, index);
-    document.getElementById('measures').appendChild(measure);
-}
 // Musical constants
 const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
@@ -559,12 +481,11 @@ const ENHARMONIC_MAP = {
     'F#': 'Gb',
     'G#': 'Ab',
     'A#': 'Bb',
-    // Reverse mappings
-    'Db': 'Db',
-    'Eb': 'Eb',
-    'Gb': 'Gb',
-    'Ab': 'Ab',
-    'Bb': 'Bb'
+    'Db': 'C#',
+    'Eb': 'D#',
+    'Gb': 'F#',
+    'Ab': 'G#',
+    'Bb': 'A#'
 };
     // Function to standardize note names to flat notation
 function standardizeNoteName(note) {
@@ -628,6 +549,13 @@ function transposeNote(note, semitones) {
     };
 
     const DRUM_PATTERNS = {
+    '2': { kick: [1, 0], snare: [0, 1], hihat: [1, 1] },
+    '3': { kick: [1, 0, 0], snare: [0, 1, 0], hihat: [1, 1, 1] },
+    '4': { 
+        kick: [1, 0, 0, 0, 1, 0, 0, 0], 
+        snare: [0, 0, 1, 0, 0, 0, 1, 0], 
+        hihat: [1, 1, 1, 1, 1, 1, 1, 1] 
+    },
         '2': { kick: [1, 0], snare: [0, 1], hihat: [1, 1] },
         '3': { kick: [1, 0, 0], snare: [0, 1, 0], hihat: [1, 1, 1] },
         '4': { kick: [1, 0, 0, 0, 1, 0, 0, 0], snare: [0, 0, 1, 0, 0, 0, 1, 0], hihat: [1, 1, 1, 1, 1, 1, 1, 1] },
@@ -1255,7 +1183,15 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
     console.log(`Played fallback chord note ${note}${octave} at ${frequency}Hz`);
 }
 
-    async function playMetronomeSound(volume) {
+    async const METRONOME_SOUNDS = ['default', 'kick', 'kick-half', 'snare', 'snare-half', 'hihat', 'silent'];
+let currentMetronomeSound = 0;
+
+function cycleMetronomeSound() {
+    currentMetronomeSound = (currentMetronomeSound + 1) % METRONOME_SOUNDS.length;
+    return METRONOME_SOUNDS[currentMetronomeSound];
+}
+
+function playMetronomeSound(volume) {
     if (!audioContext || audioContext.state === 'suspended') {
         await initializeAudio();
         return;
@@ -2038,29 +1974,13 @@ function createFretboardContainer(index) {
         this.classList.remove('dragging');
     }
 
+// Default I-V progression
+const DEFAULT_PROGRESSION = {
+    defaultKey: "C",
+    progression: ["I", "V7"]
+};
 
-document.addEventListener('DOMContentLoaded', async function() {
-    // Initialize audio context
-    await initializeAudio();
-
-    // Set default progression (I-V)
-    loadProgression('2_5_1');  // Using existing II-V-I progression but modified
-
-    // Set up dark mode toggle
-    document.getElementById('dark-mode-toggle').addEventListener('click', function() {
-        document.body.classList.toggle('dark-mode');
-    });
-
-    // Initialize metronome with improved sound handling
-    createBeats();
-    initializeMetronome();
-
-    // Initialize fretboards
-    initializeStaticFretboards();
-
-    // Set up other event listeners
-    setupEventListeners();
-});
+document.addEventListener('DOMContentLoaded', function () {
     // Create initial UI elements
     createBeats();
     initializeStaticFretboards();
