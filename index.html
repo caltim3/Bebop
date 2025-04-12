@@ -663,23 +663,11 @@ const noteMap = [
 ];
 
 // Converts note name to index in noteMap
-function getNoteIndex(note) {
-  return noteMap.indexOf(note);
-}
+// Note index helper
+
 
 // Get chord from Roman numeral (e.g. "ii", "V7") based on a root key
 function getChordFromFunction(key, func) {
-    if (!key || !func) {
-        console.warn('Invalid parameters in getChordFromFunction:', { key, func });
-        return 'C';  // Default fallback
-    }
-    const isMinorKey = key.endsWith('m') || key.endsWith('min');
-    const rootKey = key.replace(/m$|min$/, '');
-    const keyIndex = getNoteIndex(standardizeNoteName(rootKey));
-    if (keyIndex === -1) {
-        console.warn('Invalid key in getChordFromFunction:', key);
-        return 'C';  // Default fallback
-    }
     const isMinorKey = key.endsWith('m') || key.endsWith('min');
     const rootKey = key.replace(/m$|min$/, '');
     const keyIndex = getNoteIndex(standardizeNoteName(rootKey));
@@ -824,26 +812,6 @@ function getPitchShiftedNote(note, octave) {
     // Audio initialization
    // Update this function to be async
 async function initializeAudio() {
-    try {
-        if (!audioContext) {
-            audioContext = await initAudioContext();
-        }
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-        if (!Object.keys(soundBuffers).length) {
-            await loadSounds();
-        }
-        if (!samplesLoaded) {
-            await loadPianoSamples();
-        }
-        return audioContext.state === 'running';
-    } catch (error) {
-        console.error("Failed to initialize audio context:", error);
-        updateLoadingStatus("Audio initialization failed. Please refresh the page.");
-        return false;
-    }
-}
     try {
         if (!audioContext) {
             audioContext = await initAudioContext();
@@ -1333,13 +1301,6 @@ let isTransposing = false;
 
 // Helper function to parse chord notation (e.g., "C7" -> ["C", "dom7"])
 function parseChord(chord) {
-    if (!chord) return ['C', 'major'];  // Default fallback
-    const rootMatch = chord.match(/^[A-G][b#]?/);
-    if (!rootMatch) return ['C', 'major'];  // Default fallback
-    const root = rootMatch[0];
-    const quality = chord.substring(rootMatch[0].length) || 'major';
-    return [root, quality];
-}
     // Enhanced regex to capture more complex chord qualities
     const rootMatch = chord.match(/^[A-G][b#]?/);
     const root = rootMatch ? rootMatch[0] : 'C';
@@ -1862,6 +1823,7 @@ function updateFretboardForMeasure(index) {
 }
 
 
+// Initialize fretboards
 function initializeStaticFretboards() {
     const grid = document.querySelector('.fretboards-grid');
     grid.innerHTML = '';
@@ -1998,11 +1960,8 @@ function addMeasure() {
         });
     }
 
-function createFretboardContainer(index) {
-    const container = document.createElement('div');
-    container.className = 'fretboard-container';
-    container.innerHTML = `
-        <div class="scale-display" id="scale-display-${index}">C major</div>
+// Container creation helper
+">C major</div>
         <div class="controls">
             <select class="tuning-select">
                 <option value="standard">Standard (EADGBE)</option>
@@ -2023,21 +1982,7 @@ function createFretboardContainer(index) {
     return container;
 }
 
-    function initializeStaticFretboards() {
-        const grid = document.querySelector('.fretboards-grid');
-        grid.innerHTML = '';
-
-        for (let i = 1; i <= 4; i++) {
-            const container = createFretboardContainer(i);
-            grid.appendChild(container);
-
-            const fretboard = container.querySelector('.fretboard');
-            createFretboard(fretboard, TUNINGS.standard);
-            updateFretboardNotes(fretboard, 'C', 'major', TUNINGS.standard);
-
-            container.querySelector('.tuning-select').addEventListener('change', function() {
-                const tuning = TUNINGS[this.value];
-                const key = container.querySelector(`#key-${i}`).value;
+    `).value;
                 const scale = container.querySelector(`#scale-${i}`).value;
                 updateFretboardNotes(fretboard, key, scale, tuning);
             });
@@ -2082,12 +2027,7 @@ function createFretboardContainer(index) {
         this.classList.remove('dragging');
     }
 
-document.addEventListener('DOMContentLoaded', async function () {
-    try {
-        await initializeAudio();
-        createBeats();
-        initializeStaticFretboards();
-        initializeDragAndDrop();
+document.addEventListener('DOMContentLoaded', function () {
     createBeats();
     initializeStaticFretboards();
     initializeDragAndDrop();
