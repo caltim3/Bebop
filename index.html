@@ -223,6 +223,7 @@
             <span>Fretboard Volume:</span>
             <input type="range" id="chord-fretboard-volume" min="0" max="1" step="0.1" value="0.3">
         </div>
+        <button id="dark-mode-toggle" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">Toggle Dark Mode</button>
         <div class="fretboard-container">
             <div class="scale-display" id="scale-display"></div>
             <div class="controls">
@@ -460,6 +461,18 @@ const PIANO_CONFIG = {
 // Musical constants
 const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
+
+function standardizeNoteName(note) {
+    const flatToSharp = {
+        'Db': 'C#',
+        'Eb': 'D#',
+        'Gb': 'F#',
+        'Ab': 'G#',
+        'Bb': 'A#'
+    };
+    return flatToSharp[note] || note;
+}
+       
 const SAMPLE_NOTE_MAP = {
     'Gb': 'Fs',  // Map Gb to Fs for sample lookup
     'Db': 'Cs',  // Though we don't have this sample
@@ -583,6 +596,10 @@ function transposeNote(note, semitones) {
     };
 
    const progressions = {
+    "I-V": {
+    defaultKey: "C",
+    progression: ["I", "V7"]
+    },  
   "jazz_blues": {
     defaultKey: "Bb",
     progression: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "II7", "V7", "I7", "V7"]
@@ -1223,38 +1240,68 @@ async function playMetronomeSound(volume) {
 
     if (!currentBeatElement || finalVolume <= 0) return;
 
+    // Get the current beat's sound type from its data attribute
     const beatSound = currentBeatElement.dataset.sound || 'default';
 
+    // Handle different sound types
     if (soundType === 'click') {
-        playBuffer(soundBuffers['click'] || await createDrumSound('click'), finalVolume);
-    } else if (soundType === 'woodblock') {
-        playBuffer(soundBuffers['woodblock'] || await createDrumSound('woodblock'), finalVolume);
-    } else if (soundType === 'drums') {
+        // For click sound, play on quarter notes only (even-numbered beats in 4/4)
         if (timeSignature === 4) {
+            if (currentBeat % 2 === 0) {
+                playBuffer(soundBuffers['click'] || await createDrumSound('click'), finalVolume);
+            }
+        } else {
+            playBuffer(soundBuffers['click'] || await createDrumSound('click'), finalVolume);
+        }
+    } 
+    else if (soundType === 'woodblock') {
+        // For woodblock, play on quarter notes only (even-numbered beats in 4/4)
+        if (timeSignature === 4) {
+            if (currentBeat % 2 === 0) {
+                playBuffer(soundBuffers['woodblock'] || await createDrumSound('woodblock'), finalVolume);
+            }
+        } else {
+            playBuffer(soundBuffers['woodblock'] || await createDrumSound('woodblock'), finalVolume);
+        }
+    } 
+    else if (soundType === 'drums') {
+        if (timeSignature === 4) {
+            // In 4/4 time:
+            // - Hi-hat plays on every eighth note
+            // - Kick on beats 1 and 3 (currentBeat 0 and 4)
+            // - Snare on beats 2 and 4 (currentBeat 2 and 6)
+            
+            // Always play hi-hat on every eighth note
             playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
-            if (beatSound === 'kick') {
+
+            // Play kick on beats 1 and 3
+            if (currentBeat === 0 || currentBeat === 4) {
                 playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (beatSound === 'snare') {
+            }
+            // Play snare on beats 2 and 4
+            else if (currentBeat === 2 || currentBeat === 6) {
                 playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
             }
         } else {
+            // For other time signatures, use the predefined patterns
             const pattern = DRUM_PATTERNS[timeSignature];
-            if (pattern.hihat[currentBeat]) {
-                playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
-            }
-            if (beatSound === 'kick') {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (beatSound === 'snare') {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            } else if (pattern.kick[currentBeat]) {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (pattern.snare[currentBeat]) {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
+            if (pattern) {
+                // Play hi-hat if defined in pattern
+                if (pattern.hihat[currentBeat]) {
+                    playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
+                }
+                // Play kick if defined in pattern
+                if (pattern.kick[currentBeat]) {
+                    playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
+                }
+                // Play snare if defined in pattern
+                if (pattern.snare[currentBeat]) {
+                    playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
+                }
             }
         }
     }
-}
-       
+}       
         function createKeyOptions() {
     return NOTES.map(note => `<option value="${note}">${note}</option>`).join('');
 }
@@ -1646,6 +1693,18 @@ function createBeats() {
         { volume: '1', color: '#4CAF50', sound: 'hihat' },
         { volume: '0', color: '#9E9E9E', sound: 'silent' }
     ];
+
+    // Add dark mode toggle event listener
+document.getElementById('dark-mode-toggle').addEventListener('click', function() {
+    document.body.classList.toggle('dark-mode');
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDarkMode);
+});
+
+// Check for saved dark mode preference
+if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark-mode');
+}
 
     // Determine the total number of beats based on the time signature
     const totalBeats = timeSignature === 4 ? 8 : timeSignature;
