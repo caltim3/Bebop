@@ -823,26 +823,41 @@ function getChordFromFunction(key, func) {
         return 'C';
     }
 
-    // Define scale degrees for both major and minor keys
+    // Complete scale degrees for both major and minor keys
     const scaleDegrees = {
         major: {
             'I': 0, 'ii': 2, 'iii': 4, 'IV': 5, 'V': 7, 'vi': 9, 'vii°': 11,
             'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
             'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11,
+            'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9,
             'bIII': 3, 'bVI': 8, 'bVII': 10,
-            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10
+            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10,
+            'V7/iv': 7, 'V7/III': 7, // Secondary dominants
+            'iim7b5': 2, // Additional functions
+            'bv': 6
         },
         minor: {
             'i': 0, 'ii°': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
-            'i7': 0, 'ii7b5': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
-            'im7': 0, 'iim7b5': 2, 'IIImaj7': 3, 'ivm7': 5, 'vm7': 7, 'VImaj7': 8,
-            'V7b9': 7, 'bIII': 3, 'bVI': 8, 'bVII': 10,
-            'bIIImaj7': 3, 'bVImaj7': 8
+            'i7': 0, 'ii7': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
+            'im7': 0, 'iim7': 2, 'IIImaj7': 3, 'ivm7': 5, 'vm7': 7, 'VImaj7': 8,
+            'iim7b5': 2, 'V7b9': 7,
+            'bIII': 3, 'bVI': 8, 'bVII': 10,
+            'bIIImaj7': 3, 'bVImaj7': 8,
+            'V7/iv': 7, 'V7/III': 7 // Secondary dominants
         }
     };
 
     const degrees = isMinorKey ? scaleDegrees.minor : scaleDegrees.major;
-    const degree = degrees[func];
+    let degree = degrees[func];
+
+    // Handle secondary dominants
+    if (func.includes('/')) {
+        const [primary, secondary] = func.split('/');
+        const secondaryDegree = degrees[secondary.toLowerCase()];
+        if (secondaryDegree !== undefined) {
+            degree = (secondaryDegree + 7) % 12; // V of the secondary degree
+        }
+    }
 
     if (degree === undefined) {
         console.error(`Invalid chord function: ${func}`);
@@ -862,6 +877,7 @@ function getChordFromFunction(key, func) {
     else if (func.includes('°')) quality = 'dim';
     else if (func.match(/^[a-z]/)) quality = 'min';
     else if (func.includes('°')) quality = 'dim';
+    else if (func.includes('ø')) quality = 'min7b5';
 
     return note + quality;
 }
@@ -1462,10 +1478,15 @@ let isTransposing = false;
 
 // Helper function to parse chord notation (e.g., "C7" -> ["C", "dom7"])
 function parseChord(chord) {
-    const rootMatch = chord.match(/^[A-G]#?/);
-    const root = rootMatch ? rootMatch[0] : 'C';
-    const quality = chord.replace(root, '');
-    return [root, quality || 'major'];
+    // Handle various chord notations including flats, sharps, and altered chords
+    const regex = /^([A-G][b#]?)(m7b5|7b9|maj7|m7|7|m|dim|aug|sus2|sus4|add9|6|9|11|13|°)?$/;
+    const match = chord.match(regex);
+    if (!match) {
+        console.warn(`Unable to parse chord: ${chord}`);
+        return [standardizeNoteName(chord), ''];
+    }
+    const [_, root, quality] = match;
+    return [standardizeNoteName(root), quality || 'major'];
 }
 
 // Map chord quality to dropdown values
@@ -1760,7 +1781,7 @@ function createFretboard(container, tuning) {
             
             if (soundType === 'drums') {
                 // Set initial states for all beats
-                if (i % 2 === 1) {  // All eighth notes (2, 4, 6, 8) start with hihat
+                if (isEighth) {  // All eighth notes get hihat by default
                     beat.dataset.volume = '1';
                     beat.dataset.sound = 'hihat';
                     beat.style.backgroundColor = '#9E9E9E';
@@ -1794,48 +1815,25 @@ function createFretboard(container, tuning) {
                     const currentSound = this.dataset.sound;
                     let nextState;
 
-                    // Define transitions based on beat position
-                    if (i === 0 || i === 4) {  // Beats 1 and 3
-                        if (currentSound === 'kick' && currentVolume === '1') {
-                            nextState = { volume: '0.5', sound: 'kick', color: '#4CAF50' };
-                        } else if (currentSound === 'kick' && currentVolume === '0.5') {
-                            nextState = { volume: '1', sound: 'snare', color: '#BD2031' };
-                        } else if (currentSound === 'snare' && currentVolume === '1') {
-                            nextState = { volume: '0.5', sound: 'snare', color: '#006400' };
-                        } else if (currentSound === 'snare' && currentVolume === '0.5') {
-                            nextState = { volume: '1', sound: 'hihat', color: '#9E9E9E' };
-                        } else if (currentSound === 'hihat') {
-                            nextState = { volume: '0', sound: 'silent', color: '#666666' };
-                        } else {
-                            nextState = { volume: '1', sound: 'kick', color: '#1F618D' };
-                        }
-                    } else if (i === 2 || i === 6) {  // Beats 2 and 4
-                        if (currentSound === 'snare' && currentVolume === '1') {
-                            nextState = { volume: '0.5', sound: 'snare', color: '#006400' };
-                        } else if (currentSound === 'snare' && currentVolume === '0.5') {
-                            nextState = { volume: '1', sound: 'kick', color: '#1F618D' };
-                        } else if (currentSound === 'kick' && currentVolume === '1') {
-                            nextState = { volume: '0.5', sound: 'kick', color: '#4CAF50' };
-                        } else if (currentSound === 'kick' && currentVolume === '0.5') {
-                            nextState = { volume: '1', sound: 'hihat', color: '#9E9E9E' };
-                        } else if (currentSound === 'hihat') {
-                            nextState = { volume: '0', sound: 'silent', color: '#666666' };
-                        } else {
-                            nextState = { volume: '1', sound: 'snare', color: '#4CAF50' };
-                        }
-                    } else {  // All eighth notes (&)
+                    if (isEighth) {  // Eighth note beats
                         if (currentSound === 'hihat') {
                             nextState = { volume: '1', sound: 'kick', color: '#1F618D' };
-                        } else if (currentSound === 'kick' && currentVolume === '1') {
-                            nextState = { volume: '0.5', sound: 'kick', color: '#4CAF50' };
-                        } else if (currentSound === 'kick' && currentVolume === '0.5') {
-                            nextState = { volume: '1', sound: 'snare', color: '#BD2031' };
-                        } else if (currentSound === 'snare' && currentVolume === '1') {
-                            nextState = { volume: '0.5', sound: 'snare', color: '#006400' };
-                        } else if (currentSound === 'snare' && currentVolume === '0.5') {
-                            nextState = { volume: '1', sound: 'hihat', color: '#9E9E9E' };
-                        } else {
+                        } else if (currentSound === 'kick') {
+                            nextState = { volume: '1', sound: 'snare', color: '#4CAF50' };
+                        } else if (currentSound === 'snare') {
                             nextState = { volume: '0', sound: 'silent', color: '#666666' };
+                        } else {
+                            nextState = { volume: '1', sound: 'hihat', color: '#9E9E9E' };
+                        }
+                    } else {  // Quarter note beats
+                        if (currentSound === 'kick') {
+                            nextState = { volume: '1', sound: 'snare', color: '#4CAF50' };
+                        } else if (currentSound === 'snare') {
+                            nextState = { volume: '1', sound: 'hihat', color: '#9E9E9E' };
+                        } else if (currentSound === 'hihat') {
+                            nextState = { volume: '0', sound: 'silent', color: '#666666' };
+                        } else {
+                            nextState = { volume: '1', sound: 'kick', color: '#1F618D' };
                         }
                     }
 
@@ -1845,7 +1843,7 @@ function createFretboard(container, tuning) {
                 });
 
             } else {
-                // Click or woodblock - only on quarter notes (unchanged)
+                // Click or woodblock - only on quarter notes
                 if (!isEighth) {
                     if (i === 0) {
                         beat.dataset.volume = '1';
@@ -1897,76 +1895,97 @@ function createFretboard(container, tuning) {
                 beat.dataset.sound = 'default';
                 beat.style.backgroundColor = i === 0 ? '#1F618D' : '#4CAF50';
             }
+
+            // Add click handler for non-4/4 time signatures
+            beat.addEventListener('click', function() {
+                const states = [
+                    { volume: '1', color: '#1F618D', sound: 'default' },
+                    { volume: '0.3', color: '#4CAF50', sound: 'default' },
+                    { volume: '0', color: '#9E9E9E', sound: 'default' }
+                ];
+                const currentIndex = states.findIndex(state => 
+                    state.volume === this.dataset.volume && state.sound === this.dataset.sound
+                );
+                const nextState = states[(currentIndex + 1) % states.length];
+                this.dataset.volume = nextState.volume;
+                this.dataset.sound = nextState.sound;
+                this.style.backgroundColor = nextState.color;
+            });
         }
 
         container.appendChild(beat);
     }
 }
        
-function loadProgression(progressionKey) {
-    const progression = progressions[progressionKey];
-    if (!progression) {
-        console.warn("No progression found for key:", progressionKey);
-        return;
+function getChordFromFunction(key, func) {
+    // Handle minor keys
+    const isMinorKey = key.endsWith('m') || key.endsWith('min');
+    const rootKey = key.replace(/m$|min$/, '');
+    const standardizedKey = standardizeNoteName(rootKey);
+    const keyIndex = NOTES.indexOf(standardizedKey);
+
+    if (keyIndex === -1) {
+        console.error(`Invalid key: ${key}`);
+        return 'C';
     }
 
-    // Get the default key and handle minor keys
-    let defaultKey = progression.defaultKey || 'C';
-    defaultKey = standardizeNoteName(defaultKey);
-    
-    // Set the key selector to the default key
-    const keySelect = document.getElementById('keySelect');
-    keySelect.value = defaultKey;
-
-    // Clear existing measures
-    const measuresDiv = document.getElementById('measures');
-    measuresDiv.innerHTML = '';
-
-    // Create measures for each chord in the progression
-    progression.progression.forEach((chordFunc, index) => {
-        addMeasure();
-        const measure = measuresDiv.children[index];
-        if (!measure) return;
-
-        // Get chord details
-        const chord = getChordFromFunction(defaultKey, chordFunc);
-        const [root, quality] = parseChord(chord);
-
-        // Set up measure controls
-        const rootSelect = measure.querySelector('.root-note');
-        const qualitySelect = measure.querySelector('.chord-quality');
-        const secondKeySelect = measure.querySelector('.second-key');
-        const scaleSelect = measure.querySelector('.scale-select');
-
-        if (rootSelect) {
-            rootSelect.value = standardizeNoteName(root);
-            if (index === 0) {
-                rootSelect.addEventListener('change', function() {
-                    updateProgressionKey(this.value);
-                });
-            }
+    // Complete scale degrees for both major and minor keys
+    const scaleDegrees = {
+        major: {
+            'I': 0, 'ii': 2, 'iii': 4, 'IV': 5, 'V': 7, 'vi': 9, 'vii°': 11,
+            'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
+            'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11,
+            'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9,
+            'bIII': 3, 'bVI': 8, 'bVII': 10,
+            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10,
+            'V7/iv': 7, 'V7/III': 7, // Secondary dominants
+            'iim7b5': 2, // Additional functions
+            'bv': 6
+        },
+        minor: {
+            'i': 0, 'ii°': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
+            'i7': 0, 'ii7': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
+            'im7': 0, 'iim7': 2, 'IIImaj7': 3, 'ivm7': 5, 'vm7': 7, 'VImaj7': 8,
+            'iim7b5': 2, 'V7b9': 7,
+            'bIII': 3, 'bVI': 8, 'bVII': 10,
+            'bIIImaj7': 3, 'bVImaj7': 8,
+            'V7/iv': 7, 'V7/III': 7 // Secondary dominants
         }
+    };
 
-        if (qualitySelect) {
-            qualitySelect.value = getQualityValue(quality);
+    const degrees = isMinorKey ? scaleDegrees.minor : scaleDegrees.major;
+    let degree = degrees[func];
+
+    // Handle secondary dominants
+    if (func.includes('/')) {
+        const [primary, secondary] = func.split('/');
+        const secondaryDegree = degrees[secondary.toLowerCase()];
+        if (secondaryDegree !== undefined) {
+            degree = (secondaryDegree + 7) % 12; // V of the secondary degree
         }
+    }
 
-        if (secondKeySelect) {
-            secondKeySelect.value = standardizeNoteName(root);
-        }
+    if (degree === undefined) {
+        console.error(`Invalid chord function: ${func}`);
+        return standardizedKey;
+    }
 
-        if (scaleSelect) {
-            scaleSelect.value = suggestScaleForQuality(quality);
-        }
+    const noteIndex = (keyIndex + degree) % 12;
+    const note = NOTES[noteIndex];
 
-        measure.draggable = true;
-        measure.addEventListener('dragstart', dragStart);
-        measure.addEventListener('dragover', dragOver);
-        measure.addEventListener('drop', drop);
-        measure.addEventListener('dragend', dragEnd);
-    });
+    // Determine chord quality based on function
+    let quality = '';
+    if (func.includes('m7b5')) quality = 'min7b5';
+    else if (func.includes('7b9')) quality = '7b9';
+    else if (func.includes('maj7')) quality = 'maj7';
+    else if (func.includes('m7')) quality = 'min7';
+    else if (func.includes('7')) quality = '7';
+    else if (func.includes('°')) quality = 'dim';
+    else if (func.match(/^[a-z]/)) quality = 'min';
+    else if (func.includes('°')) quality = 'dim';
+    else if (func.includes('ø')) quality = 'min7b5';
 
-    updateMeasureNumbers();
+    return note + quality;
 }
 
 function getQualityValue(quality) {
