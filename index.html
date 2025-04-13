@@ -208,7 +208,7 @@
             border-radius: 5px;
             z-index: 1000;
         }
-        /* Add to existing style block */
+        /* Add to your existing CSS */
         .dark-mode .fretboard-container {
             background-color: #6096ba;
         }
@@ -221,12 +221,18 @@
             color: #e9ecef;
         }
         
+        #dark-mode-toggle.active {
+            background-color: #333;
+            color: white;
+        }
+        
     </style>
 </head>
 <body>
     <div class="app-section" id="chord-fretboard-section">
         <h1>BEBOP BLUEPRINT</h1>
         <h3>Fretflow - Dynamic Fretboard with Scales that Move with the Chord Progression</h3>
+        <button id="dark-mode-toggle" class="control-button">Dark Mode</button>
         <div class="volume-control">
             <span>Fretboard Volume:</span>
             <input type="range" id="chord-fretboard-volume" min="0" max="1" step="0.1" value="0.3">
@@ -490,32 +496,20 @@ const SAMPLE_NOTE_MAP = {
 };
 
 const ENHARMONIC_MAP = {
-    // Sharps to flats
-    'C#': 'Db',
-    'D#': 'Eb',
-    'F#': 'Gb',
-    'G#': 'Ab',
-    'A#': 'Bb',
-    // Include direct flat mappings
-    'Db': 'Db',
-    'Eb': 'Eb',
-    'Gb': 'Gb',
-    'Ab': 'Ab',
-    'Bb': 'Bb',
-    // Natural notes
-    'C': 'C',
-    'D': 'D',
-    'E': 'E',
-    'F': 'F',
-    'G': 'G',
-    'A': 'A',
-    'B': 'B'
+    'C#': 'Db', 'Db': 'Db',
+    'D#': 'Eb', 'Eb': 'Eb',
+    'F#': 'Gb', 'Gb': 'Gb',
+    'G#': 'Ab', 'Ab': 'Ab',
+    'A#': 'Bb', 'Bb': 'Bb'
 };
        
 function standardizeNoteName(note) {
-    // Remove any 'm' or 'min' suffix for processing
+    if (!note) return 'C';
+    // Handle minor key notation
+    const isMinor = note.endsWith('m') || note.endsWith('min');
     const baseNote = note.replace(/m$|min$/, '');
-    return ENHARMONIC_MAP[baseNote] || baseNote;
+    const standardized = ENHARMONIC_MAP[baseNote] || baseNote;
+    return isMinor ? standardized + 'm' : standardized;
 }
 
 // Update the existing getNoteIndex function
@@ -1632,6 +1626,7 @@ function createFretboard(container, tuning) {
     container.innerHTML = '';
     const timeSignature = parseInt(document.getElementById('time-signature').value);
     const totalBeats = timeSignature === 4 ? 8 : timeSignature;
+    const soundType = document.getElementById('sound-type').value;
 
     for (let i = 0; i < totalBeats; i++) {
         const beat = document.createElement('div');
@@ -1641,19 +1636,38 @@ function createFretboard(container, tuning) {
         if (timeSignature === 4) {
             const isEighth = i % 2 === 1;
             beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
-            // Set initial state for 4/4 time with proper drum pattern
-            if (i === 0 || i === 4) {
-                beat.dataset.volume = '1';
-                beat.dataset.sound = 'kick'; // Kick on beats 1 and 3
-                beat.style.backgroundColor = '#1F618D';
-            } else if (i === 2 || i === 6) {
-                beat.dataset.volume = '1';
-                beat.dataset.sound = 'snare'; // Snare on beats 2 and 4
-                beat.style.backgroundColor = '#4CAF50';
+            
+            if (soundType === 'drums') {
+                if (i === 0 || i === 4) {
+                    beat.dataset.volume = '1';
+                    beat.dataset.sound = 'kick';
+                    beat.style.backgroundColor = '#1F618D';
+                } else if (i === 2 || i === 6) {
+                    beat.dataset.volume = '1';
+                    beat.dataset.sound = 'snare';
+                    beat.style.backgroundColor = '#4CAF50';
+                } else {
+                    beat.dataset.volume = '1';
+                    beat.dataset.sound = 'hihat';
+                    beat.style.backgroundColor = '#9E9E9E';
+                }
             } else {
-                beat.dataset.volume = '1';
-                beat.dataset.sound = 'hihat'; // Hi-hat on all eighth notes
-                beat.style.backgroundColor = '#9E9E9E';
+                // Click or woodblock - only on quarter notes
+                if (!isEighth) {
+                    if (i === 0) {
+                        beat.dataset.volume = '1';
+                        beat.dataset.sound = 'default';
+                        beat.style.backgroundColor = '#1F618D';
+                    } else {
+                        beat.dataset.volume = '0.3';
+                        beat.dataset.sound = 'default';
+                        beat.style.backgroundColor = '#4CAF50';
+                    }
+                } else {
+                    beat.dataset.volume = '0';
+                    beat.dataset.sound = 'default';
+                    beat.style.backgroundColor = '#9E9E9E';
+                }
             }
         } else {
             beat.textContent = i + 1;
@@ -1730,85 +1744,139 @@ function createFretboard(container, tuning) {
         container.appendChild(beat);
     }
 }
-
-  function loadProgression(progressionKey) {
+ function loadProgression(progressionKey) {
     const progression = progressions[progressionKey];
     if (!progression) {
         console.warn("No progression found for key:", progressionKey);
         return;
     }
 
-    console.log(`Loading progression: ${progressionKey}`, progression);
+    // Get the default key and handle minor keys
+    let defaultKey = progression.defaultKey || 'C';
+    defaultKey = standardizeNoteName(defaultKey);
+    
+    // Set the key selector to the default key
+    document.getElementById('keySelect').value = defaultKey;
 
+    // Clear existing measures
     const measuresDiv = document.getElementById('measures');
-    measuresDiv.innerHTML = ''; // Clear existing measures
+    measuresDiv.innerHTML = '';
 
-    // Set the key selector to the default key for this progression
-    const defaultKey = progression.defaultKey;
-    document.getElementById('keySelect').value = defaultKey.replace(/m$|min$/, ''); // Remove minor indicator for select value
-
+    // Create measures for each chord in the progression
     progression.progression.forEach((chordFunc, index) => {
+        // Add new measure
+        addMeasure();
+        const measure = measuresDiv.children[index];
+        if (!measure) return;
+
+        // Get chord details
         const chord = getChordFromFunction(defaultKey, chordFunc);
         const [root, quality] = parseChord(chord);
 
-        const newMeasure = document.createElement('div');
-        newMeasure.className = 'measure';
-        newMeasure.draggable = true;
-        newMeasure.innerHTML = `
-            <span class="measure-number">${index + 1}</span>
-            <div class="chord-controls">
-                <select class="root-note">
-                    ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
-                </select>
-                <select class="chord-quality">
-                    <option value="major" ${quality === '' ? 'selected' : ''}>Major</option>
-                    <option value="minor" ${quality === 'm' ? 'selected' : ''}>Minor</option>
-                    <option value="dom7" ${quality === '7' ? 'selected' : ''}>7</option>
-                    <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
-                    <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
-                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
-                </select>
-            </div>
-            <div class="scale-controls">
-                <select class="second-key">
-                    ${NOTES.map(note => `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`).join('')}
-                </select>
-                <select class="scale-select">
-                    ${Object.keys(SCALES).map(scale => {
-                        const selected = suggestScaleForQuality(quality) === scale ? 'selected' : '';
-                        return `<option value="${scale}" ${selected}>${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`;
-                    }).join('')}
-                </select>
-            </div>
-        `;
+        // Set up measure controls
+        const rootSelect = measure.querySelector('.root-note');
+        const qualitySelect = measure.querySelector('.chord-quality');
+        const secondKeySelect = measure.querySelector('.second-key');
+        const scaleSelect = measure.querySelector('.scale-select');
 
-        // Add event listeners and drag-drop handlers
-        const rootNoteSelect = newMeasure.querySelector('.root-note');
-        const secondKeySelect = newMeasure.querySelector('.second-key');
-        const qualitySelect = newMeasure.querySelector('.chord-quality');
-        const scaleSelect = newMeasure.querySelector('.scale-select');
-
-        rootNoteSelect.addEventListener('change', function() {
-            secondKeySelect.value = this.value;
+        if (rootSelect) {
+            rootSelect.value = standardizeNoteName(root);
+            // Add change listener for first chord
             if (index === 0) {
-                updateProgressionKey(this.value);
+                rootSelect.addEventListener('change', function() {
+                    updateProgressionKey(this.value);
+                });
             }
-        });
+        }
 
-        qualitySelect.addEventListener('change', function() {
-            scaleSelect.value = suggestScaleForQuality(this.value);
-        });
+        if (qualitySelect) {
+            qualitySelect.value = getQualityValue(quality);
+            // Add change listener for scale suggestion
+            qualitySelect.addEventListener('change', function() {
+                const suggestedScale = suggestScaleForQuality(this.value);
+                if (scaleSelect) scaleSelect.value = suggestedScale;
+            });
+        }
 
-        newMeasure.addEventListener('dragstart', dragStart);
-        newMeasure.addEventListener('dragover', dragOver);
-        newMeasure.addEventListener('drop', drop);
-        newMeasure.addEventListener('dragend', dragEnd);
+        if (secondKeySelect) {
+            secondKeySelect.value = standardizeNoteName(root);
+        }
 
-        measuresDiv.appendChild(newMeasure);
+        if (scaleSelect) {
+            scaleSelect.value = suggestScaleForQuality(quality);
+        }
+
+        // Make measure draggable
+        measure.draggable = true;
+        measure.addEventListener('dragstart', dragStart);
+        measure.addEventListener('dragover', dragOver);
+        measure.addEventListener('drop', drop);
+        measure.addEventListener('dragend', dragEnd);
     });
 
     updateMeasureNumbers();
-    addFirstChordListener();
+}
+
+function getQualityValue(quality) {
+    const qualityMap = {
+        '': 'major',
+        'm': 'minor',
+        '7': 'dom7',
+        'maj7': 'maj7',
+        'm7': 'min7',
+        'dim': 'dim',
+        'min7b5': 'min7b5'
+    };
+    return qualityMap[quality] || 'major';
+}
+
+function parseChord(chord) {
+    // Handle various chord notations
+    const regex = /^([A-G][b#]?)([m7|7|maj7|m|dim|min7b5]*)$/;
+    const match = chord.match(regex);
+    if (!match) return [chord, ''];
+    return [match[1], match[2]]; // [root, quality]
+}
+
+function suggestScaleForQuality(quality) {
+    const scaleMap = {
+        'major': 'major',
+        'minor': 'minor',
+        'dom7': 'mixolydian',
+        'maj7': 'major',
+        'min7': 'dorian',
+        'dim': 'diminished',
+        'min7b5': 'locrian'
+    };
+    return scaleMap[quality] || 'major';
+}
+
+function updateProgressionKey(newKey) {
+    const progressionSelect = document.getElementById('progression-select');
+    const selectedProgression = progressionSelect.value;
+    if (selectedProgression === 'none') return;
+
+    const measures = document.getElementById('measures').children;
+    const progression = progressions[selectedProgression];
+    if (!progression) return;
+
+    Array.from(measures).forEach((measure, index) => {
+        const chordFunc = progression.progression[index];
+        if (!chordFunc) return;
+
+        const chord = getChordFromFunction(newKey, chordFunc);
+        const [root, quality] = parseChord(chord);
+
+        const rootSelect = measure.querySelector('.root-note');
+        const qualitySelect = measure.querySelector('.chord-quality');
+        const secondKeySelect = measure.querySelector('.second-key');
+        const scaleSelect = measure.querySelector('.scale-select');
+
+        if (rootSelect) rootSelect.value = standardizeNoteName(root);
+        if (qualitySelect) qualitySelect.value = getQualityValue(quality);
+        if (secondKeySelect) secondKeySelect.value = standardizeNoteName(root);
+        if (scaleSelect) scaleSelect.value = suggestScaleForQuality(getQualityValue(quality));
+    });
 }
  
 function addMeasure() {
