@@ -623,10 +623,15 @@ const ENHARMONIC_MAP = {
        
 function standardizeNoteName(note) {
     if (!note) return 'C';
-    // Handle minor key notation
-    const isMinor = note.endsWith('m') || note.endsWith('min');
-    const baseNote = note.replace(/m$|min$/, '');
+    
+    // Handle minor key notation and remove any trailing whitespace
+    const isMinor = note.trim().endsWith('m') || note.trim().endsWith('min');
+    const baseNote = note.trim().replace(/m$|min$/, '');
+    
+    // Convert to standard form (using flats)
     const standardized = ENHARMONIC_MAP[baseNote] || baseNote;
+    
+    // Reattach minor indicator if it was present
     return isMinor ? standardized + 'm' : standardized;
 }
 
@@ -806,7 +811,6 @@ function getNoteIndex(note) {
   return noteMap.indexOf(note);
 }
 
-// Get chord from Roman numeral (e.g. "ii", "V7") based on a root key
 function getChordFromFunction(key, func) {
     // Handle minor keys
     const isMinorKey = key.endsWith('m') || key.endsWith('min');
@@ -824,12 +828,16 @@ function getChordFromFunction(key, func) {
         major: {
             'I': 0, 'ii': 2, 'iii': 4, 'IV': 5, 'V': 7, 'vi': 9, 'vii°': 11,
             'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
-            'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11
+            'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11,
+            'bIII': 3, 'bVI': 8, 'bVII': 10,
+            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10
         },
         minor: {
             'i': 0, 'ii°': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
             'i7': 0, 'ii7b5': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
-            'im7': 0, 'iim7b5': 2, 'IIImaj7': 3, 'ivm7': 5, 'vm7': 7, 'VImaj7': 8
+            'im7': 0, 'iim7b5': 2, 'IIImaj7': 3, 'ivm7': 5, 'vm7': 7, 'VImaj7': 8,
+            'V7b9': 7, 'bIII': 3, 'bVI': 8, 'bVII': 10,
+            'bIIImaj7': 3, 'bVImaj7': 8
         }
     };
 
@@ -843,15 +851,17 @@ function getChordFromFunction(key, func) {
 
     const noteIndex = (keyIndex + degree) % 12;
     const note = NOTES[noteIndex];
-    
-    // Determine chord quality
+
+    // Determine chord quality based on function
     let quality = '';
     if (func.includes('m7b5')) quality = 'min7b5';
+    else if (func.includes('7b9')) quality = '7b9';
     else if (func.includes('maj7')) quality = 'maj7';
-    else if (func.includes('m7')) quality = 'm7';
+    else if (func.includes('m7')) quality = 'min7';
     else if (func.includes('7')) quality = '7';
     else if (func.includes('°')) quality = 'dim';
-    else if (func.match(/^[a-z]/)) quality = 'm';
+    else if (func.match(/^[a-z]/)) quality = 'min';
+    else if (func.includes('°')) quality = 'dim';
 
     return note + quality;
 }
@@ -1893,7 +1903,7 @@ function createFretboard(container, tuning) {
     }
 }
        
- function loadProgression(progressionKey) {
+function loadProgression(progressionKey) {
     const progression = progressions[progressionKey];
     if (!progression) {
         console.warn("No progression found for key:", progressionKey);
@@ -1905,7 +1915,8 @@ function createFretboard(container, tuning) {
     defaultKey = standardizeNoteName(defaultKey);
     
     // Set the key selector to the default key
-    document.getElementById('keySelect').value = defaultKey;
+    const keySelect = document.getElementById('keySelect');
+    keySelect.value = defaultKey;
 
     // Clear existing measures
     const measuresDiv = document.getElementById('measures');
@@ -1913,7 +1924,6 @@ function createFretboard(container, tuning) {
 
     // Create measures for each chord in the progression
     progression.progression.forEach((chordFunc, index) => {
-        // Add new measure
         addMeasure();
         const measure = measuresDiv.children[index];
         if (!measure) return;
@@ -1930,7 +1940,6 @@ function createFretboard(container, tuning) {
 
         if (rootSelect) {
             rootSelect.value = standardizeNoteName(root);
-            // Add change listener for first chord
             if (index === 0) {
                 rootSelect.addEventListener('change', function() {
                     updateProgressionKey(this.value);
@@ -1940,11 +1949,6 @@ function createFretboard(container, tuning) {
 
         if (qualitySelect) {
             qualitySelect.value = getQualityValue(quality);
-            // Add change listener for scale suggestion
-            qualitySelect.addEventListener('change', function() {
-                const suggestedScale = suggestScaleForQuality(this.value);
-                if (scaleSelect) scaleSelect.value = suggestedScale;
-            });
         }
 
         if (secondKeySelect) {
@@ -1955,7 +1959,6 @@ function createFretboard(container, tuning) {
             scaleSelect.value = suggestScaleForQuality(quality);
         }
 
-        // Make measure draggable
         measure.draggable = true;
         measure.addEventListener('dragstart', dragStart);
         measure.addEventListener('dragover', dragOver);
@@ -1980,11 +1983,15 @@ function getQualityValue(quality) {
 }
 
 function parseChord(chord) {
-    // Handle various chord notations
-    const regex = /^([A-G][b#]?)([m7|7|maj7|m|dim|min7b5]*)$/;
+    // Handle various chord notations including flats
+    const regex = /^([A-G][b#]?)([m7b5|7b9|maj7|m7|7|m|dim]*)$/;
     const match = chord.match(regex);
-    if (!match) return [chord, ''];
-    return [match[1], match[2]]; // [root, quality]
+    if (!match) {
+        console.warn(`Unable to parse chord: ${chord}`);
+        return [standardizeNoteName(chord), ''];
+    }
+    const [_, root, quality] = match;
+    return [standardizeNoteName(root), quality || 'major'];
 }
 
 function suggestScaleForQuality(quality) {
