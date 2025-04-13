@@ -283,6 +283,7 @@
         <h3>Create a progression or pick one from the dropdown. Choose which key and scale to go with it.</h3>
         <label for="progression-select">Select Progression:</label>
         <select id="progression-select">
+              <option value="I_V">I-V7</option>  
               <option value="jazz_blues">Jazz Blues</option>
               <option value="minor_blues">Minor Blues</option>
               <option value="rhythm_changes">Rhythm Changes</option>
@@ -612,6 +613,10 @@ const DRUM_PATTERNS = {
 };
 
    const progressions = {
+  "I V7": {
+      defaultKey: "C",
+      progression: ["I7", "V7"]
+  },   
   "jazz_blues": {
     defaultKey: "Bb",
     progression: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "II7", "V7", "I7", "V7"]
@@ -630,7 +635,7 @@ const DRUM_PATTERNS = {
   },
   "6_2_5_1": {
     defaultKey: "C",
-    progression: ["vi", "ii", "V", "I"]
+    progression: ["vi", "ii", "V", "I", "I"]
  },
   "minor 2_5_1": {
     defaultKey: "Am",
