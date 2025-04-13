@@ -690,26 +690,31 @@ function transposeNote(note, semitones) {
         DADGAD: ['D', 'A', 'G', 'D', 'A', 'D'],
         openE: ['E', 'B', 'E', 'G#', 'B', 'E']
     };
-// First, let's create a comprehensive frequency map for the entire fretboard
-const FRETBOARD_FREQUENCIES = {
-    'string6': [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
-    'string5': [110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00],
-    'string4': [146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66],
-    'string3': [196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00],
-    'string2': [246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88],
-    'string1': [329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25]
-};
 
-// Piano note frequencies (middle C = C4 = 261.63 Hz)
-const PIANO_NOTES = {
-    'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61,
-    'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
-    'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23,
-    'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
-    'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25
-};
 
-function findClosestPianoNote(frequency) {
+function playNote(string, fret, velocity = 1.0) {
+    // Frequency maps for accurate note mapping
+    const FRETBOARD_FREQUENCIES = {
+        'string6': [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
+        'string5': [110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00],
+        'string4': [146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66],
+        'string3': [196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00],
+        'string2': [246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88],
+        'string1': [329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25]
+    };
+
+    const PIANO_NOTES = {
+        'C3': 130.81, 'Cs3': 138.59, 'D3': 146.83, 'Ds3': 155.56, 'E3': 164.81, 'F3': 174.61,
+        'Fs3': 185.00, 'G3': 196.00, 'Gs3': 207.65, 'A3': 220.00, 'As3': 233.08, 'B3': 246.94,
+        'C4': 261.63, 'Cs4': 277.18, 'D4': 293.66, 'Ds4': 311.13, 'E4': 329.63, 'F4': 349.23,
+        'Fs4': 369.99, 'G4': 392.00, 'Gs4': 415.30, 'A4': 440.00, 'As4': 466.16, 'B4': 493.88,
+        'C5': 523.25, 'Cs5': 554.37, 'D5': 587.33, 'Ds5': 622.25, 'E5': 659.25
+    };
+
+    // Get the frequency for the current string and fret
+    const frequency = FRETBOARD_FREQUENCIES[string][fret];
+
+    // Find the closest piano note
     let closestNote = null;
     let minDifference = Infinity;
     
@@ -720,22 +725,86 @@ function findClosestPianoNote(frequency) {
             closestNote = note;
         }
     }
-    
-    return closestNote;
+
+    // Preserve the legacy audio context handling
+    if (!window.audioContext) {
+        try {
+            window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.error('Web Audio API is not supported in this browser');
+            return;
+        }
+    }
+
+    // Check if samples are loaded
+    if (!window.samples) {
+        console.error('Samples not loaded');
+        return;
+    }
+
+    // Get the buffer for the closest matching note
+    const buffer = window.samples[closestNote];
+    if (!buffer) {
+        console.error(`No sample found for note: ${closestNote}`);
+        return;
+    }
+
+    // Create audio source
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+
+    // Create gain node for velocity control
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = velocity;
+
+    // Connect nodes
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Start playback
+    const startTime = audioContext.currentTime;
+    source.start(startTime);
+
+    // Optional: Store the source for potential note-off events
+    if (!window.activeSources) {
+        window.activeSources = new Map();
+    }
+    window.activeSources.set(`${string}-${fret}`, source);
+
+    // Return the source for potential future manipulation
+    return source;
 }
 
-// Update the playNote function to use the correct sample
-function playNote(string, fret) {
-    const stringNum = parseInt(string.replace('string', ''));
-    const frequency = FRETBOARD_FREQUENCIES[string][fret];
-    const pianoNote = findClosestPianoNote(frequency);
-    
-    // Get the audio sample name from the piano note
-    const sampleName = pianoNote.replace('#', 's'); // Convert C# to Cs for file naming
-    
-    // Play the corresponding piano sample
-    const audio = new Audio(`samples/piano/${sampleName}.mp3`);
-    audio.play();
+// Helper function to load samples (should be called during initialization)
+async function loadSamples() {
+    if (!window.audioContext) {
+        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    const notes = Object.keys(PIANO_NOTES);
+    window.samples = {};
+
+    try {
+        await Promise.all(notes.map(async (note) => {
+            const response = await fetch(`samples/piano/${note}.mp3`);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            window.samples[note] = audioBuffer;
+        }));
+        console.log('All samples loaded successfully');
+    } catch (error) {
+        console.error('Error loading samples:', error);
+    }
+}
+
+// Optional: Function to stop a playing note
+function stopNote(string, fret) {
+    const sourceKey = `${string}-${fret}`;
+    const source = window.activeSources?.get(sourceKey);
+    if (source) {
+        source.stop();
+        window.activeSources.delete(sourceKey);
+    }
 }
        
 
@@ -2340,6 +2409,8 @@ document.addEventListener('DOMContentLoaded', function () {
         select.innerHTML = keyOptions;
     });
 
+    await loadSamples();
+    
     // Initialize chord fretboard
     const chordFretboard = document.getElementById('chord-fretboard');
     if (chordFretboard) {
