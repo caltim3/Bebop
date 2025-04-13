@@ -1250,49 +1250,79 @@ async function loadPianoSamples() {
     }
 }
        
-    async function playNote(note, string, fret) {
-        if (!audioContext || audioContext.state === 'suspended') {
-            const success = await initializeAudio();
-            if (!success) return;
-            return playNote(note, string, fret);
-        }
-        try {
-            const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-            const openNote = tuning[string];
-            const openNoteIndex = NOTES.indexOf(openNote);
-            const noteIndex = (openNoteIndex + fret) % 12;
-            const targetNote = NOTES[noteIndex];
-            const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
-            const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
-
-            if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
-                const pitchData = getPitchShiftedNote(targetNote, octave);
-                if (pitchData && pianoSampleBuffers[pitchData.sampleKey]) {
-                    const source = audioContext.createBufferSource();
-                    const gainNode = audioContext.createGain();
-                    source.buffer = pianoSampleBuffers[pitchData.sampleKey];
-                    source.playbackRate.value = pitchData.playbackRate;
-                    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-                    gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 3);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 5);
-                    source.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    source.start();
-                    source.stop(audioContext.currentTime + 5);
-                    console.log(`Played ${targetNote}${octave} using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
-                } else {
-                    console.warn(`No sample available for ${targetNote}${octave}, using fallback`);
-                    playFallbackNote(targetNote, octave, volume, 5);
-                }
-            } else {
-                console.warn("Samples not loaded, falling back to oscillator");
-                playFallbackNote(targetNote, octave, volume, 5);
-            }
-        } catch (error) {
-            console.error("Error playing note:", error);
-            playFallbackNote(note, octave, volume, 5);
-        }
+    async function playNote(string, fret, velocity = 1.0) {
+    if (!audioContext || audioContext.state === 'suspended') {
+        const success = await initializeAudio();
+        if (!success) return;
     }
+
+    try {
+        // Get the tuning and calculate the actual note being played
+        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+        const openNote = tuning[string];
+        const openNoteIndex = NOTES.indexOf(openNote);
+        const noteIndex = (openNoteIndex + fret) % 12;
+        const targetNote = NOTES[noteIndex];
+        const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
+        const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
+
+        // Get the frequency for the current string and fret
+        const FRETBOARD_FREQUENCIES = {
+            'string6': [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
+            'string5': [110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00],
+            'string4': [146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66],
+            'string3': [196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00],
+            'string2': [246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88],
+            'string1': [329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25]
+        };
+
+        const frequency = FRETBOARD_FREQUENCIES[`string${6-string}`][fret];
+        
+        if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
+            // Find the closest piano note based on frequency
+            const pitchData = getPitchShiftedNote(targetNote, octave);
+            
+            if (pitchData && pianoSampleBuffers[pitchData.sampleKey]) {
+                const source = audioContext.createBufferSource();
+                const gainNode = audioContext.createGain();
+                
+                source.buffer = pianoSampleBuffers[pitchData.sampleKey];
+                source.playbackRate.value = pitchData.playbackRate * (frequency / getPianoFrequency(targetNote, octave));
+                
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
+                
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                source.start();
+                source.stop(audioContext.currentTime + 2);
+                
+                console.log(`Played ${targetNote}${octave} using ${pitchData.sampleKey} with frequency ${frequency}Hz`);
+            } else {
+                console.warn(`No sample available for ${targetNote}${octave}, using fallback`);
+                playFallbackNote(targetNote, octave, volume);
+            }
+        } else {
+            console.warn("Samples not loaded, falling back to oscillator");
+            playFallbackNote(targetNote, octave, volume);
+        }
+    } catch (error) {
+        console.error("Error playing note:", error);
+        playFallbackNote(targetNote, octave, volume);
+    }
+}
+
+// Helper function to get piano frequency
+function getPianoFrequency(note, octave) {
+    const baseFreq = 440; // A4 frequency
+    const noteIndex = NOTES.indexOf(note);
+    const a4Index = NOTES.indexOf('A');
+    const octaveDiff = octave - 4;
+    const halfSteps = noteIndex - a4Index + (octaveDiff * 12);
+    return baseFreq * Math.pow(2, halfSteps / 12);
+}
 
     function playFallbackNote(note, octave, volume, duration = 1) {
         const oscillator = audioContext.createOscillator();
@@ -1878,7 +1908,7 @@ function createFretboard(container, tuning) {
         }
     }
 
-   function loadProgression(progressionName) {
+  function loadProgression(progressionName) {
     const progression = progressions[progressionName];
     if (!progression) {
         console.error(`Progression ${progressionName} not found`);
@@ -1919,7 +1949,7 @@ function createFretboard(container, tuning) {
                     <option value="dom7" ${quality === '7' ? 'selected' : ''}>7</option>
                     <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
                     <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
-                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5</option>
+                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
                 </select>
             </div>
             <div class="scale-controls">
@@ -1935,6 +1965,12 @@ function createFretboard(container, tuning) {
                 </select>
             </div>
         `;
+
+        // Add event listeners
+        newMeasure.addEventListener('dragstart', dragStart);
+        newMeasure.addEventListener('dragover', dragOver);
+        newMeasure.addEventListener('drop', drop);
+        newMeasure.addEventListener('dragend', dragEnd);
 
         measuresDiv.appendChild(newMeasure);
     });
@@ -2118,31 +2154,28 @@ function getChordFromFunction(key, func) {
 
     if (keyIndex === -1) {
         console.error(`Invalid key: ${key}`);
-        return 'C';
+        return standardizedKey;
     }
 
     // Complete scale degrees for both major and minor keys
     const scaleDegrees = {
         major: {
-            'I': 0, 'ii': 2, 'iii': 4, 'IV': 5, 'V': 7, 'vi': 9, 'vii°': 11,
+            'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11,
+            'i': 0, 'ii': 2, 'iii': 4, 'iv': 5, 'v': 7, 'vi': 9, 'vii': 11,
             'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
             'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11,
             'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9,
             'bIII': 3, 'bVI': 8, 'bVII': 10,
-            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10,
-            'V7/iv': 7, 'V7/III': 7,
-            'iim7b5': 2,
-            'bv': 6
+            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10
         },
         minor: {
-            'i': 0, 'ii°': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
-            'im': 0, 'iim': 2, 'IIIm': 3, 'ivm': 5, 'vm': 7, 'VIm': 8,
+            'i': 0, 'ii': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
+            'im': 0, 'iim': 2, 'iiim': 3, 'ivm': 5, 'vm': 7, 'VIm': 8,
             'i7': 0, 'ii7': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
-            'im7': 0, 'iim7': 2, 'IIImaj7': 3, 'ivm7': 5, 'vm7': 7, 'VImaj7': 8,
+            'im7': 0, 'iim7': 2, 'IIIm7': 3, 'ivm7': 5, 'vm7': 7, 'VIm7': 8,
             'iim7b5': 2, 'V7b9': 7,
             'bIII': 3, 'bVI': 8, 'bVII': 10,
-            'bIIImaj7': 3, 'bVImaj7': 8,
-            'V7/iv': 7, 'V7/III': 7
+            'bIIImaj7': 3, 'bVImaj7': 8
         }
     };
 
@@ -2162,7 +2195,7 @@ function getChordFromFunction(key, func) {
     if (func.includes('m7b5')) quality = 'min7b5';
     else if (func.includes('7b9')) quality = '7b9';
     else if (func.includes('maj7')) quality = 'maj7';
-    else if (func.includes('m7')) quality = 'm7';
+    else if (func.includes('m7') || func.includes('min7')) quality = 'm7';
     else if (func.includes('7')) quality = '7';
     else if (func.match(/^[a-z]/) && !func.includes('maj')) quality = 'm';
     else if (func.includes('°')) quality = 'dim';
