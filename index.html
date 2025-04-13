@@ -1660,7 +1660,34 @@ function parseChord(chord) {
     
     return [standardizeNoteName(root), standardQuality];
 }
+function renderProgressionFromKey(progressionName) {
+    if (!progressionName) return;
+    
+    const progression = progressions[progressionName];
+    if (!progression) {
+        console.error(`Progression ${progressionName} not found`);
+        return;
+    }
 
+    // Get the current key from the key selector or use the default key
+    const keySelect = document.getElementById('keySelect');
+    const selectedKey = keySelect.value || progression.defaultKey;
+    
+    // Load the progression with the selected key
+    loadProgression(progressionName);
+    
+    // Update the fretboard display
+    const firstMeasure = document.querySelector('.measure');
+    if (firstMeasure) {
+        const rootNote = firstMeasure.querySelector('.root-note').value;
+        const scaleType = firstMeasure.querySelector('.scale-select').value;
+        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+        updateFretboardNotes(document.getElementById('chord-fretboard'), rootNote, scaleType, tuning);
+    }
+}
+       function isMinorKeyName(key) {
+    return key && (key.endsWith('m') || key.endsWith('min'));
+}
 // Map chord quality to dropdown values
 function mapQualityToDropdown(quality) {
     switch (quality) {
