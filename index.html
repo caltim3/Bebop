@@ -949,8 +949,8 @@ function getChordFromFunction(key, func) {
             'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9,
             'bIII': 3, 'bVI': 8, 'bVII': 10,
             'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10,
-            'V7/iv': 7, 'V7/III': 7, // Secondary dominants
-            'iim7b5': 2, // Additional functions
+            'V7/iv': 7, 'V7/III': 7,
+            'iim7b5': 2,
             'bv': 6
         },
         minor: {
@@ -960,21 +960,12 @@ function getChordFromFunction(key, func) {
             'iim7b5': 2, 'V7b9': 7,
             'bIII': 3, 'bVI': 8, 'bVII': 10,
             'bIIImaj7': 3, 'bVImaj7': 8,
-            'V7/iv': 7, 'V7/III': 7 // Secondary dominants
+            'V7/iv': 7, 'V7/III': 7
         }
     };
 
     const degrees = isMinorKey ? scaleDegrees.minor : scaleDegrees.major;
     let degree = degrees[func];
-
-    // Handle secondary dominants
-    if (func.includes('/')) {
-        const [primary, secondary] = func.split('/');
-        const secondaryDegree = degrees[secondary.toLowerCase()];
-        if (secondaryDegree !== undefined) {
-            degree = (secondaryDegree + 7) % 12; // V of the secondary degree
-        }
-    }
 
     if (degree === undefined) {
         console.error(`Invalid chord function: ${func}`);
@@ -991,8 +982,7 @@ function getChordFromFunction(key, func) {
     else if (func.includes('maj7')) quality = 'maj7';
     else if (func.includes('m7')) quality = 'min7';
     else if (func.includes('7')) quality = '7';
-    else if (func.includes('°')) quality = 'dim';
-    else if (func.match(/^[a-z]/)) quality = 'min';
+    else if (func.match(/^[a-z]/)) quality = 'm';
     else if (func.includes('°')) quality = 'dim';
     else if (func.includes('ø')) quality = 'min7b5';
 
@@ -1880,6 +1870,88 @@ function createFretboard(container, tuning) {
         }
     }
 
+    function loadProgression(progressionName) {
+    const progression = progressions[progressionName];
+    if (!progression) {
+        console.error(`Progression ${progressionName} not found`);
+        return;
+    }
+
+    // Get the current key from the key selector
+    const keySelect = document.getElementById('keySelect');
+    const selectedKey = standardizeNoteName(keySelect.value || progression.defaultKey);
+    
+    // Clear existing measures
+    const measuresDiv = document.getElementById('measures');
+    measuresDiv.innerHTML = '';
+
+    // Create measures for each chord in the progression
+    progression.progression.forEach((chordFunc, index) => {
+        // Add a new measure
+        const newMeasure = document.createElement('div');
+        newMeasure.className = 'measure';
+        newMeasure.draggable = true;
+
+        // Get the chord based on the function and key
+        const chord = getChordFromFunction(selectedKey, chordFunc);
+        const [root, quality] = parseChord(chord);
+
+        newMeasure.innerHTML = `
+            <span class="measure-number">${index + 1}</span>
+            <div class="chord-controls">
+                <select class="root-note">
+                    ${NOTES.map(note => 
+                        `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`
+                    ).join('')}
+                </select>
+                <select class="chord-quality">
+                    <option value="major" ${quality === '' ? 'selected' : ''}>Major</option>
+                    <option value="minor" ${quality === 'm' ? 'selected' : ''}>Minor</option>
+                    <option value="dom7" ${quality === '7' ? 'selected' : ''}>7</option>
+                    <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
+                    <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
+                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
+                </select>
+            </div>
+            <div class="scale-controls">
+                <select class="second-key">
+                    ${NOTES.map(note => 
+                        `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`
+                    ).join('')}
+                </select>
+                <select class="scale-select">
+                    ${Object.keys(SCALES).map(scale => 
+                        `<option value="${scale}" ${scale === suggestScaleForQuality(quality) ? 'selected' : ''}>${scale}</option>`
+                    ).join('')}
+                </select>
+            </div>
+        `;
+
+        // Add drag and drop event listeners
+        newMeasure.addEventListener('dragstart', dragStart);
+        newMeasure.addEventListener('dragover', dragOver);
+        newMeasure.addEventListener('drop', drop);
+        newMeasure.addEventListener('dragend', dragEnd);
+
+        measuresDiv.appendChild(newMeasure);
+    });
+
+    // Update measure numbers
+    updateMeasureNumbers();
+
+    // Add first chord listener
+    addFirstChordListener();
+
+    // Update the fretboard display
+    const firstMeasure = measuresDiv.firstChild;
+    if (firstMeasure) {
+        const rootNote = firstMeasure.querySelector('.root-note').value;
+        const scaleType = firstMeasure.querySelector('.scale-select').value;
+        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+        updateFretboardNotes(document.getElementById('chord-fretboard'), rootNote, scaleType, tuning);
+    }
+}
+       
     function createBeats() {
     const container = document.querySelector('.beats-container');
     container.innerHTML = '';
@@ -2119,15 +2191,19 @@ function getQualityValue(quality) {
 }
 
 function parseChord(chord) {
-    // Handle various chord notations including flats
-    const regex = /^([A-G][b#]?)([m7b5|7b9|maj7|m7|7|m|dim]*)$/;
+    if (!chord) return ['C', ''];
+    
+    // Handle various chord notations including flats and special qualities
+    const regex = /^([A-G][b#]?)(m7b5|7b9|maj7|m7|7|m|dim|aug|sus2|sus4|add9|6|9|11|13|°)?$/;
     const match = chord.match(regex);
+    
     if (!match) {
         console.warn(`Unable to parse chord: ${chord}`);
         return [standardizeNoteName(chord), ''];
     }
+    
     const [_, root, quality] = match;
-    return [standardizeNoteName(root), quality || 'major'];
+    return [standardizeNoteName(root), quality || ''];
 }
 
 function suggestScaleForQuality(quality) {
