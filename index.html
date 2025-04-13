@@ -1653,57 +1653,43 @@ function createFretboard(container, tuning) {
             beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
             
             if (soundType === 'drums') {
-                // Set initial states based on eighth note position
-                switch(i) {
-                    case 0: // 1
-                        beat.dataset.volume = '1';
-                        beat.dataset.sound = 'kick';
-                        beat.style.backgroundColor = '#1F618D';
-                        break;
-                    case 1: // &
-                        beat.dataset.volume = '1';
-                        beat.dataset.sound = 'hihat';
-                        beat.style.backgroundColor = '#9E9E9E';
-                        break;
-                    case 2: // 2
-                        beat.dataset.volume = '1';
-                        beat.dataset.sound = 'snare';
-                        beat.style.backgroundColor = '#4CAF50';
-                        break;
-                    case 3: // &
-                        beat.dataset.volume = '1';
-                        beat.dataset.sound = 'hihat';
-                        beat.style.backgroundColor = '#9E9E9E';
-                        break;
-                    case 4: // 3
-                        beat.dataset.volume = '1';
-                        beat.dataset.sound = 'kick';
-                        beat.style.backgroundColor = '#1F618D';
-                        break;
-                    case 5: // &
-                        beat.dataset.volume = '1';
-                        beat.dataset.sound = 'hihat';
-                        beat.style.backgroundColor = '#9E9E9E';
-                        break;
-                    case 6: // 4
-                        beat.dataset.volume = '1';
-                        beat.dataset.sound = 'snare';
-                        beat.style.backgroundColor = '#4CAF50';
-                        break;
-                    case 7: // &
-                        beat.dataset.volume = '1';
-                        beat.dataset.sound = 'hihat';
-                        beat.style.backgroundColor = '#9E9E9E';
-                        break;
+                // Set initial states for all beats
+                if (i % 2 === 1) {  // All eighth notes (2, 4, 6, 8) start with hihat
+                    beat.dataset.volume = '1';
+                    beat.dataset.sound = 'hihat';
+                    beat.style.backgroundColor = '#9E9E9E';
+                } else {  // Quarter notes have specific defaults
+                    switch(i) {
+                        case 0:  // Beat 1
+                            beat.dataset.volume = '1';
+                            beat.dataset.sound = 'kick';
+                            beat.style.backgroundColor = '#1F618D';
+                            break;
+                        case 2:  // Beat 2
+                            beat.dataset.volume = '1';
+                            beat.dataset.sound = 'snare';
+                            beat.style.backgroundColor = '#4CAF50';
+                            break;
+                        case 4:  // Beat 3
+                            beat.dataset.volume = '1';
+                            beat.dataset.sound = 'kick';
+                            beat.style.backgroundColor = '#1F618D';
+                            break;
+                        case 6:  // Beat 4
+                            beat.dataset.volume = '1';
+                            beat.dataset.sound = 'snare';
+                            beat.style.backgroundColor = '#4CAF50';
+                            break;
+                    }
                 }
 
                 beat.addEventListener('click', function() {
                     const currentVolume = this.dataset.volume;
                     const currentSound = this.dataset.sound;
-                    
-                    // Define state transitions for each eighth note
                     let nextState;
-                    if (i === 0 || i === 4) { // 1 and 3
+
+                    // Define transitions based on beat position
+                    if (i === 0 || i === 4) {  // Beats 1 and 3
                         if (currentSound === 'kick' && currentVolume === '1') {
                             nextState = { volume: '0.5', sound: 'kick', color: '#4CAF50' };
                         } else if (currentSound === 'kick' && currentVolume === '0.5') {
@@ -1717,7 +1703,7 @@ function createFretboard(container, tuning) {
                         } else {
                             nextState = { volume: '1', sound: 'kick', color: '#1F618D' };
                         }
-                    } else if (i === 2 || i === 6) { // 2 and 4
+                    } else if (i === 2 || i === 6) {  // Beats 2 and 4
                         if (currentSound === 'snare' && currentVolume === '1') {
                             nextState = { volume: '0.5', sound: 'snare', color: '#006400' };
                         } else if (currentSound === 'snare' && currentVolume === '0.5') {
@@ -1731,7 +1717,7 @@ function createFretboard(container, tuning) {
                         } else {
                             nextState = { volume: '1', sound: 'snare', color: '#4CAF50' };
                         }
-                    } else { // &'s (eighth notes)
+                    } else {  // All eighth notes (&)
                         if (currentSound === 'hihat') {
                             nextState = { volume: '1', sound: 'kick', color: '#1F618D' };
                         } else if (currentSound === 'kick' && currentVolume === '1') {
@@ -1750,14 +1736,10 @@ function createFretboard(container, tuning) {
                     this.dataset.volume = nextState.volume;
                     this.dataset.sound = nextState.sound;
                     this.style.backgroundColor = nextState.color;
-
-                    // Update display text
-                    const beatNumber = `${Math.floor(i / 2 + 1)}${i % 2 === 1 ? '&' : ''}`;
-                    this.textContent = `${beatNumber}\n${nextState.sound !== 'silent' ? nextState.sound : '-'}`;
                 });
 
             } else {
-                // Click or woodblock - only on quarter notes
+                // Click or woodblock - only on quarter notes (unchanged)
                 if (!isEighth) {
                     if (i === 0) {
                         beat.dataset.volume = '1';
@@ -1790,7 +1772,7 @@ function createFretboard(container, tuning) {
                 });
             }
         } else {
-            // Handle other time signatures (unchanged)
+            // Other time signatures (unchanged)
             beat.textContent = i + 1;
             if (timeSignature === 6) {
                 beat.dataset.volume = (i === 0 || i === 3) ? '1' : '0.3';
@@ -1814,6 +1796,7 @@ function createFretboard(container, tuning) {
         container.appendChild(beat);
     }
 }
+       
  function loadProgression(progressionKey) {
     const progression = progressions[progressionKey];
     if (!progression) {
