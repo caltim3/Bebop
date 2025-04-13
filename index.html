@@ -929,8 +929,10 @@ function getNoteIndex(note) {
 }
 
 function getChordFromFunction(key, func) {
-    // Handle minor keys
-    const isMinorKey = key.endsWith('m') || key.endsWith('min');
+    if (!key || !func) return null;
+
+    // Use updated logic to determine if the key is minor
+    const isMinor = isMinorKeyName(key);
     const rootKey = key.replace(/m$|min$/, '');
     const standardizedKey = standardizeNoteName(rootKey);
     const keyIndex = NOTES.indexOf(standardizedKey);
@@ -1519,9 +1521,34 @@ async function playMetronomeSound(volume) {
     }
 }
 
-        function createKeyOptions() {
-    return NOTES.map(note => `<option value="${note}">${note}</option>`).join('');
+function createKeyOptions(selectedKey = 'C') {
+    const keys = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
+    return keys.map(k => 
+        `<option value="${k}" ${k === selectedKey ? 'selected' : ''}>${k}</option>`
+    ).join('');
 }
+
+function createQualityOptions(selectedQuality = 'major') {
+    const qualities = [
+        { value: 'major', label: 'Major' },
+        { value: 'minor', label: 'Minor' },
+        { value: 'dom7', label: '7' },
+        { value: 'maj7', label: 'Maj7' },
+        { value: 'min7', label: 'Min7' },
+        { value: 'min7b5', label: 'Min7b5 (Half Diminished)' }
+    ];
+    return qualities.map(q => 
+        `<option value="${q.value}" ${q.value === selectedQuality ? 'selected' : ''}>${q.label}</option>`
+    ).join('');
+}
+
+       function createScaleOptions(selectedScale = 'major') {
+    const scaleNames = Object.keys(SCALES); // SCALES is your global scale map
+    return scaleNames.map(scale => 
+        `<option value="${scale}" ${scale === selectedScale ? 'selected' : ''}>${scale}</option>`
+    ).join('');
+}
+
        
 // Helper function to play a buffer
 function playBuffer(buffer, volume) {
@@ -2147,7 +2174,8 @@ function createFretboard(container, tuning) {
        
 function getChordFromFunction(key, func) {
     // Handle minor keys
-    const isMinorKey = key.endsWith('m') || key.endsWith('min');
+    const isMinor = isMinorKeyName(key);
+
     const rootKey = key.replace(/m$|min$/, '');
     const standardizedKey = standardizeNoteName(rootKey);
     const keyIndex = NOTES.indexOf(standardizedKey);
@@ -2500,143 +2528,95 @@ document.getElementById('dark-mode-toggle').addEventListener('click', function()
     });
 });
        
-document.addEventListener('DOMContentLoaded', async function() {
-    try {
-        // Initialize audio context and load samples
-        await initializeAudio();
-        await loadSounds();
-        await loadPianoSamples();
-        await setupReverb();
-
-        // Create initial UI elements
-        createBeats();
-        initializeStaticFretboards();
-        initializeDragAndDrop();
-
-        // Generate key options HTML
-        const keyOptions = createKeyOptions();
-        
-        // Update all key selectors with flat notation
-        document.getElementById('keySelect').innerHTML = keyOptions;
-        document.querySelectorAll('.root-note, .second-key').forEach(select => {
-            select.innerHTML = keyOptions;
-        });
-        document.querySelectorAll('.fretboards-grid .keySelect').forEach(select => {
-            select.innerHTML = keyOptions;
-        });
-
-        // Initialize chord fretboard
-        const chordFretboard = document.getElementById('chord-fretboard');
-        if (chordFretboard) {
-            createFretboard(chordFretboard, TUNINGS.standard);
-            // Set default to C major scale
-            updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
+document.addEventListener('DOMContentLoaded', () => {
+    // ✅ Initialize audio on first click
+    document.addEventListener('click', async function initAudioOnFirstClick() {
+        const success = await initializeAudio();
+        if (success) {
+            document.removeEventListener('click', initAudioOnFirstClick);
+            log("Audio initialized on first click");
         }
+    }, { once: true });
 
-        // Clear existing measures and create default I-V progression
-        const measures = document.getElementById('measures');
-        measures.innerHTML = '';
-        
-        // Add two measures for I-V progression
-        addMeasure();
-        addMeasure();
-        
-        // Configure first measure (I - C major)
-        const firstMeasure = measures.children[0];
-        if (firstMeasure) {
-            firstMeasure.querySelector('.root-note').value = 'C';
-            firstMeasure.querySelector('.chord-quality').value = 'major';
-            firstMeasure.querySelector('.second-key').value = 'C';
-            firstMeasure.querySelector('.scale-select').value = 'major';
+    // ✅ Set default progression and key on load
+    const progressionSelect = document.getElementById('progression-select');
+    const keySelect = document.getElementById('keySelect');
+    const initialProgression = progressionSelect.value;
+    const initialKey = progressions[initialProgression]?.defaultKey || 'C';
+    keySelect.value = initialKey;
+    renderProgressionFromKey(initialProgression);
+
+    // ✅ Update key and regenerate UI on progression change
+    progressionSelect.addEventListener('change', (e) => {
+        const selected = e.target.value;
+        const progression = progressions[selected];
+        if (progression?.defaultKey) {
+            keySelect.value = progression.defaultKey;
         }
-        
-        // Configure second measure (V - G7)
-        const secondMeasure = measures.children[1];
-        if (secondMeasure) {
-            secondMeasure.querySelector('.root-note').value = 'G';
-            secondMeasure.querySelector('.chord-quality').value = 'dom7';
-            secondMeasure.querySelector('.second-key').value = 'G';
-            secondMeasure.querySelector('.scale-select').value = 'mixolydian';
+        renderProgressionFromKey(selected);
+    });
+
+    // ✅ Dark mode toggle
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    darkModeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        darkModeToggle.classList.toggle('active');
+    });
+
+    // ✅ Tap tempo logic
+    const tapButton = document.getElementById('tap-tempo');
+    const tempoSlider = document.getElementById('tempo');
+    const tempoDisplay = document.getElementById('tempo-display');
+    tapButton.addEventListener('click', () => {
+        const now = Date.now();
+        tapTimes.push(now);
+        if (tapTimes.length > 4) tapTimes.shift();
+
+        if (tapTimes.length >= 2) {
+            const intervals = tapTimes.slice(1).map((t, i) => t - tapTimes[i]);
+            const avgInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+            const bpm = Math.round(60000 / avgInterval);
+            tempoSlider.value = bpm;
+            tempoDisplay.textContent = `${bpm} BPM`;
         }
+    });
 
-        // Add first chord listener for key changes
-        addFirstChordListener();
+    // ✅ Tempo slider live update
+    tempoSlider.addEventListener('input', () => {
+        tempo = parseInt(tempoSlider.value);
+        tempoDisplay.textContent = `${tempo} BPM`;
+    });
 
-        // Initialize progression event listeners
-        document.getElementById('keySelect').addEventListener('change', function() {
-            const newKey = standardizeNoteName(this.value);
-            const selectedProgression = document.getElementById('progression-select').value;
-            if (selectedProgression !== 'none') {
-                updateProgressionKey(newKey);
-            }
-        });
+    // ✅ Start/stop metronome
+    const startStopButton = document.getElementById('start-stop');
+    startStopButton.addEventListener('click', () => {
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+            startMetronome();
+            startStopButton.textContent = 'Stop';
+        } else {
+            stopMetronome();
+            startStopButton.textContent = 'Start';
+        }
+    });
 
-        document.getElementById('progression-select').addEventListener('change', function() {
-            const selectedProgression = this.value;
-            if (selectedProgression !== 'none') {
-                loadProgression(selectedProgression);
-            }
-        });
-
-        // Set up metronome controls
-        document.getElementById('start-stop').addEventListener('click', function() {
-            if (isPlaying) {
-                stopPlayback();
-            } else {
-                startPlayback();
-            }
-        });
-
-        document.getElementById('tempo').addEventListener('input', function() {
-            tempo = parseInt(this.value);
-            document.getElementById('tempo-display').textContent = `${tempo} BPM`;
-            if (isPlaying) {
-                stopPlayback();
-                startPlayback();
-            }
-        });
-
-        document.getElementById('time-signature').addEventListener('change', function() {
-            createBeats();
-            if (isPlaying) {
-                stopPlayback();
-                startPlayback();
-            }
-        });
-
-        document.getElementById('tap-tempo').addEventListener('click', function() {
-            const now = Date.now();
-            if (now - lastTapTime > 2000) tapTimes = [];
-            tapTimes.push(now);
-            lastTapTime = now;
-
-            if (tapTimes.length > 1) {
-                const intervals = [];
-                for (let i = 1; i < tapTimes.length; i++) {
-                    intervals.push(tapTimes[i] - tapTimes[i - 1]);
-                }
-                const averageInterval = intervals.reduce((a, b) => a + b) / intervals.length;
-                tempo = Math.round(60000 / averageInterval);
-                tempo = Math.min(Math.max(tempo, 40), 220);
-                document.getElementById('tempo').value = tempo;
-                document.getElementById('tempo-display').textContent = `${tempo} BPM`;
-                if (isPlaying) {
-                    stopPlayback();
-                    startPlayback();
-                }
-            }
-        });
-
-        // Initialize sound type change handler
-        document.getElementById('sound-type').addEventListener('change', function() {
-            createBeats();
-        });
-
-        console.log('Initialization completed successfully');
-    } catch (error) {
-        console.error('Error during initialization:', error);
-        updateLoadingStatus('Error initializing application. Please refresh the page.');
+    // ✅ Initialize beats container
+    const beatsContainer = document.querySelector('.beats-container');
+    const timeSignature = document.getElementById('time-signature');
+    function regenerateBeats() {
+        beatsContainer.innerHTML = '';
+        const beats = parseInt(timeSignature.value);
+        for (let i = 0; i < beats; i++) {
+            const beat = document.createElement('div');
+            beat.classList.add('beat');
+            beat.textContent = i + 1;
+            beat.addEventListener('click', () => beat.classList.toggle('active'));
+            beatsContainer.appendChild(beat);
+        }
     }
+
+    timeSignature.addEventListener('change', regenerateBeats);
+    regenerateBeats();
 });
 
   window.onload = () => {
