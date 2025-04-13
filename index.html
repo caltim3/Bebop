@@ -208,44 +208,140 @@
             border-radius: 5px;
             z-index: 1000;
         }
-        /* Add to your existing CSS */
-        .dark-mode .fretboard-container {
-            background-color: #8b8c89;
+        /* General Dark Mode Styles */
+        body.dark-mode {
+            background-color: #274c77; /* Deep blue background */
+            color: #e7ecef; /* Light text for contrast */
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         
-        .dark-mode .fretboard {
-            border-color: #4b4b4b; /* Adjust border color for better contrast */
-            background-color: #8b8c89; /* Match the gray background */
-        }
-        
-        .dark-mode .note {
-            color: #ffffff; /* Ensure notes are visible on the gray background */
-        }
-        
-        #dark-mode-toggle.active {
-            background-color: #333;
-            color: white;
-        }
-        /* Add to your existing CSS */
+        /* App Section Styling */
         .dark-mode .app-section {
-            background-color: #8b8c89;
-            color: white;
+            background: linear-gradient(145deg, #274c77, #6096ba); /* Gradient background */
+            color: #e7ecef;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
+            padding: 20px;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
         }
         
-        .dark-mode select,
+        /* Fretboard Container */
+        .dark-mode .fretboard-container {
+            background-color: #8b8c89; /* Neutral gray */
+            border: 1px solid #6096ba; /* Accent border */
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        /* Fretboard */
+        .dark-mode .fretboard {
+            background-color: #8b8c89; /* Match container */
+            border: 2px solid #4b4b4b; /* Darker border for contrast */
+            border-radius: 5px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        /* Notes on Fretboard */
+        .dark-mode .note {
+            background-color: #6096ba; /* Accent color */
+            color: #e7ecef; /* Light text */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+            transition: transform 0.2s ease, background-color 0.3s ease;
+        }
+        
+        .dark-mode .note:hover {
+            transform: scale(1.2);
+            background-color: #a3cef1; /* Lighter accent on hover */
+        }
+        
+        /* Scale Display */
+        .dark-mode .scale-display {
+            color: #e7ecef;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Subtle glow */
+        }
+        
+        /* Buttons */
         .dark-mode button {
             background-color: #6096ba;
-            color: white;
-            border: 1px solid #2a4d69;
+            color: #e7ecef;
+            border: 1px solid #274c77;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
         }
         
+        .dark-mode button:hover {
+            background-color: #a3cef1; /* Lighter blue on hover */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Select Dropdowns */
+        .dark-mode select {
+            background-color: #6096ba;
+            color: #e7ecef;
+            border: 1px solid #274c77;
+            border-radius: 5px;
+            padding: 5px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .dark-mode select:hover {
+            background-color: #a3cef1;
+        }
+        
+        /* Measures */
         .dark-mode .measure {
             background-color: #8b8c89;
-            color: white;
+            color: #e7ecef;
+            border: 1px solid #6096ba;
+            border-radius: 5px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         
-        .dark-mode .scale-display {
-            color: white;
+        .dark-mode .measure.active {
+            background-color: #a3cef1; /* Highlight active measure */
+            border-color: #e7ecef;
+        }
+        
+        /* Beats */
+        .dark-mode .beat {
+            background-color: #6096ba;
+            color: #e7ecef;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        
+        .dark-mode .beat.active {
+            background-color: #a3cef1; /* Highlight active beat */
+            transform: translateY(-5px);
+        }
+        
+        /* Volume Control */
+        .dark-mode .volume-control {
+            color: #e7ecef;
+        }
+        
+        .dark-mode .volume-control input[type="range"] {
+            background: #6096ba;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        
+        .dark-mode .volume-control input[type="range"]::-webkit-slider-thumb {
+            background: #a3cef1;
+            border: 1px solid #274c77;
+            border-radius: 50%;
+        }
+        
+        /* Dark Mode Toggle */
+        #dark-mode-toggle.active {
+            background-color: #333;
+            color: #e7ecef;
+            border: 1px solid #e7ecef;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
         
     </style>
