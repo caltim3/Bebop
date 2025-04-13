@@ -690,6 +690,54 @@ function transposeNote(note, semitones) {
         DADGAD: ['D', 'A', 'G', 'D', 'A', 'D'],
         openE: ['E', 'B', 'E', 'G#', 'B', 'E']
     };
+// First, let's create a comprehensive frequency map for the entire fretboard
+const FRETBOARD_FREQUENCIES = {
+    'string6': [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
+    'string5': [110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00],
+    'string4': [146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66],
+    'string3': [196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00],
+    'string2': [246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88],
+    'string1': [329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25]
+};
+
+// Piano note frequencies (middle C = C4 = 261.63 Hz)
+const PIANO_NOTES = {
+    'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61,
+    'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
+    'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23,
+    'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
+    'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25
+};
+
+function findClosestPianoNote(frequency) {
+    let closestNote = null;
+    let minDifference = Infinity;
+    
+    for (const [note, noteFreq] of Object.entries(PIANO_NOTES)) {
+        const difference = Math.abs(frequency - noteFreq);
+        if (difference < minDifference) {
+            minDifference = difference;
+            closestNote = note;
+        }
+    }
+    
+    return closestNote;
+}
+
+// Update the playNote function to use the correct sample
+function playNote(string, fret) {
+    const stringNum = parseInt(string.replace('string', ''));
+    const frequency = FRETBOARD_FREQUENCIES[string][fret];
+    const pianoNote = findClosestPianoNote(frequency);
+    
+    // Get the audio sample name from the piano note
+    const sampleName = pianoNote.replace('#', 's'); // Convert C# to Cs for file naming
+    
+    // Play the corresponding piano sample
+    const audio = new Audio(`samples/piano/${sampleName}.mp3`);
+    audio.play();
+}
+       
 
 const DRUM_PATTERNS = {
     '2': { 
