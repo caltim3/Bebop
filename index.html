@@ -1244,20 +1244,19 @@ async function playMetronomeSound(volume) {
     } else if (soundType === 'drums') {
         const pattern = DRUM_PATTERNS[timeSignature];
         if (pattern) {
+            // Play hi-hat on every 8th note beat with slightly lower volume
+            playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
+
             // Get the current beat's position in the pattern
             const kickPattern = pattern.kick[currentBeat % pattern.kick.length];
             const snarePattern = pattern.snare[currentBeat % pattern.snare.length];
-            const hihatPattern = pattern.hihat[currentBeat % pattern.hihat.length];
 
-            // Play the appropriate drum sounds based on the pattern
+            // Play kick and snare based on their patterns
             if (kickPattern) {
                 playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
             }
             if (snarePattern) {
                 playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            }
-            if (hihatPattern) {
-                playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7); // Slightly lower volume for hi-hat
             }
         }
     }
