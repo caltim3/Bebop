@@ -2391,140 +2391,144 @@ document.getElementById('dark-mode-toggle').addEventListener('click', function()
     });
 });
        
-document.addEventListener('DOMContentLoaded', function () {
-    // Create initial UI elements
-    createBeats();
-    initializeStaticFretboards();
-    initializeDragAndDrop();
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        // Initialize audio context and load samples
+        await initializeAudio();
+        await loadSounds();
+        await loadPianoSamples();
+        await setupReverb();
 
-    // Generate key options HTML
-    const keyOptions = createKeyOptions();
-    
-    // Update all key selectors with flat notation
-    document.getElementById('keySelect').innerHTML = keyOptions;
-    document.querySelectorAll('.root-note, .second-key').forEach(select => {
-        select.innerHTML = keyOptions;
-    });
-    document.querySelectorAll('.fretboards-grid .keySelect').forEach(select => {
-        select.innerHTML = keyOptions;
-    });
-
-    await loadSamples();
-    
-    // Initialize chord fretboard
-    const chordFretboard = document.getElementById('chord-fretboard');
-    if (chordFretboard) {
-        createFretboard(chordFretboard, TUNINGS.standard);
-        // Set default to C major scale
-        updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
-    }
-
-    // Clear existing measures and create default I-V progression
-    const measures = document.getElementById('measures');
-    measures.innerHTML = '';
-    
-    // Add two measures for I-V progression
-    addMeasure();
-    addMeasure();
-    
-    // Configure first measure (I - C major)
-    const firstMeasure = measures.children[0];
-    if (firstMeasure) {
-        firstMeasure.querySelector('.root-note').value = 'C';
-        firstMeasure.querySelector('.chord-quality').value = 'major';
-        firstMeasure.querySelector('.second-key').value = 'C';
-        firstMeasure.querySelector('.scale-select').value = 'major';
-    }
-    
-    // Configure second measure (V - G7)
-    const secondMeasure = measures.children[1];
-    if (secondMeasure) {
-        secondMeasure.querySelector('.root-note').value = 'G';
-        secondMeasure.querySelector('.chord-quality').value = 'dom7';
-        secondMeasure.querySelector('.second-key').value = 'G';
-        secondMeasure.querySelector('.scale-select').value = 'mixolydian';
-    }
-
-    // Add first chord listener for key changes
-    addFirstChordListener();
-
-    // Initialize other event listeners
-    document.getElementById('keySelect').addEventListener('change', function() {
-        const newKey = standardizeNoteName(this.value);
-        const selectedProgression = document.getElementById('progression-select').value;
-        if (selectedProgression !== 'none') {
-            updateProgressionKey(newKey);
-        }
-    });
-
-    document.getElementById('progression-select').addEventListener('change', function() {
-        const selectedProgression = this.value;
-        if (selectedProgression !== 'none') {
-            loadProgression(selectedProgression);
-        }
-    });
-
-    // Initialize audio and other controls
-    initializeAudio().then(() => {
-        console.log("Audio context initialized");
-    }).catch(error => {
-        console.error("Error initializing audio context:", error);
-    });
-
-    // Add other event listeners (tempo, time signature, etc.)
-    setupEventListeners();
-});
-
-function setupEventListeners() {
-    document.getElementById('start-stop').addEventListener('click', function () {
-        if (!audioContext) initAudioContext();
-        if (isPlaying) {
-            stopPlayback();
-        } else {
-            startPlayback();
-        }
-    });
-
-    document.getElementById('tempo').addEventListener('input', function () {
-        tempo = parseInt(this.value);
-        document.getElementById('tempo-display').textContent = `${tempo} BPM`;
-        if (isPlaying) {
-            stopPlayback();
-            startPlayback();
-        }
-    });
-
-    document.getElementById('time-signature').addEventListener('change', function () {
+        // Create initial UI elements
         createBeats();
-        if (isPlaying) {
-            stopPlayback();
-            startPlayback();
+        initializeStaticFretboards();
+        initializeDragAndDrop();
+
+        // Generate key options HTML
+        const keyOptions = createKeyOptions();
+        
+        // Update all key selectors with flat notation
+        document.getElementById('keySelect').innerHTML = keyOptions;
+        document.querySelectorAll('.root-note, .second-key').forEach(select => {
+            select.innerHTML = keyOptions;
+        });
+        document.querySelectorAll('.fretboards-grid .keySelect').forEach(select => {
+            select.innerHTML = keyOptions;
+        });
+
+        // Initialize chord fretboard
+        const chordFretboard = document.getElementById('chord-fretboard');
+        if (chordFretboard) {
+            createFretboard(chordFretboard, TUNINGS.standard);
+            // Set default to C major scale
+            updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
         }
-    });
 
-    document.getElementById('tap-tempo').addEventListener('click', function () {
-        const now = Date.now();
-        if (now - lastTapTime > 2000) tapTimes = [];
-        tapTimes.push(now);
-        lastTapTime = now;
+        // Clear existing measures and create default I-V progression
+        const measures = document.getElementById('measures');
+        measures.innerHTML = '';
+        
+        // Add two measures for I-V progression
+        addMeasure();
+        addMeasure();
+        
+        // Configure first measure (I - C major)
+        const firstMeasure = measures.children[0];
+        if (firstMeasure) {
+            firstMeasure.querySelector('.root-note').value = 'C';
+            firstMeasure.querySelector('.chord-quality').value = 'major';
+            firstMeasure.querySelector('.second-key').value = 'C';
+            firstMeasure.querySelector('.scale-select').value = 'major';
+        }
+        
+        // Configure second measure (V - G7)
+        const secondMeasure = measures.children[1];
+        if (secondMeasure) {
+            secondMeasure.querySelector('.root-note').value = 'G';
+            secondMeasure.querySelector('.chord-quality').value = 'dom7';
+            secondMeasure.querySelector('.second-key').value = 'G';
+            secondMeasure.querySelector('.scale-select').value = 'mixolydian';
+        }
 
-        if (tapTimes.length > 1) {
-            const intervals = [];
-            for (let i = 1; i < tapTimes.length; i++) {
-                intervals.push(tapTimes[i] - tapTimes[i - 1]);
+        // Add first chord listener for key changes
+        addFirstChordListener();
+
+        // Initialize progression event listeners
+        document.getElementById('keySelect').addEventListener('change', function() {
+            const newKey = standardizeNoteName(this.value);
+            const selectedProgression = document.getElementById('progression-select').value;
+            if (selectedProgression !== 'none') {
+                updateProgressionKey(newKey);
             }
-            const averageInterval = intervals.reduce((a, b) => a + b) / intervals.length;
-            tempo = Math.round(60000 / averageInterval);
-            tempo = Math.min(Math.max(tempo, 40), 220);
-            document.getElementById('tempo').value = tempo;
+        });
+
+        document.getElementById('progression-select').addEventListener('change', function() {
+            const selectedProgression = this.value;
+            if (selectedProgression !== 'none') {
+                loadProgression(selectedProgression);
+            }
+        });
+
+        // Set up metronome controls
+        document.getElementById('start-stop').addEventListener('click', function() {
+            if (isPlaying) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        });
+
+        document.getElementById('tempo').addEventListener('input', function() {
+            tempo = parseInt(this.value);
             document.getElementById('tempo-display').textContent = `${tempo} BPM`;
             if (isPlaying) {
                 stopPlayback();
                 startPlayback();
             }
-        }
-    });
-}
+        });
+
+        document.getElementById('time-signature').addEventListener('change', function() {
+            createBeats();
+            if (isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        });
+
+        document.getElementById('tap-tempo').addEventListener('click', function() {
+            const now = Date.now();
+            if (now - lastTapTime > 2000) tapTimes = [];
+            tapTimes.push(now);
+            lastTapTime = now;
+
+            if (tapTimes.length > 1) {
+                const intervals = [];
+                for (let i = 1; i < tapTimes.length; i++) {
+                    intervals.push(tapTimes[i] - tapTimes[i - 1]);
+                }
+                const averageInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+                tempo = Math.round(60000 / averageInterval);
+                tempo = Math.min(Math.max(tempo, 40), 220);
+                document.getElementById('tempo').value = tempo;
+                document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+                if (isPlaying) {
+                    stopPlayback();
+                    startPlayback();
+                }
+            }
+        });
+
+        // Initialize sound type change handler
+        document.getElementById('sound-type').addEventListener('change', function() {
+            createBeats();
+        });
+
+        console.log('Initialization completed successfully');
+    } catch (error) {
+        console.error('Error during initialization:', error);
+        updateLoadingStatus('Error initializing application. Please refresh the page.');
+    }
+});
 
   window.onload = () => {
     // Double-check fretboard initialization
