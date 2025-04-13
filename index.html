@@ -937,30 +937,28 @@ function getChordFromFunction(key, func) {
 
     if (keyIndex === -1) {
         console.error(`Invalid key: ${key}`);
-        return 'C';
+        return standardizedKey;
     }
 
     // Complete scale degrees for both major and minor keys
     const scaleDegrees = {
         major: {
-            'I': 0, 'ii': 2, 'iii': 4, 'IV': 5, 'V': 7, 'vi': 9, 'vii°': 11,
+            'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11,
+            'i': 0, 'ii': 2, 'iii': 4, 'iv': 5, 'v': 7, 'vi': 9, 'vii': 11,
             'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
             'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11,
             'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9,
             'bIII': 3, 'bVI': 8, 'bVII': 10,
-            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10,
-            'V7/iv': 7, 'V7/III': 7,
-            'iim7b5': 2,
-            'bv': 6
+            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10
         },
         minor: {
-            'i': 0, 'ii°': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
+            'i': 0, 'ii': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
+            'im': 0, 'iim': 2, 'iiim': 3, 'ivm': 5, 'vm': 7, 'VIm': 8,
             'i7': 0, 'ii7': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
-            'im7': 0, 'iim7': 2, 'IIImaj7': 3, 'ivm7': 5, 'vm7': 7, 'VImaj7': 8,
+            'im7': 0, 'iim7': 2, 'IIIm7': 3, 'ivm7': 5, 'vm7': 7, 'VIm7': 8,
             'iim7b5': 2, 'V7b9': 7,
             'bIII': 3, 'bVI': 8, 'bVII': 10,
-            'bIIImaj7': 3, 'bVImaj7': 8,
-            'V7/iv': 7, 'V7/III': 7
+            'bIIImaj7': 3, 'bVImaj7': 8
         }
     };
 
@@ -980,9 +978,9 @@ function getChordFromFunction(key, func) {
     if (func.includes('m7b5')) quality = 'min7b5';
     else if (func.includes('7b9')) quality = '7b9';
     else if (func.includes('maj7')) quality = 'maj7';
-    else if (func.includes('m7')) quality = 'min7';
+    else if (func.includes('m7') || func.includes('min7')) quality = 'm7';
     else if (func.includes('7')) quality = '7';
-    else if (func.match(/^[a-z]/)) quality = 'm';
+    else if (func.match(/^[a-z]/) && !func.includes('maj')) quality = 'm';
     else if (func.includes('°')) quality = 'dim';
     else if (func.includes('ø')) quality = 'min7b5';
 
@@ -1921,7 +1919,7 @@ function createFretboard(container, tuning) {
                     <option value="dom7" ${quality === '7' ? 'selected' : ''}>7</option>
                     <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
                     <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
-                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
+                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5</option>
                 </select>
             </div>
             <div class="scale-controls">
@@ -1937,12 +1935,6 @@ function createFretboard(container, tuning) {
                 </select>
             </div>
         `;
-
-        // Add event listeners
-        newMeasure.addEventListener('dragstart', dragStart);
-        newMeasure.addEventListener('dragover', dragOver);
-        newMeasure.addEventListener('drop', drop);
-        newMeasure.addEventListener('dragend', dragEnd);
 
         measuresDiv.appendChild(newMeasure);
     });
@@ -2195,8 +2187,8 @@ function getQualityValue(quality) {
 function parseChord(chord) {
     if (!chord) return ['C', ''];
     
-    // Handle various chord notations including flats and special qualities
-    const regex = /^([A-G][b#]?)(m7b5|7b9|maj7|m7|7|m|dim|aug|sus2|sus4|add9|6|9|11|13|°)?$/;
+    // Enhanced regex to handle more chord qualities including minor chords and flats
+    const regex = /^([A-G][b#]?)(m7b5|7b9|maj7|min7|m7|7|min|m|dim|aug|sus2|sus4|add9|6|9|11|13|°)?$/;
     const match = chord.match(regex);
     
     if (!match) {
@@ -2205,7 +2197,13 @@ function parseChord(chord) {
     }
     
     const [_, root, quality] = match;
-    return [standardizeNoteName(root), quality || ''];
+    // Standardize minor chord notation
+    let standardQuality = quality || '';
+    if (quality === 'min' || quality === 'min7') {
+        standardQuality = quality.replace('min', 'm');
+    }
+    
+    return [standardizeNoteName(root), standardQuality];
 }
 
 function suggestScaleForQuality(quality) {
