@@ -267,8 +267,8 @@
             </select>
               <select id="sound-type">
                 <option value="click">Click</option>
+                <option value="woodblock">Woodblock</option>  
                 <option value="drums">Drums</option>
-                <option value="woodblock">Woodblock</option>
             </select>
             <div class="volume-control">
                 <span>Metronome Volume:</span>
@@ -1221,30 +1221,32 @@ function playFallbackChordNote(note, octave, volume, time, duration, outputNode)
         playBuffer(soundBuffers['click'] || await createDrumSound('click'), finalVolume);
     } else if (soundType === 'woodblock') {
         playBuffer(soundBuffers['woodblock'] || await createDrumSound('woodblock'), finalVolume);
-    } else if (soundType === 'drums') {
-        if (timeSignature === 4) {
-            playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
-            if (beatSound === 'kick') {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (beatSound === 'snare') {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            }
+   if (soundType === 'drums') {
+    const pattern = DRUM_PATTERNS[timeSignature];
+    if (pattern) {
+        const isKick = pattern.kick[i % pattern.kick.length];
+        const isSnare = pattern.snare[i % pattern.snare.length];
+        const isHihat = pattern.hihat[i % pattern.hihat.length];
+
+        if (isKick) {
+            beat.dataset.volume = '1';
+            beat.dataset.sound = 'kick';
+            beat.style.backgroundColor = '#1F618D'; // Kick color
+        } else if (isSnare) {
+            beat.dataset.volume = '1';
+            beat.dataset.sound = 'snare';
+            beat.style.backgroundColor = '#BD2031'; // Snare color
+        } else if (isHihat) {
+            beat.dataset.volume = '1';
+            beat.dataset.sound = 'hihat';
+            beat.style.backgroundColor = '#9E9E9E'; // Hi-hat color
         } else {
-            const pattern = DRUM_PATTERNS[timeSignature];
-            if (pattern.hihat[currentBeat]) {
-                playBuffer(soundBuffers['hihat'] || await createDrumSound('hihat'), finalVolume * 0.7);
-            }
-            if (beatSound === 'kick') {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (beatSound === 'snare') {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            } else if (pattern.kick[currentBeat]) {
-                playBuffer(soundBuffers['kick'] || await createDrumSound('kick'), finalVolume);
-            } else if (pattern.snare[currentBeat]) {
-                playBuffer(soundBuffers['snare'] || await createDrumSound('snare'), finalVolume);
-            }
+            beat.dataset.volume = '0';
+            beat.dataset.sound = 'silent';
+            beat.style.backgroundColor = '#666666'; // Silent color
         }
     }
+}
 }
 
         function createKeyOptions() {
@@ -2076,10 +2078,27 @@ function toggleDarkMode(isDark) {
     });
 }
 
-// Add dark mode toggle button listener
-document.getElementById('dark-mode-toggle')?.addEventListener('click', function() {
+document.getElementById('dark-mode-toggle').addEventListener('click', function() {
     const isDark = this.classList.toggle('active');
-    toggleDarkMode(isDark);
+    document.body.classList.toggle('dark-mode', isDark);
+
+    // Update fretboard backgrounds
+    const fretboardContainers = document.querySelectorAll('.fretboard-container');
+    fretboardContainers.forEach(container => {
+        container.style.backgroundColor = isDark ? '#6096ba' : '#ffffff';
+    });
+
+    // Update all other backgrounds to gray
+    const elementsToGray = document.querySelectorAll('.beats-container, .controls-container, .measures-container, .chord-fretboard-container');
+    elementsToGray.forEach(element => {
+        element.style.backgroundColor = isDark ? '#8b8c89' : '#ffffff';
+    });
+
+    // Update text color for better contrast
+    const textElements = document.querySelectorAll('.control-button, .label, .beat, .measure');
+    textElements.forEach(element => {
+        element.style.color = isDark ? '#ffffff' : '#000000';
+    });
 });
 
        
