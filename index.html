@@ -26,8 +26,7 @@ body.dark-mode {
 }
 
 body.dark-mode .app-section {
-    background: #6096ba;
-    color: white;
+    background-color: #6096ba;
 }
 
 body.dark-mode .fretboard-container {
@@ -225,18 +224,18 @@ body.dark-mode .fretboard-container {
       border-radius: 5px;
       z-index: 1000;
     }
-    /* Dark mode button style */
-    .dark-mode-toggle {
-      position: fixed;
-      top: 50px;
-      left: 20px;
-      padding: 10px 15px;
-      background: #333;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+      .dark-mode-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;  /* Changed from left to right */
+    padding: 10px 15px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1000;
+}
   </style>
 </head>
 <body>
@@ -966,28 +965,82 @@ body.dark-mode .fretboard-container {
 
     // Get chord from Roman numeral function (simplified for our purposes)
     function getChordFromFunction(key, func) {
-      const isMinorKey = key.toLowerCase().includes("m");
-      const rootKey = key.replace(/m$/, "");
-      const keyIndex = getNoteIndex(standardizeNoteName(rootKey));
-      const scaleDegrees = isMinorKey
-        ? { i: 0, iim7b5: 2, III: 3, iv: 5, v: 7, VI: 8, VII: 10, "V7": 7 }
-        : { I: 0, ii: 2, iii: 4, IV: 5, V: 7, vi: 9, vii: 11, I7: 0, II7: 2, III7: 4, IV7: 5, V7: 7, VI7: 9, VII7: 11 };
-      const degree = scaleDegrees[func];
-      if (degree === undefined) return key;
-      const note = NOTES[(keyIndex + degree) % 12];
-      let quality = "";
-      if (isMinorKey) {
-        if (func.includes("7b5")) quality = "min7b5";
-        else if (func.includes("maj7")) quality = "maj7";
-        else if (func.includes("7")) quality = "7";
-        else if (func.match(/^[a-z]/)) quality = "m";
-      } else {
-        if (func.includes("7")) quality = func.includes("m7") ? "m7" : "7";
-        else if (func.match(/^[a-z]/)) quality = "m";
-      }
-      return note + quality;
+    // Handle empty or invalid inputs
+    if (!key || !func) return "C";
+
+    // Standardize the key name and handle minor keys
+    const isMinorKey = key.toLowerCase().includes("m");
+    const rootKey = standardizeNoteName(key.replace(/m$/, ""));
+    const keyIndex = NOTES.indexOf(rootKey);
+
+    // Complete mapping of all possible scale degrees and their intervals
+    const scaleDegrees = {
+        // Major scale degrees (uppercase numerals)
+        'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11,
+        // Minor scale degrees (lowercase numerals)
+        'i': 0, 'ii': 2, 'iii': 3, 'iv': 5, 'v': 7, 'vi': 8, 'vii': 10,
+        // Dominant seventh chords
+        'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
+        // Minor seventh chords
+        'i7': 0, 'ii7': 2, 'iii7': 3, 'iv7': 5, 'v7': 7, 'vi7': 8, 'vii7': 10,
+        // Major seventh chords
+        'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9, 'VIImaj7': 11,
+        // Half-diminished chords
+        'iim7b5': 2, 'iiim7b5': 3, 'vim7b5': 8, 'viim7b5': 10,
+        // Additional common jazz notation
+        'bII': 1, 'bIII': 3, 'bV': 6, 'bVI': 8, 'bVII': 10,
+        'bII7': 1, 'bIII7': 3, 'bV7': 6, 'bVI7': 8, 'bVII7': 10
+    };
+
+    // Get the interval for the scale degree
+    const degree = scaleDegrees[func];
+    if (degree === undefined) return key; // Return original key if function not found
+
+    // Calculate the root note of the chord
+    const note = NOTES[(keyIndex + degree) % 12];
+
+    // Determine chord quality based on function and context
+    let quality = "";
+    
+    // Handle seventh chords first
+    if (func.includes('maj7')) {
+        quality = "maj7";
+    } else if (func.includes('m7b5')) {
+        quality = "min7b5";
+    } else if (func.includes('7')) {
+        if (func === 'V7' || func.startsWith('V7/') || func.match(/[A-Z]7/)) {
+            quality = "7"; // Dominant seventh
+        } else {
+            quality = func.match(/[A-Z]/) ? "maj7" : "m7";
+        }
+    } else {
+        // Handle triads
+        if (isMinorKey) {
+            // In minor keys, handle natural minor scale qualities
+            const minorScaleDegrees = ['i', 'ii', 'III', 'iv', 'v', 'VI', 'VII'];
+            quality = func.match(/[A-Z]/) ? "" : "m";
+        } else {
+            // In major keys, handle major scale qualities
+            const majorScaleDegrees = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
+            quality = func.match(/[A-Z]/) ? "" : "m";
+        }
     }
 
+    // Special handling for diminished chords
+    if (func.includes('°')) {
+        quality = "dim";
+    }
+
+    // Handle secondary dominants (e.g., V7/V)
+    if (func.includes('/')) {
+        const [primaryFunc, secondaryFunc] = func.split('/');
+        const secondaryRoot = getChordFromFunction(key, secondaryFunc).split(/[^A-Gb]+/)[0];
+        return getChordFromFunction(secondaryRoot, primaryFunc);
+    }
+
+    // Return the complete chord name
+    return note + quality;
+}
     function createBeats() {
       const container = document.querySelector(".beats-container");
       container.innerHTML = "";
@@ -1208,55 +1261,129 @@ body.dark-mode .fretboard-container {
     function dragEnd(e) { this.classList.remove("dragging"); }
 
     function loadProgression(progressionKey) {
-      const progressionDef = progressions[progressionKey];
-      if (!progressionDef) return;
-      const measuresDiv = document.getElementById("measures");
-      measuresDiv.innerHTML = "";
-      const defaultKey = progressionDef.defaultKey;
-      document.getElementById("keySelect").value = defaultKey.replace(/m$/, "");
-      progressionDef.progression.forEach((chordFunc, index) => {
+    const progressionDef = progressions[progressionKey];
+    if (!progressionDef) return;
+
+    const measuresDiv = document.getElementById("measures");
+    measuresDiv.innerHTML = "";
+
+    const defaultKey = progressionDef.defaultKey;
+    document.getElementById("keySelect").value = defaultKey.replace(/m$/, "");
+
+    // Initialize first measure flag
+    let isFirstMeasure = true;
+
+    progressionDef.progression.forEach((chordFunc, index) => {
         const chord = getChordFromFunction(defaultKey, chordFunc);
         const [root, quality] = parseChord(chord);
+
         const newMeasure = document.createElement("div");
         newMeasure.className = "measure";
         newMeasure.draggable = true;
+
+        // Set active class if it's the first measure
+        if (isFirstMeasure) {
+            newMeasure.classList.add("active");
+            isFirstMeasure = false;
+        }
+
+        // Map chord qualities to dropdown values
+        const qualityToDropdown = {
+            "": "major",
+            "m": "minor",
+            "7": "dom7",
+            "maj7": "maj7",
+            "m7": "min7",
+            "min7b5": "min7b5",
+            "dim": "dim"
+        };
+
+        // Create measure HTML with proper chord values
         newMeasure.innerHTML = `
-          <span class="measure-number">${index + 1}</span>
-          <div class="chord-controls">
-            <select class="root-note">
-              ${NOTES.map(note => `<option value="${note}" ${note === root ? "selected" : ""}>${note}</option>`).join("")}
-            </select>
-            <select class="chord-quality">
-              <option value="major" ${quality === "" ? "selected" : ""}>Major</option>
-              <option value="minor" ${quality === "m" ? "selected" : ""}>Minor</option>
-              <option value="dom7" ${quality === "7" ? "selected" : ""}>7</option>
-              <option value="maj7" ${quality === "maj7" ? "selected" : ""}>Maj7</option>
-              <option value="min7" ${quality === "m7" ? "selected" : ""}>Min7</option>
-              <option value="min7b5" ${quality === "min7b5" ? "selected" : ""}>Min7b5 (Half Diminished)</option>
-            </select>
-          </div>
-          <div class="scale-controls">
-            <select class="second-key">
-              ${NOTES.map(note => `<option value="${note}" ${note === root ? "selected" : ""}>${note}</option>`).join("")}
-            </select>
-            <select class="scale-select">
-              ${Object.keys(window.SCALES || {"major":""}).map(scale => {
-                const selected = suggestScaleForQuality(quality) === scale ? "selected" : "";
-                return `<option value="${scale}" ${selected}>${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`;
-              }).join("")}
-            </select>
-          </div>
+            <span class="measure-number">${index + 1}</span>
+            <div class="chord-controls">
+                <select class="root-note">
+                    ${NOTES.map(note => `<option value="${note}" ${note === root ? "selected" : ""}>${note}</option>`).join("")}
+                </select>
+                <select class="chord-quality">
+                    <option value="major" ${quality === "" ? "selected" : ""}>Major</option>
+                    <option value="minor" ${quality === "m" ? "selected" : ""}>Minor</option>
+                    <option value="dom7" ${quality === "7" ? "selected" : ""}>7</option>
+                    <option value="maj7" ${quality === "maj7" ? "selected" : ""}>Maj7</option>
+                    <option value="min7" ${quality === "m7" ? "selected" : ""}>Min7</option>
+                    <option value="min7b5" ${quality === "min7b5" ? "selected" : ""}>Min7b5 (Half Diminished)</option>
+                    <option value="dim" ${quality === "dim" ? "selected" : ""}>Diminished</option>
+                </select>
+            </div>
+            <div class="scale-controls">
+                <select class="second-key">
+                    ${NOTES.map(note => `<option value="${note}" ${note === root ? "selected" : ""}>${note}</option>`).join("")}
+                </select>
+                <select class="scale-select">
+                    ${Object.keys(window.SCALES || {
+                        "major": "",
+                        "minor": "",
+                        "dorian": "",
+                        "mixolydian": "",
+                        "locrian": ""
+                    }).map(scale => {
+                        const suggested = suggestScaleForQuality(qualityToDropdown[quality] || "major");
+                        return `<option value="${scale}" ${scale === suggested ? "selected" : ""}>${scale}</option>`;
+                    }).join("")}
+                </select>
+            </div>
         `;
+
+        // Add drag and drop event listeners
         newMeasure.addEventListener("dragstart", dragStart);
         newMeasure.addEventListener("dragover", dragOver);
         newMeasure.addEventListener("drop", drop);
         newMeasure.addEventListener("dragend", dragEnd);
+
+        // Add change event listeners for the selects
+        const rootNoteSelect = newMeasure.querySelector(".root-note");
+        const qualitySelect = newMeasure.querySelector(".chord-quality");
+        const secondKeySelect = newMeasure.querySelector(".second-key");
+        const scaleSelect = newMeasure.querySelector(".scale-select");
+
+        // Update chord and scale when selections change
+        rootNoteSelect.addEventListener("change", function() {
+            secondKeySelect.value = this.value;
+            updateChordProgression();
+        });
+
+        qualitySelect.addEventListener("change", function() {
+            scaleSelect.value = suggestScaleForQuality(this.value);
+            updateChordProgression();
+        });
+
+        // Add the measure to the measures div
         measuresDiv.appendChild(newMeasure);
-      });
-      updateMeasureNumbers();
-      addFirstChordListener();
+    });
+
+    // Update measure numbers and add first chord listener
+    updateMeasureNumbers();
+    addFirstChordListener();
+
+    // Update the chord fretboard display
+    const firstMeasure = document.querySelector(".measure");
+    if (firstMeasure) {
+        const root = firstMeasure.querySelector(".root-note").value;
+        const quality = firstMeasure.querySelector(".chord-quality").value;
+        const scaleRoot = firstMeasure.querySelector(".second-key").value;
+        const scaleType = firstMeasure.querySelector(".scale-select").value;
+        
+        const chordFretboard = document.getElementById("chord-fretboard");
+        if (chordFretboard) {
+            const tuning = TUNINGS[document.getElementById("chord-tuning").value] || TUNINGS.standard;
+            updateFretboardNotes(chordFretboard, scaleRoot, scaleType, tuning);
+        }
     }
 
+    // Trigger an initial chord progression update
+    updateChordProgression();
+}
+    
     function addMeasure() {
       const measuresDiv = document.getElementById("measures");
       const newMeasure = document.createElement("div");
