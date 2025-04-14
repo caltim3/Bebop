@@ -918,7 +918,7 @@ const DRUM_PATTERNS = {
    const progressions = {
   "I V7": {
       defaultKey: "C",
-      progression: ["I7", "V7"]
+      progression: ["I", "V7"]
   },   
   "jazz_blues": {
     defaultKey: "Bb",
@@ -998,17 +998,16 @@ function getNoteIndex(note) {
 }
 
 function getChordFromFunction(key, func) {
-    if (!key || !func) return null;
-    
     // Handle minor keys
-    const isMinor = isMinorKeyName(key);
+    const isMinor = isMinorKeyName(key);  // This is a function call, not a variable
+
     const rootKey = key.replace(/m$|min$/, '');
     const standardizedKey = standardizeNoteName(rootKey);
     const keyIndex = NOTES.indexOf(standardizedKey);
 
     if (keyIndex === -1) {
         console.error(`Invalid key: ${key}`);
-        return null;
+        return standardizedKey;
     }
 
     // Complete scale degrees for both major and minor keys
@@ -1033,12 +1032,13 @@ function getChordFromFunction(key, func) {
         }
     };
 
+    // Use isMinor instead of isMinorKeyName here
     const degrees = isMinor ? scaleDegrees.minor : scaleDegrees.major;
     let degree = degrees[func];
 
     if (degree === undefined) {
         console.error(`Invalid chord function: ${func}`);
-        return null;
+        return standardizedKey;
     }
 
     const noteIndex = (keyIndex + degree) % 12;
