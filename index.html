@@ -2888,137 +2888,157 @@ document.getElementById('dark-mode-toggle').addEventListener('click', function()
 });
        
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize audio context and load sounds
-    await initializeAudio();
+    try {
+        // Initialize audio context first
+        await initAudioContext();
+        console.log('[FretFlow Debug] Audio context initialized');
 
-    // Create the chord fretboard
-    const chordFretboard = document.getElementById('chord-fretboard');
-    if (chordFretboard) {
-        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-        createFretboard(chordFretboard, tuning);
-        updateFretboardNotes(chordFretboard, 'C', 'major', tuning);
-    }
+        // Load all audio samples
+        await initializeAudio();
+        console.log('[FretFlow Debug] All audio samples loaded');
 
-    // Initialize static fretboards
-    initializeStaticFretboards();
-
-    // Set up tuning change listener
-    document.getElementById('chord-tuning').addEventListener('change', function() {
-        const tuning = TUNINGS[this.value];
-        const measures = document.getElementsByClassName('measure');
-        if (measures.length > 0) {
-            const firstMeasure = measures[0];
-            const rootNote = firstMeasure.querySelector('.root-note').value;
-            const scaleType = firstMeasure.querySelector('.scale-select').value;
-            updateFretboardNotes(chordFretboard, rootNote, scaleType, tuning);
+        // Create and initialize the chord fretboard
+        const chordFretboard = document.getElementById('chord-fretboard');
+        if (chordFretboard) {
+            const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
+            createFretboard(chordFretboard, tuning);
+            updateFretboardNotes(chordFretboard, 'C', 'major', tuning);
         }
-    });
 
-    // Set up progression selector
-    const progressionSelect = document.getElementById('progression-select');
-    progressionSelect.addEventListener('change', function() {
-        loadProgression(this.value);
-    });
+        // Initialize static fretboards
+        await initializeStaticFretboards();
 
-    // Set up key selector
-    const keySelect = document.getElementById('keySelect');
-    keySelect.addEventListener('change', function() {
-        const selectedProgression = progressionSelect.value;
-        if (selectedProgression !== 'none') {
-            loadProgression(selectedProgression);
-        }
-    });
+        // Set up tuning change listener
+        document.getElementById('chord-tuning').addEventListener('change', function() {
+            const tuning = TUNINGS[this.value];
+            const measures = document.getElementsByClassName('measure');
+            if (measures.length > 0) {
+                const firstMeasure = measures[0];
+                const rootNote = firstMeasure.querySelector('.root-note').value;
+                const scaleType = firstMeasure.querySelector('.scale-select').value;
+                updateFretboardNotes(chordFretboard, rootNote, scaleType, tuning);
+            }
+        });
 
-    // Initialize metronome controls
-    const startStopButton = document.getElementById('start-stop');
-    startStopButton.addEventListener('click', function() {
-        if (isPlaying) {
-            stopPlayback();
-        } else {
-            startPlayback();
-        }
-    });
+        // Set up progression selector with key awareness
+        const progressionSelect = document.getElementById('progression-select');
+        const keySelect = document.getElementById('keySelect');
+        
+        progressionSelect.addEventListener('change', function() {
+            const selectedKey = keySelect.value;
+            loadProgression(this.value, selectedKey);
+        });
 
-    // Set up tempo control
-    const tempoSlider = document.getElementById('tempo');
-    const tempoDisplay = document.getElementById('tempo-display');
-    tempoSlider.addEventListener('input', function() {
-        tempo = parseInt(this.value);
-        tempoDisplay.textContent = `${tempo} BPM`;
-        if (isPlaying) {
-            stopPlayback();
-            startPlayback();
-        }
-    });
+        keySelect.addEventListener('change', function() {
+            const selectedProgression = progressionSelect.value;
+            if (selectedProgression !== 'none') {
+                loadProgression(selectedProgression, this.value);
+            }
+        });
 
-    // Set up tap tempo
-    const tapTempoButton = document.getElementById('tap-tempo');
-    tapTempoButton.addEventListener('click', function() {
-        const now = Date.now();
-        if (lastTapTime) {
-            const interval = now - lastTapTime;
-            if (interval < 2000) { // Ignore taps more than 2 seconds apart
-                tapTimes.push(interval);
-                if (tapTimes.length > 4) tapTimes.shift();
-                const average = tapTimes.reduce((a, b) => a + b) / tapTimes.length;
-                const newTempo = Math.round(60000 / average);
-                if (newTempo >= 40 && newTempo <= 220) {
-                    tempo = newTempo;
-                    tempoSlider.value = tempo;
-                    tempoDisplay.textContent = `${tempo} BPM`;
-                    if (isPlaying) {
-                        stopPlayback();
-                        startPlayback();
+        // Initialize metronome controls
+        const startStopButton = document.getElementById('start-stop');
+        const tempoSlider = document.getElementById('tempo');
+        const tempoDisplay = document.getElementById('tempo-display');
+        
+        startStopButton.addEventListener('click', function() {
+            if (isPlaying) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        });
+
+        tempoSlider.addEventListener('input', function() {
+            tempo = parseInt(this.value);
+            tempoDisplay.textContent = `${tempo} BPM`;
+            if (isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        });
+
+        // Set up tap tempo
+        let lastTapTime = 0;
+        const tapTimes = [];
+        const tapTempoButton = document.getElementById('tap-tempo');
+        
+        tapTempoButton.addEventListener('click', function() {
+            const now = Date.now();
+            if (lastTapTime) {
+                const interval = now - lastTapTime;
+                if (interval < 2000) {
+                    tapTimes.push(interval);
+                    if (tapTimes.length > 4) tapTimes.shift();
+                    const average = tapTimes.reduce((a, b) => a + b) / tapTimes.length;
+                    const newTempo = Math.round(60000 / average);
+                    if (newTempo >= 40 && newTempo <= 220) {
+                        tempo = newTempo;
+                        tempoSlider.value = tempo;
+                        tempoDisplay.textContent = `${tempo} BPM`;
+                        if (isPlaying) {
+                            stopPlayback();
+                            startPlayback();
+                        }
                     }
                 }
             }
+            lastTapTime = now;
+        });
+
+        // Set up time signature and sound type changes
+        document.getElementById('time-signature').addEventListener('change', function() {
+            createBeats();
+            if (isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        });
+
+        document.getElementById('sound-type').addEventListener('change', createBeats);
+
+        // Initialize drag and drop
+        initializeDragAndDrop();
+
+        // Set up dark mode toggle with localStorage persistence
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const isDarkMode = localStorage.getItem('darkMode') === 'true';
+        
+        if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+            darkModeToggle.classList.add('active');
         }
-        lastTapTime = now;
-    });
 
-    // Set up time signature change
-    document.getElementById('time-signature').addEventListener('change', function() {
+        darkModeToggle.addEventListener('click', function() {
+            const isDark = this.classList.toggle('active');
+            document.body.classList.toggle('dark-mode', isDark);
+            localStorage.setItem('darkMode', isDark);
+            toggleDarkMode(isDark);
+        });
+
+        // Create initial beats
         createBeats();
-        if (isPlaying) {
-            stopPlayback();
-            startPlayback();
+
+        // Load initial progression if one is selected
+        const initialProgression = progressionSelect.value;
+        if (initialProgression !== 'none') {
+            loadProgression(initialProgression, keySelect.value);
         }
-    });
 
-    // Set up sound type change
-    document.getElementById('sound-type').addEventListener('change', function() {
-        createBeats();
-    });
+        // Set up measure controls
+        const addMeasureBtn = document.querySelector('button[onclick="addMeasure()"]');
+        const removeMeasureBtn = document.querySelector('button[onclick="removeMeasure()"]');
+        
+        if (addMeasureBtn) addMeasureBtn.addEventListener('click', addMeasure);
+        if (removeMeasureBtn) removeMeasureBtn.addEventListener('click', removeMeasure);
 
-    // Initialize drag and drop for measures
-    initializeDragAndDrop();
+        // Initialize first chord listener
+        addFirstChordListener();
 
-    // Set up dark mode toggle
-    const darkModeToggle = document.getElementById('dark-mode-toggle');
-    darkModeToggle.addEventListener('click', function() {
-        const isDark = this.classList.toggle('active');
-        toggleDarkMode(isDark);
-    });
-
-    // Create initial beats
-    createBeats();
-
-    // Load initial progression
-    const initialProgression = progressionSelect.value;
-    if (initialProgression !== 'none') {
-        loadProgression(initialProgression);
+        console.log('Application initialized successfully');
+    } catch (error) {
+        console.error('Error during initialization:', error);
     }
-
-    // Add measure button
-    document.querySelector('button[onclick="addMeasure()"]').addEventListener('click', addMeasure);
-
-    // Remove measure button
-    document.querySelector('button[onclick="removeMeasure()"]').addEventListener('click', removeMeasure);
-
-    // Initialize first chord listener
-    addFirstChordListener();
-
-    console.log('Application initialized successfully');
 });
        
        window.onload = () => {
