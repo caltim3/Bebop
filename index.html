@@ -2887,25 +2887,31 @@ function toggleDarkMode(isDark) {
 document.addEventListener('DOMContentLoaded', async () => {
     // ... other code ...
 
-    // Set up dark mode toggle with localStorage persistence
-    const darkModeToggle = document.getElementById('dark-mode-toggle');
+// Dark Mode Toggle Implementation
+const darkModeToggle = document.getElementById('dark-mode-toggle');
+const body = document.body;
+
+// Check for saved dark mode preference
+const darkMode = localStorage.getItem('darkMode');
+
+// Initialize dark mode based on saved preference
+if (darkMode === 'enabled') {
+    body.classList.add('dark-mode');
+    darkModeToggle.classList.add('active');
+}
+
+// Add event listener to toggle button
+darkModeToggle.addEventListener('click', () => {
+    // Toggle dark mode class on body
+    body.classList.toggle('dark-mode');
+    darkModeToggle.classList.toggle('active');
     
-    // Check localStorage for saved preference
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-    if (savedDarkMode) {
-        document.body.classList.add('dark-mode');
-        darkModeToggle.classList.add('active');
-        toggleDarkMode(true);
+    // Save preference to localStorage
+    if (body.classList.contains('dark-mode')) {
+        localStorage.setItem('darkMode', 'enabled');
+    } else {
+        localStorage.setItem('darkMode', null);
     }
-
-    // Add click event listener
-    darkModeToggle.addEventListener('click', function() {
-        const isDark = !this.classList.contains('active');
-        this.classList.toggle('active');
-        toggleDarkMode(isDark);
-    });
-
-    // ... rest of your code ...
 });
        
 document.addEventListener('DOMContentLoaded', async () => {
