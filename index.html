@@ -2856,35 +2856,56 @@ function createFretboardContainer(index) {
     }
 
        // Add this after your existing functions
+// Add this function to your JavaScript code
 function toggleDarkMode(isDark) {
+    // Toggle body class
     document.body.classList.toggle('dark-mode', isDark);
-    const fretboardContainers = document.querySelectorAll('.fretboard-container');
-    fretboardContainers.forEach(container => {
-        container.style.backgroundColor = isDark ? '#8b8c89' : 'white';
-    });
-}
-
-document.getElementById('dark-mode-toggle').addEventListener('click', function() {
-    const isDark = this.classList.toggle('active');
-    document.body.classList.toggle('dark-mode', isDark);
-
+    
     // Update all section backgrounds
     const sections = document.querySelectorAll('.app-section');
     sections.forEach(section => {
-        section.style.backgroundColor = isDark ? '#8b8c89' : '#ffffff';
+        section.style.backgroundColor = isDark ? '#606c38' : 'white';
     });
 
-    // Update fretboard backgrounds specifically
+    // Update fretboard backgrounds
     const fretboardContainers = document.querySelectorAll('.fretboard-container');
     fretboardContainers.forEach(container => {
-        container.style.backgroundColor = isDark ? '#8b8c89' : '#ffffff';
+        container.style.backgroundColor = isDark ? '#606c38' : 'white';
     });
 
     // Update measures background
     const measures = document.querySelectorAll('.measure');
     measures.forEach(measure => {
-        measure.style.backgroundColor = isDark ? '#8b8c89' : '#e9ecef';
+        measure.style.backgroundColor = isDark ? '#606c38' : '#e9ecef';
     });
+
+    // Save the preference
+    localStorage.setItem('darkMode', isDark);
+}
+
+// Update the dark mode toggle event listener in your DOMContentLoaded
+document.addEventListener('DOMContentLoaded', async () => {
+    // ... other code ...
+
+    // Set up dark mode toggle with localStorage persistence
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    
+    // Check localStorage for saved preference
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+        document.body.classList.add('dark-mode');
+        darkModeToggle.classList.add('active');
+        toggleDarkMode(true);
+    }
+
+    // Add click event listener
+    darkModeToggle.addEventListener('click', function() {
+        const isDark = !this.classList.contains('active');
+        this.classList.toggle('active');
+        toggleDarkMode(isDark);
+    });
+
+    // ... rest of your code ...
 });
        
 document.addEventListener('DOMContentLoaded', async () => {
@@ -2920,6 +2941,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
+        // Set up dark mode toggle with localStorage persistence
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    
+    // Check localStorage for saved preference
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+        document.body.classList.add('dark-mode');
+        darkModeToggle.classList.add('active');
+        toggleDarkMode(true);
+    }
+
+    // Add click event listener
+    darkModeToggle.addEventListener('click', function() {
+        const isDark = !this.classList.contains('active');
+        this.classList.toggle('active');
+        toggleDarkMode(isDark);
+    });
+        
         // Set up progression selector with key awareness
         const progressionSelect = document.getElementById('progression-select');
         const keySelect = document.getElementById('keySelect');
