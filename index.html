@@ -2187,7 +2187,85 @@ function createFretboard(container, tuning) {
         }
     }
 
-function loadProgression
+function loadProgression(progressionName) {
+    if (!progressionName || !progressions[progressionName]) {
+        console.error(`Invalid progression name: ${progressionName}`);
+        return;
+    }
+
+    const progression = progressions[progressionName];
+    const keySelect = document.getElementById('keySelect');
+    const selectedKey = keySelect.value || progression.defaultKey;
+    const measures = document.getElementById('measures');
+
+    // Clear existing measures
+    measures.innerHTML = '';
+
+    // Create new measures based on the progression
+    progression.progression.forEach((chordFunction, index) => {
+        const chord = getChordFromFunction(selectedKey, chordFunction);
+        const [root, quality] = parseChord(chord);
+        
+        const measure = document.createElement('div');
+        measure.className = 'measure';
+        measure.draggable = true;
+        
+        const measureNumber = document.createElement('span');
+        measureNumber.className = 'measure-number';
+        measureNumber.textContent = index + 1;
+        
+        const chordControls = document.createElement('div');
+        chordControls.className = 'chord-controls';
+        chordControls.innerHTML = `
+            <select class="root-note">${createKeyOptions(root)}</select>
+            <select class="chord-quality">${createQualityOptions(getQualityValue(quality))}</select>
+        `;
+        
+        const scaleControls = document.createElement('div');
+        scaleControls.className = 'scale-controls';
+        scaleControls.innerHTML = `
+            <select class="second-key">${createKeyOptions(root)}</select>
+            <select class="scale-select">${createScaleOptions(suggestScaleForQuality(quality))}</select>
+        `;
+        
+        measure.appendChild(measureNumber);
+        measure.appendChild(chordControls);
+        measure.appendChild(scaleControls);
+        measures.appendChild(measure);
+
+        // Add drag and drop event listeners
+        measure.addEventListener('dragstart', dragStart);
+        measure.addEventListener('dragover', dragOver);
+        measure.addEventListener('drop', drop);
+        measure.addEventListener('dragend', dragEnd);
+    });
+
+    // Update measure numbers
+    updateMeasureNumbers();
+
+    // Add event listeners for chord changes
+    document.querySelectorAll('.measure').forEach(measure => {
+        const rootSelect = measure.querySelector('.root-note');
+        const qualitySelect = measure.querySelector('.chord-quality');
+        const secondKeySelect = measure.querySelector('.second-key');
+        const scaleSelect = measure.querySelector('.scale-select');
+
+        [rootSelect, qualitySelect, secondKeySelect, scaleSelect].forEach(select => {
+            select.addEventListener('change', () => {
+                const tuning = TUNINGS[document.getElementById('chord-tuning').value];
+                updateFretboardNotes(
+                    document.getElementById('chord-fretboard'),
+                    secondKeySelect.value,
+                    scaleSelect.value,
+                    tuning
+                );
+            });
+        });
+    });
+
+    // Add first chord listener
+    addFirstChordListener();
+}
        
     function createBeats() {
     const container = document.querySelector('.beats-container');
