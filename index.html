@@ -1185,14 +1185,39 @@ function createBeats() {
     }
 
     const beatConfigs = {
-        4: { strongBeats: [0, 4], drumSounds: { 0: 'kick', 2: 'snare', 4: 'kick', 6: 'snare' } },
+        4: { 
+            strongBeats: [0, 4], 
+            drumSounds: { 
+                0: 'kick', 
+                2: 'snare', 
+                4: 'kick', 
+                6: 'snare',
+                1: 'hihat',
+                3: 'hihat',
+                5: 'hihat',
+                7: 'hihat'
+            } 
+        },
         3: { strongBeats: [0, 3, 6] },
         6: { strongBeats: [0, 3] },
         7: { strongBeats: [0, 4] },
         8: { strongBeats: [0, 4] },
         12: {
             strongBeats: [0, 4, 6, 10],
-            drumSounds: { 0: 'kick', 4: 'snare', 6: 'kick', 10: 'snare' }
+            drumSounds: { 
+                0: 'kick', 
+                4: 'snare', 
+                6: 'kick', 
+                10: 'snare',
+                1: 'hihat',
+                2: 'hihat',
+                3: 'hihat',
+                5: 'hihat',
+                7: 'hihat',
+                8: 'hihat',
+                9: 'hihat',
+                11: 'hihat'
+            }
         }
     };
 
@@ -1210,62 +1235,63 @@ function createBeats() {
         if ((timeSignature === 3 || timeSignature === 6) && soundType === 'drums') {
             beat.textContent = `${Math.floor(i / 3) + 1}t${(i % 3) + 1}`;
             sound = 'hihat';
-            volume = '1';
+            volume = '0.7';
             color = '#9E9E9E';
 
             if (i % 3 === 0 && config.strongBeats.includes(i)) {
                 sound = 'kick';
+                volume = '1';
                 color = '#1F618D';
             } else if (i % 3 === 0) {
                 sound = 'snare';
+                volume = '1';
                 color = '#4CAF50';
             }
         }
         else if (timeSignature === 12 && soundType === 'drums') {
             beat.textContent = `${Math.floor(i / 3) + 1}t${(i % 3) + 1}`;
             sound = 'hihat';
-            volume = '1';
+            volume = '0.7';
             color = '#9E9E9E';
 
-            if (config.drumSounds[i]) {
+            if (config.drumSounds[i] === 'kick' || config.drumSounds[i] === 'snare') {
                 sound = config.drumSounds[i];
+                volume = '1';
+                color = sound === 'kick' ? '#1F618D' : '#4CAF50';
+            }
+        }
+        else if (timeSignature === 4 && soundType === 'drums') {
+            const isEighth = i % 2 === 1;
+            beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
+            
+            // Default to hihat for all beats
+            sound = 'hihat';
+            volume = '0.7';
+            color = '#9E9E9E';
+
+            // Override with kick or snare if it's in the drumSounds configuration
+            if (config.drumSounds[i] === 'kick' || config.drumSounds[i] === 'snare') {
+                sound = config.drumSounds[i];
+                volume = '1';
                 color = sound === 'kick' ? '#1F618D' : '#4CAF50';
             }
         }
         else if (timeSignature === 4) {
             const isEighth = i % 2 === 1;
             beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
-
-            sound = 'hihat';
-            volume = '1';
-            color = '#9E9E9E';
-
-            if (soundType === 'drums') {
-                const drumSound = config.drumSounds[i];
-                if (drumSound) {
-                    sound = drumSound;
-                    color = drumSound === 'kick' ? '#1F618D' : '#4CAF50';
-                }
-            } else {
-                volume = isEighth ? '0.5' : i === 0 ? '1' : '0.3';
-                color = isEighth ? '#9E9E9E' : i === 0 ? '#1F618D' : '#4CAF50';
-            }
+            volume = isEighth ? '0.5' : i === 0 ? '1' : '0.3';
+            color = isEighth ? '#9E9E9E' : i === 0 ? '#1F618D' : '#4CAF50';
+            sound = 'default';
         }
         else {
             beat.textContent = i + 1;
             const isStrong = config.strongBeats.includes(i);
             volume = isStrong ? '1' : '0.3';
             color = isStrong ? '#1F618D' : '#4CAF50';
-
-            if (soundType === 'drums') {
-                sound = isStrong ? 'kick' : 'hihat';
-                color = sound === 'kick' ? '#1F618D' : '#9E9E9E';
-            } else {
-                sound = 'default';
-            }
+            sound = soundType === 'drums' ? (isStrong ? 'kick' : 'hihat') : 'default';
         }
 
-        beat.dataset.baseVolume = volume; // store original
+        beat.dataset.baseVolume = volume;
         beat.dataset.volume = volume;
         beat.dataset.sound = sound;
         beat.style.backgroundColor = color;
@@ -1273,8 +1299,6 @@ function createBeats() {
         container.appendChild(beat);
     }
 }
-
-
 
 function toggleBeatState(beat, timeSignature, soundType) {
     const isEighth = timeSignature === 4 && parseInt(beat.dataset.beat) % 2 === 1;
