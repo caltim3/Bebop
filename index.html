@@ -1155,56 +1155,84 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
     log(`Fretboard updated with ${rootNote} ${scale} scale`);
 }
 
-// Metronome Management
 function createBeats() {
     const container = document.querySelector('.beats-container');
     container.innerHTML = '';
+
     const timeSignature = parseInt(UI.elements.timeSignature.value);
     const soundType = UI.elements.soundType.value;
     const totalBeats = timeSignature === 4 ? 8 : timeSignature;
+
     const beatConfigs = {
-        4: { strongBeats: [0, 4], drumSounds: { 0: 'kick', 2: 'snare', 4: 'kick', 6: 'snare' } },
+        4: {
+            strongBeats: [0, 4],
+            drumSounds: {
+                0: 'kick',
+                2: 'snare',
+                4: 'kick',
+                6: 'snare'
+            }
+        },
         6: { strongBeats: [0, 3] },
         7: { strongBeats: [0, 4] },
         12: { strongBeats: [0, 3, 6, 9] }
     };
+
     const config = beatConfigs[timeSignature] || { strongBeats: [0] };
+
     for (let i = 0; i < totalBeats; i++) {
         const beat = document.createElement('div');
         beat.className = 'beat';
         beat.dataset.beat = i;
+
         let volume = '0.3';
         let color = '#4CAF50';
         let sound = 'default';
+
         if (timeSignature === 4) {
             const isEighth = i % 2 === 1;
             beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
+
+            // Default hi-hat always plays
+            sound = 'hihat';
+            volume = '1';
+            color = '#9E9E9E';
+
             if (soundType === 'drums') {
-                if (isEighth) {
-                    volume = '1';
-                    sound = 'hihat';
-                    color = '#9E9E9E';
-                } else {
-                    sound = config.drumSounds[i] || 'hihat';
-                    volume = '1';
-                    color = sound === 'kick' ? '#1F618D' : sound === 'snare' ? '#4CAF50' : '#9E9E9E';
+                const drumSound = config.drumSounds[i];
+                if (drumSound) {
+                    sound = drumSound; // override hi-hat
+                    color = drumSound === 'kick' ? '#1F618D' : '#4CAF50';
                 }
             } else {
-                volume = isEighth ? '0' : i === 0 ? '1' : '0.3';
+                // click or woodblock
+                volume = isEighth ? '0.5' : i === 0 ? '1' : '0.3';
                 color = isEighth ? '#9E9E9E' : i === 0 ? '#1F618D' : '#4CAF50';
             }
+
         } else {
             beat.textContent = i + 1;
-            volume = config.strongBeats.includes(i) ? '1' : '0.3';
-            color = config.strongBeats.includes(i) ? '#1F618D' : '#4CAF50';
+            const isStrong = config.strongBeats.includes(i);
+            volume = isStrong ? '1' : '0.3';
+            color = isStrong ? '#1F618D' : '#4CAF50';
+
+            if (soundType === 'drums') {
+                sound = isStrong ? 'kick' : 'hihat';
+                color = sound === 'kick' ? '#1F618D' : '#9E9E9E';
+            } else {
+                sound = 'default';
+            }
         }
+
         beat.dataset.volume = volume;
         beat.dataset.sound = sound;
         beat.style.backgroundColor = color;
+
         beat.addEventListener('click', () => toggleBeatState(beat, timeSignature, soundType));
         container.appendChild(beat);
     }
 }
+
 
 function toggleBeatState(beat, timeSignature, soundType) {
     const isEighth = timeSignature === 4 && parseInt(beat.dataset.beat) % 2 === 1;
