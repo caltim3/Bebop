@@ -793,7 +793,6 @@ function transposeNote(note, semitones) {
             window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         } catch (e) {
             console.error('Web Audio API is not supported in this browser');
-            return;
         }
     }
 
@@ -2624,7 +2623,7 @@ function getChordFromFunction(key, func) {
 
     if (keyIndex === -1) {
         console.error(`Invalid key: ${key}`);
-        return null;
+        return null;  // Changed from return standardizedKey to return null
     }
 
     // Determine the scale degrees based on the key type
@@ -2633,7 +2632,7 @@ function getChordFromFunction(key, func) {
 
     if (degree === undefined) {
         console.error(`Invalid chord function: ${func}`);
-        return null;
+        return null;  // Changed from return standardizedKey to return null
     }
 
     // Calculate the note index and determine the note
