@@ -1345,13 +1345,13 @@ async function loadPianoSamples() {
     }
 }
        
-  async function playNote(string, fret, velocity = 1.0) {
-    if (!audioContext || audioContext.state === 'suspended') {
-        const success = await initializeAudio();
-        if (!success) return;
-    }
-
+ async function playNote(string, fret, velocity = 1.0) {
     try {
+        if (!audioContext || audioContext.state === 'suspended') {
+            const success = await initializeAudio();
+            if (!success) return;
+        }
+
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
         const stringIndex = parseInt(string);
         const fretNumber = parseInt(fret);
@@ -1380,8 +1380,8 @@ async function loadPianoSamples() {
                 source.buffer = pianoSampleBuffers[pitchData.sampleKey];
                 source.playbackRate.value = pitchData.playbackRate;
 
-                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(volume * velocity, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(volume * velocity, audioContext.currentTime + 0.1);
                 gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
 
                 source.connect(gainNode);
@@ -1390,14 +1390,20 @@ async function loadPianoSamples() {
                 source.start();
                 source.stop(audioContext.currentTime + 2);
 
+                // Store the source for potential note-off events
+                if (!window.activeSources) {
+                    window.activeSources = new Map();
+                }
+                window.activeSources.set(`${string}-${fret}`, source);
+
                 console.log(`Played note ${targetNote}${octave} (${frequency}Hz) using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
             } else {
                 console.warn(`No sample available for ${targetNote}${octave}, using fallback`);
-                await playFallbackNoteWithFrequency(frequency, volume);
+                await playFallbackNoteWithFrequency(frequency, volume * velocity);
             }
         } else {
             console.warn("Samples not loaded, falling back to oscillator");
-            await playFallbackNoteWithFrequency(frequency, volume);
+            await playFallbackNoteWithFrequency(frequency, volume * velocity);
         }
     } catch (error) {
         console.error("Error playing note:", error);
