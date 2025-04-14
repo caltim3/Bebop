@@ -208,141 +208,141 @@
             border-radius: 5px;
             z-index: 1000;
         }
-        /* General Dark Mode Styles */
-        body.dark-mode {
-            background-color: #274c77; /* Deep blue background */
-            color: #e7ecef; /* Light text for contrast */
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        
-        /* App Section Styling */
-        .dark-mode .app-section {
-            background: linear-gradient(145deg, #274c77, #6096ba); /* Gradient background */
-            color: #e7ecef;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
-            padding: 20px;
-            transition: background 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        /* Fretboard Container */
-        .dark-mode .fretboard-container {
-            background-color: #8b8c89; /* Neutral gray */
-            border: 1px solid #6096ba; /* Accent border */
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-        
-        /* Fretboard */
-        .dark-mode .fretboard {
-            background-color: #8b8c89; /* Match container */
-            border: 2px solid #4b4b4b; /* Darker border for contrast */
-            border-radius: 5px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-        
-        /* Notes on Fretboard */
-        .dark-mode .note {
-            background-color: #6096ba; /* Accent color */
-            color: #e7ecef; /* Light text */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Subtle shadow */
-            transition: transform 0.2s ease, background-color 0.3s ease;
-        }
-        
-        .dark-mode .note:hover {
-            transform: scale(1.2);
-            background-color: #a3cef1; /* Lighter accent on hover */
-        }
-        
-        /* Scale Display */
-        .dark-mode .scale-display {
-            color: #e7ecef;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Subtle glow */
-        }
-        
-        /* Buttons */
-        .dark-mode button {
-            background-color: #6096ba;
-            color: #e7ecef;
-            border: 1px solid #274c77;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .dark-mode button:hover {
-            background-color: #a3cef1; /* Lighter blue on hover */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-        }
-        
-        /* Select Dropdowns */
-        .dark-mode select {
-            background-color: #6096ba;
-            color: #e7ecef;
-            border: 1px solid #274c77;
-            border-radius: 5px;
-            padding: 5px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-        
-        .dark-mode select:hover {
-            background-color: #a3cef1;
-        }
-        
-        /* Measures */
-        .dark-mode .measure {
-            background-color: #8b8c89;
-            color: #e7ecef;
-            border: 1px solid #6096ba;
-            border-radius: 5px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-        
-        .dark-mode .measure.active {
-            background-color: #a3cef1; /* Highlight active measure */
-            border-color: #e7ecef;
-        }
-        
-        /* Beats */
-        .dark-mode .beat {
-            background-color: #6096ba;
-            color: #e7ecef;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-        
-        .dark-mode .beat.active {
-            background-color: #a3cef1; /* Highlight active beat */
-            transform: translateY(-5px);
-        }
-        
-        /* Volume Control */
-        .dark-mode .volume-control {
-            color: #e7ecef;
-        }
-        
-        .dark-mode .volume-control input[type="range"] {
-            background: #6096ba;
-            border-radius: 5px;
-            transition: background 0.3s ease;
-        }
-        
-        .dark-mode .volume-control input[type="range"]::-webkit-slider-thumb {
-            background: #a3cef1;
-            border: 1px solid #274c77;
-            border-radius: 50%;
-        }
-        
-        /* Dark Mode Toggle */
-        #dark-mode-toggle.active {
-            background-color: #333;
-            color: #e7ecef;
-            border: 1px solid #e7ecef;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
+   /* General Dark Mode Styles */
+body.dark-mode {
+    background-color: #283618; /* Dark green background */
+    color: #fefae0; /* Cream text for contrast */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* App Section Styling */
+.dark-mode .app-section {
+    background: linear-gradient(145deg, #283618, #606c38); /* Gradient background */
+    color: #fefae0;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Fretboard Container */
+.dark-mode .fretboard-container {
+    background-color: #606c38; /* Olive green */
+    border: 1px solid #dda15e; /* Golden accent border */
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Fretboard */
+.dark-mode .fretboard {
+    background-color: #606c38;
+    border: 2px solid #bc6c25; /* Brown border for contrast */
+    border-radius: 5px;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Notes on Fretboard */
+.dark-mode .note {
+    background-color: #dda15e; /* Golden accent */
+    color: #283618; /* Dark text for contrast */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+.dark-mode .note:hover {
+    transform: scale(1.2);
+    background-color: #bc6c25; /* Darker gold on hover */
+}
+
+/* Scale Display */
+.dark-mode .scale-display {
+    color: #fefae0;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Buttons */
+.dark-mode button {
+    background-color: #dda15e;
+    color: #283618;
+    border: 1px solid #bc6c25;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark-mode button:hover {
+    background-color: #bc6c25;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Select Dropdowns */
+.dark-mode select {
+    background-color: #dda15e;
+    color: #283618;
+    border: 1px solid #bc6c25;
+    border-radius: 5px;
+    padding: 5px;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark-mode select:hover {
+    background-color: #bc6c25;
+}
+
+/* Measures */
+.dark-mode .measure {
+    background-color: #606c38;
+    color: #fefae0;
+    border: 1px solid #dda15e;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark-mode .measure.active {
+    background-color: #dda15e;
+    border-color: #bc6c25;
+}
+
+/* Beats */
+.dark-mode .beat {
+    background-color: #dda15e;
+    color: #283618;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.dark-mode .beat.active {
+    background-color: #bc6c25;
+    transform: translateY(-5px);
+}
+
+/* Volume Control */
+.dark-mode .volume-control {
+    color: #fefae0;
+}
+
+.dark-mode .volume-control input[type="range"] {
+    background: #606c38;
+    border-radius: 5px;
+    transition: background 0.3s ease;
+}
+
+.dark-mode .volume-control input[type="range"]::-webkit-slider-thumb {
+    background: #dda15e;
+    border: 1px solid #bc6c25;
+    border-radius: 50%;
+}
+
+/* Dark Mode Toggle */
+#dark-mode-toggle.active {
+    background-color: #283618;
+    color: #fefae0;
+    border: 1px solid #dda15e;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
         
     </style>
 </head>
