@@ -1207,32 +1207,7 @@ function createBeats() {
         let color = '#4CAF50';
         let sound = 'default';
 
-        if ((timeSignature === 3 || timeSignature === 6) && soundType === 'drums') {
-            beat.textContent = `${Math.floor(i / 3) + 1}t${(i % 3) + 1}`;
-            sound = 'hihat';
-            volume = '1';
-            color = '#9E9E9E';
-
-            if (i % 3 === 0 && config.strongBeats.includes(i)) {
-                sound = 'kick';
-                color = '#1F618D';
-            } else if (i % 3 === 0) {
-                sound = 'snare';
-                color = '#4CAF50';
-            }
-        }
-        else if (timeSignature === 12 && soundType === 'drums') {
-            beat.textContent = `${Math.floor(i / 3) + 1}t${(i % 3) + 1}`;
-            sound = 'hihat';
-            volume = '1';
-            color = '#9E9E9E';
-
-            if (config.drumSounds[i]) {
-                sound = config.drumSounds[i];
-                color = sound === 'kick' ? '#1F618D' : '#4CAF50';
-            }
-        }
-        else if (timeSignature === 4) {
+        if (timeSignature === 4) {
             const isQuarterNote = i % 2 === 0;
             beat.textContent = `${Math.floor(i / 2 + 1)}${isQuarterNote ? '' : '&'}`;
 
@@ -1260,8 +1235,7 @@ function createBeats() {
                     color = '#9E9E9E';
                 }
             }
-        }
-        else {
+        } else {
             beat.textContent = i + 1;
             const isStrong = config.strongBeats.includes(i);
 
