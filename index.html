@@ -2344,9 +2344,10 @@ function loadProgression
 }
        
 function getChordFromFunction(key, func) {
+    if (!key || !func) return null;
+
     // Handle minor keys
     const isMinor = isMinorKeyName(key);
-
     const rootKey = key.replace(/m$|min$/, '');
     const standardizedKey = standardizeNoteName(rootKey);
     const keyIndex = NOTES.indexOf(standardizedKey);
@@ -2378,7 +2379,7 @@ function getChordFromFunction(key, func) {
         }
     };
 
-    const degrees = isMinorKeyName(key) ? scaleDegrees.minor : scaleDegrees.major;
+    const degrees = isMinor ? scaleDegrees.minor : scaleDegrees.major;
     let degree = degrees[func];
 
     if (degree === undefined) {
