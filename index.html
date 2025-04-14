@@ -796,19 +796,6 @@ function transposeNote(note, semitones) {
         }
     }
 
-    // Check if samples are loaded
-    if (!window.samples) {
-        console.error('Samples not loaded');
-        return;
-    }
-
-    // Get the buffer for the closest matching note
-    const buffer = window.samples[closestNote];
-    if (!buffer) {
-        console.error(`No sample found for note: ${closestNote}`);
-        return;
-    }
-
     // Create audio source
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
