@@ -576,6 +576,22 @@
     let pianoSampleBuffers = {};
     let samplesLoaded = false;
 
+
+async function initializeAudio() {
+    try {
+        if (!audioContext) {
+            audioContext = await initAudioContext();
+        }
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        return true;
+    } catch (error) {
+        console.error("Failed to initialize audio context:", error);
+        return false;
+    }
+}
+       
 async function initAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -992,6 +1008,15 @@ const noteMap = [
   "F#", "G", "G#", "A", "A#", "B"
 ];
 
+const FRETBOARD_FREQUENCIES = {
+    'string6': [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
+    'string5': [110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00],
+    'string4': [146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66],
+    'string3': [196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00],
+    'string2': [246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88],
+    'string1': [329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25]
+};
+       
 // Converts note name to index in noteMap
 function getNoteIndex(note) {
   return noteMap.indexOf(note);
@@ -2116,66 +2141,135 @@ function createFretboard(container, tuning) {
     }
 }
 
-    function updateFretboardNotes(container, rootNote, scale, tuning) {
-        container.querySelectorAll('.note').forEach(note => note.remove());
+   function updateFretboardNotes(container, rootNote, scale, tuning) {
+    // Remove existing notes
+    container.querySelectorAll('.note').forEach(note => note.remove());
 
-        if (container.id === 'chord-fretboard') {
-            const measures = document.getElementsByClassName('measure');
-            if (measures.length > 0 && currentMeasure < measures.length) {
-                const currentMeasureElement = measures[currentMeasure];
-                const chordRoot = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-                const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
-                const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
-                const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+    // Update scale display text for chord fretboard
+    if (container.id === 'chord-fretboard') {
+        const measures = document.getElementsByClassName('measure');
+        if (measures.length > 0 && currentMeasure < measures.length) {
+            const currentMeasureElement = measures[currentMeasure];
+            const chordRoot = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+            const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+            const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+            const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
 
-                if (chordRoot && chordQuality && scaleRoot && scaleType) {
-                    const displayText = `${scaleRoot} ${scaleType} over ${chordRoot} ${chordQuality}`;
-                    document.getElementById('scale-display').textContent = displayText;
+            if (chordRoot && chordQuality && scaleRoot && scaleType) {
+                // Format chord quality for display
+                let displayQuality = chordQuality;
+                switch (chordQuality) {
+                    case 'dom7': displayQuality = '7'; break;
+                    case 'maj7': displayQuality = 'Maj7'; break;
+                    case 'min7': displayQuality = 'm7'; break;
+                    case 'min7b5': displayQuality = 'm7b5'; break;
+                    case 'minor': displayQuality = 'm'; break;
                 }
-            }
-        }
 
-        const scaleIntervals = SCALES[scale];
-        const scaleNotes = scaleIntervals.map(interval => {
-            const noteIndex = (NOTES.indexOf(rootNote) + interval) % 12;
-            return NOTES[noteIndex];
-        });
+                // Format scale type for display
+                let displayScale = scaleType.charAt(0).toUpperCase() + scaleType.slice(1);
+                displayScale = displayScale.replace(/([A-Z])/g, ' $1').trim(); // Add spaces before capitals
 
-        for (let string = 0; string < 6; string++) {
-            const openNote = tuning[string];
-            const openNoteIndex = NOTES.indexOf(openNote);
-
-            for (let fret = 0; fret <= 12; fret++) {
-                const noteIndex = (openNoteIndex + fret) % 12;
-                const currentNote = NOTES[noteIndex];
-
-                if (scaleNotes.includes(currentNote)) {
-                    const noteElement = document.createElement('div');
-                    noteElement.className = 'note';
-                    noteElement.textContent = currentNote;
-
-                    const fretOffset = fret === 0 ? 0 : ((fret - 0.5) / 12) * 100;
-                    noteElement.style.left = `${fretOffset}%`;
-                    noteElement.style.top = `${(string / 5) * 100}%`;
-
-                    const degree = scaleNotes.indexOf(currentNote);
-                    if (currentNote === rootNote) {
-                        noteElement.style.backgroundColor = '#BD2031';
-                    } else if ([2, 4, 6].includes(degree)) {
-                        noteElement.style.backgroundColor = '#006400';
-                    } else {
-                        noteElement.style.backgroundColor = '#4CAF50';
-                    }
-
-                    noteElement.addEventListener('click', () => {
-                        playNote(currentNote, string, fret);
-                    });
-
-                    container.appendChild(noteElement);
-                }
+                const displayText = `${scaleRoot} ${displayScale} over ${chordRoot} ${displayQuality}`;
+                document.getElementById('scale-display').textContent = displayText;
             }
         }
     }
+
+    // Get scale intervals and generate scale notes
+    const scaleIntervals = SCALES[scale];
+    if (!scaleIntervals) {
+        console.error(`Invalid scale type: ${scale}`);
+        return;
+    }
+
+    // Standardize root note
+    const standardizedRoot = standardizeNoteName(rootNote);
+    const rootIndex = NOTES.indexOf(standardizedRoot);
+    if (rootIndex === -1) {
+        console.error(`Invalid root note: ${rootNote}`);
+        return;
+    }
+
+    // Generate scale notes
+    const scaleNotes = scaleIntervals.map(interval => {
+        const noteIndex = (rootIndex + interval) % 12;
+        return NOTES[noteIndex];
+    });
+
+    // Create note elements for each string and fret
+    for (let string = 0; string < 6; string++) {
+        const openNote = tuning[string];
+        const openNoteIndex = NOTES.indexOf(openNote);
+
+        for (let fret = 0; fret <= 12; fret++) {
+            const noteIndex = (openNoteIndex + fret) % 12;
+            const currentNote = NOTES[noteIndex];
+
+            if (scaleNotes.includes(currentNote)) {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'note';
+                noteElement.textContent = currentNote;
+
+                // Position calculation
+                const fretOffset = fret === 0 ? 0 : ((fret - 0.5) / 12) * 100;
+                noteElement.style.left = `${fretOffset}%`;
+                noteElement.style.top = `${(string / 5) * 100}%`;
+
+                // Color coding based on scale degree
+                const degree = scaleNotes.indexOf(currentNote);
+                if (currentNote === standardizedRoot) {
+                    // Root note
+                    noteElement.style.backgroundColor = '#BD2031';
+                } else if ([2, 4, 6].includes(degree)) {
+                    // Third, fifth, seventh
+                    noteElement.style.backgroundColor = '#006400';
+                } else {
+                    // Other scale degrees
+                    noteElement.style.backgroundColor = '#4CAF50';
+                }
+
+                // Add click handler for note playback
+                noteElement.addEventListener('click', async () => {
+                    try {
+                        // Initialize audio context if needed
+                        if (!audioContext || audioContext.state === 'suspended') {
+                            await initializeAudio();
+                        }
+                        
+                        // Get volume setting
+                        const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
+                        
+                        // Play the note
+                        await playNote(`${string}`, fret, volume);
+                        
+                        // Visual feedback
+                        noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                        setTimeout(() => {
+                            noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
+                        }, 100);
+                    } catch (error) {
+                        console.error('Error playing note:', error);
+                    }
+                });
+
+                // Add hover effect
+                noteElement.addEventListener('mouseenter', () => {
+                    noteElement.style.transform = 'translate(-50%, -50%) scale(1.1)';
+                });
+
+                noteElement.addEventListener('mouseleave', () => {
+                    noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
+                });
+
+                container.appendChild(noteElement);
+            }
+        }
+    }
+
+    // Log update completion
+    console.log(`Fretboard updated with ${rootNote} ${scale} scale`);
+}
 
 function loadProgression(progressionName) {
     if (!progressionName || !progressions[progressionName]) {
@@ -2185,6 +2279,12 @@ function loadProgression(progressionName) {
 
     const progression = progressions[progressionName];
     const keySelect = document.getElementById('keySelect');
+    
+    // Set the default key from the progression if no key is selected
+    if (!keySelect.value && progression.defaultKey) {
+        keySelect.value = progression.defaultKey;
+    }
+    
     const selectedKey = keySelect.value || progression.defaultKey;
     const measures = document.getElementById('measures');
 
@@ -2252,6 +2352,27 @@ function loadProgression(progressionName) {
             });
         });
     });
+
+    // Add key change listener
+    keySelect.addEventListener('change', function() {
+        const newKey = this.value;
+        updateProgressionKey(newKey);
+    });
+
+    // Initial fretboard update
+    const firstMeasure = measures.firstElementChild;
+    if (firstMeasure) {
+        const scaleRoot = firstMeasure.querySelector('.second-key').value;
+        const scaleType = firstMeasure.querySelector('.scale-select').value;
+        const tuning = TUNINGS[document.getElementById('chord-tuning').value];
+        updateFretboardNotes(document.getElementById('chord-fretboard'), scaleRoot, scaleType, tuning);
+    }
+
+    // Add first chord listener
+    addFirstChordListener();
+
+    console.log(`Progression loaded: ${progressionName} in key ${selectedKey}`);
+}
 
     // Add first chord listener
     addFirstChordListener();
