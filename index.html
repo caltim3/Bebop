@@ -1321,61 +1321,51 @@ async function loadPianoSamples() {
     }
 }
        
-   async function playNote(string, fret, velocity = 1.0) {
+  async function playNote(string, fret, velocity = 1.0) {
     if (!audioContext || audioContext.state === 'suspended') {
         const success = await initializeAudio();
         if (!success) return;
     }
 
     try {
-        // Get the tuning and calculate the actual note being played
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
         const stringIndex = parseInt(string);
-        if (isNaN(stringIndex) || !tuning[stringIndex]) {
-            console.error('Invalid string number:', string);
-            return;
-        }
-
-        // Convert string number to FRETBOARD_FREQUENCIES key
-        const stringKey = `string${6 - stringIndex}`; // Convert 0-5 index to string6-string1
         const fretNumber = parseInt(fret);
-        
-        if (isNaN(fretNumber) || fretNumber < 0 || fretNumber > 12) {
-            console.error('Invalid fret number:', fret);
+
+        if (isNaN(stringIndex) || isNaN(fretNumber) || fretNumber < 0 || fretNumber > 12) {
+            console.error('Invalid string or fret number:', { string, fret });
             return;
         }
 
-        // Get the exact frequency for this string and fret
+        const stringKey = `string${6 - stringIndex}`;
         const frequency = FRETBOARD_FREQUENCIES[stringKey][fretNumber];
-
-        // Calculate the note and octave from the frequency
         const openNote = tuning[stringIndex];
         const openNoteIndex = NOTES.indexOf(openNote);
-        const noteIndex = (openNoteIndex + fret) % 12;
+        const noteIndex = (openNoteIndex + fretNumber) % 12;
         const targetNote = NOTES[noteIndex];
-        const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
+        const octave = Math.floor((openNoteIndex + fretNumber) / 12) + 2;
         const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
 
         if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
             const pitchData = getPitchShiftedNoteWithFrequency(targetNote, octave, frequency);
-            
+
             if (pitchData && pianoSampleBuffers[pitchData.sampleKey]) {
                 const source = audioContext.createBufferSource();
                 const gainNode = audioContext.createGain();
-                
+
                 source.buffer = pianoSampleBuffers[pitchData.sampleKey];
                 source.playbackRate.value = pitchData.playbackRate;
-                
+
                 gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
                 gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
                 gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
-                
+
                 source.connect(gainNode);
                 gainNode.connect(audioContext.destination);
-                
+
                 source.start();
                 source.stop(audioContext.currentTime + 2);
-                
+
                 console.log(`Played note ${targetNote}${octave} (${frequency}Hz) using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
             } else {
                 console.warn(`No sample available for ${targetNote}${octave}, using fallback`);
