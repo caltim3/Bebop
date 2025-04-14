@@ -561,20 +561,32 @@ body.dark-mode {
     </div>
 
    <script>
-    // Global state
-    let audioContext = null;
-    let isPlaying = false;
-    let currentBeat = 0;
-    let currentMeasure = 0;
-    let intervalId = null;
-    let tempo = 120;
-    let tapTimes = [];
-    let lastTapTime = 0;
-    let currentChordGain = null;
-    let soundBuffers = {};
-    let reverbNode = null;
-    let pianoSampleBuffers = {};
-    let samplesLoaded = false;
+// Global Audio Context and State
+let audioContext = null;
+let reverbNode = null;
+
+// Sound Buffers and Samples
+let soundBuffers = {};              // For drum/metronome sounds
+let pianoSampleBuffers = {};        // For piano note samples
+let samplesLoaded = false;          // Track if piano samples are loaded
+
+// Playback State
+let isPlaying = false;              // Metronome playing state
+let currentBeat = 0;                // Current beat position
+let currentMeasure = 0;             // Current measure position
+let intervalId = null;              // Metronome interval timer
+let currentChordGain = null;        // Current chord's gain node
+
+// Tempo Management
+let tempo = 120;                    // Current tempo in BPM
+let tapTimes = [];                  // Array for tap tempo calculation
+let lastTapTime = 0;                // Last tap timestamp
+
+// Audio Parameters
+const SAMPLE_RATE = 44100;          // Standard sample rate
+const MAX_GAIN = 1.0;               // Maximum gain value
+const MIN_GAIN = 0.0;               // Minimum gain value
+const DEFAULT_VOLUME = 0.5;         // Default volume level
 
 
 async function initializeAudio() {
@@ -640,7 +652,47 @@ const ENHARMONIC_MAP = {
     'G#': 'Ab', 'Ab': 'Ab',
     'A#': 'Bb', 'Bb': 'Bb'
 };
-       
+
+
+       // Initialize state management
+function initializeState() {
+    return {
+        reset: function() {
+            currentBeat = 0;
+            currentMeasure = 0;
+            isPlaying = false;
+            if (intervalId) clearInterval(intervalId);
+            intervalId = null;
+            if (currentChordGain) {
+                currentChordGain.disconnect();
+                currentChordGain = null;
+            }
+        },
+        
+        getAudioContext: function() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.error('Web Audio API is not supported:', e);
+                    return null;
+                }
+            }
+            return audioContext;
+        },
+
+        getSampleLoadingStatus: function() {
+            return {
+                samplesLoaded,
+                bufferCount: Object.keys(pianoSampleBuffers).length,
+                soundBuffersLoaded: Object.keys(soundBuffers).length > 0
+            };
+        }
+    };
+}
+
+// Create state manager instance
+const stateManager = initializeState();
 function standardizeNoteName(note) {
     if (!note) return 'C';
     
@@ -1293,17 +1345,32 @@ async function setupReverb() {
 async function loadPianoSamples() {
     log('Starting piano sample loading...');
     
-    // Initialize audio context if not already done
+    // Get audio context using state manager
+    audioContext = stateManager.getAudioContext();
     if (!audioContext) {
-        await initializeAudio();
+        updateLoadingStatus('Audio not supported in this browser');
+        return false;
+    }
+
+    // Check audio context state
+    if (audioContext.state === 'suspended') {
+        try {
+            await audioContext.resume();
+            log('Audio context resumed');
+        } catch (e) {
+            console.error('Failed to resume audio context:', e);
+            updateLoadingStatus('Failed to initialize audio');
+            return false;
+        }
     }
 
     const loadPromises = [];
     const baseUrl = "./"; // Current directory where HTML file is located
 
+
     // Iterate through all sampled notes and their octaves
     for (let note of SAMPLED_NOTES) {
-        for (let octave of PIANO_CONFIG.octaves[note]) {
+        for (let octave of OCTAVE_RANGE[note]) {
             const sampleName = `${note}${octave}v12`;
             const fileName = `${sampleName}.ogg`;
             const url = baseUrl + fileName;
@@ -1320,8 +1387,17 @@ async function loadPianoSamples() {
                     }
 
                     const arrayBuffer = await response.arrayBuffer();
+                    
                     try {
-                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                        // Use Promise-based decodeAudioData
+                        const audioBuffer = await new Promise((resolve, reject) => {
+                            audioContext.decodeAudioData(
+                                arrayBuffer,
+                                buffer => resolve(buffer),
+                                error => reject(error)
+                            );
+                        });
+
                         log(`Successfully loaded ${sampleName}`);
                         return { 
                             name: sampleName, 
@@ -1356,23 +1432,67 @@ async function loadPianoSamples() {
 
         // Update sample loading status
         samplesLoaded = loadedCount > 0;
+        
+        // Log loading results
         log(`Piano sample loading completed. Successfully loaded ${loadedCount} samples`);
         log(`Loaded samples: ${Object.keys(pianoSampleBuffers).join(', ')}`);
 
-        // Update UI based on loading results
+        // Update loading status in UI
         if (!samplesLoaded) {
             log('Warning: No samples were loaded successfully');
             updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
         } else {
             updateLoadingStatus('Piano samples loaded successfully.');
+            
+            // Setup reverb if samples loaded successfully
+            if (!reverbNode) {
+                try {
+                    await setupReverb();
+                    log('Reverb initialized successfully');
+                } catch (error) {
+                    log('Failed to initialize reverb:', error);
+                }
+            }
         }
+
+        // Update state manager
+        const status = stateManager.getSampleLoadingStatus();
+        log(`Final loading status: ${JSON.stringify(status)}`);
+
     } catch (error) {
         log(`Error during sample loading: ${error.message}`);
         samplesLoaded = false;
         updateLoadingStatus('Error loading piano samples. Using fallback synthesizer.');
     }
 
-    return samplesLoaded;
+    // Cleanup any unused resources
+    if (currentChordGain) {
+        currentChordGain.disconnect();
+        currentChordGain = null;
+    }
+
+    return {
+        success: samplesLoaded,
+        sampleCount: Object.keys(pianoSampleBuffers).length,
+        audioContextState: audioContext.state
+    };
+}
+
+// Helper function for logging
+function log(message) {
+    const timestamp = new Date().toISOString();
+    console.log(`[PianoSampler ${timestamp}] ${message}`);
+}
+
+// Helper function for UI updates
+function updateLoadingStatus(message) {
+    let indicator = document.getElementById('loading-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'loading-indicator';
+        document.body.appendChild(indicator);
+    }
+    indicator.textContent = message;
 }
        
  async function playNote(string, fret, velocity = 1.0) {
