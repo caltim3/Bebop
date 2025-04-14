@@ -754,7 +754,20 @@ const AudioContextManager = {
         }
     }
 };
-
+async function ensureAudioInitialized() {
+    if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
+        try {
+            await AudioContextManager.initialize();
+            if (AudioContextManager.context.state === 'suspended') {
+                await AudioContextManager.context.resume();
+            }
+        } catch (error) {
+            console.error('Audio initialization failed:', error);
+            alert('Please click anywhere on the page to enable audio playback');
+            throw error;
+        }
+    }
+}
 // Music Theory Utilities
 function standardizeNoteName(note) {
     if (!note) return 'C';
@@ -1339,36 +1352,58 @@ async function playBeat() {
     AppState.updateState({ currentBeat: AppState.currentBeat, currentMeasure: AppState.currentMeasure });
 }
 
-function startPlayback() {
-    if (AppState.isPlaying) return;
-    const timeSignature = parseInt(UI.elements.timeSignature.value);
-    const measures = UI.elements.measures.children;
-    if (measures.length === 0) {
-        console.warn('No measures defined. Please add at least one measure.');
-        return;
-    }
-    let interval = (60 / AppState.tempo) * 1000;
-    if (timeSignature === 4) {
-        interval = interval / 2;
-    }
-    AppState.updateState({ currentBeat: 0, currentMeasure: 0 });
-    clearInterval(AppState.intervalId);
-    const currentMeasureElement = measures[AppState.currentMeasure];
-    if (currentMeasureElement) {
-        const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-        const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
-        const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
-        const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-        if (root && quality && scaleRoot && scaleType) {
-            const chordTuning = TUNINGS[UI.elements.chordTuning.value];
-            updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, chordTuning);
-            playChord(root, quality);
+async function startPlayback() {
+    try {
+        await ensureAudioInitialized();
+        
+        if (AppState.isPlaying) return;
+        
+        const timeSignature = parseInt(UI.elements.timeSignature.value);
+        const measures = UI.elements.measures.children;
+        
+        if (measures.length === 0) {
+            console.warn('No measures defined. Please add at least one measure.');
+            return;
         }
+        
+        let interval = (60 / AppState.tempo) * 1000;
+        if (timeSignature === 4) {
+            interval = interval / 2;
+        }
+        
+        AppState.updateState({ currentBeat: 0, currentMeasure: 0 });
+        clearInterval(AppState.intervalId);
+        
+        const currentMeasureElement = measures[AppState.currentMeasure];
+        if (currentMeasureElement) {
+            const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+            const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+            const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+            const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+            
+            if (root && quality && scaleRoot && scaleType) {
+                const chordTuning = TUNINGS[UI.elements.chordTuning.value];
+                updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, chordTuning);
+                
+                try {
+                    await playChord(root, quality);
+                } catch (error) {
+                    console.error('Failed to play initial chord:', error);
+                }
+            }
+        }
+        
+        AppState.intervalId = setInterval(playBeat, interval);
+        AppState.updateState({ isPlaying: true });
+        UI.elements.startStopButton.textContent = 'Stop';
+        log("Playback started");
+        
+    } catch (error) {
+        console.error('Failed to start playback:', error);
+        alert('Please try clicking the start button again');
+        stopPlayback(); // Ensure everything is reset if playback fails
+        UI.elements.startStopButton.textContent = 'Start';
     }
-    AppState.intervalId = setInterval(playBeat, interval);
-    AppState.updateState({ isPlaying: true });
-    UI.elements.startStopButton.textContent = 'Stop';
-    log("Playback started");
 }
 
 function stopPlayback() {
@@ -1594,6 +1629,14 @@ function addFirstChordListener() {
 }
 
 function setupEventListeners() {
+    document.addEventListener('click', async () => {
+        try {
+            await ensureAudioInitialized();
+        } catch (error) {
+            console.error('Failed to initialize audio on click:', error);
+        }
+    }, { once: true });
+    
     UI.elements.startStopButton.addEventListener('click', () => {
         if (AppState.isPlaying) {
             stopPlayback();
@@ -1708,7 +1751,6 @@ function setupEventListeners() {
 // Initialization
 async function initializeApp() {
     UI.init();
-    await AudioContextManager.initialize();
     createBeats();
     createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
     loadProgression(UI.elements.progressionSelect.value);
