@@ -1393,43 +1393,6 @@ async function loadPianoSamples() {
     }
 }
 
-function getPitchShiftedNoteWithFrequency(note, octave, targetFrequency) {
-    // Available sample notes (C, Ds, Fs, A)
-    const sampleNotes = ['C', 'Ds', 'Fs', 'A'];
-    
-    // Find the closest sample note
-    let bestMatch = {
-        sampleKey: null,
-        playbackRate: 1,
-        frequencyDifference: Infinity
-    };
-
-    for (const sampleNote of sampleNotes) {
-        for (let sampleOctave = 2; sampleOctave <= 6; sampleOctave++) {
-            const sampleKey = `${sampleNote}${sampleOctave}v12`;
-            const sampleFrequency = getNoteFrequency(sampleNote, sampleOctave);
-            const playbackRate = targetFrequency / sampleFrequency;
-
-            // Check if this playback rate is within reasonable limits (0.5 to 2.0)
-            if (playbackRate >= 0.5 && playbackRate <= 2.0) {
-                const frequencyDifference = Math.abs(targetFrequency - (sampleFrequency * playbackRate));
-                if (frequencyDifference < bestMatch.frequencyDifference) {
-                    bestMatch = {
-                        sampleKey: sampleKey,
-                        playbackRate: playbackRate,
-                        frequencyDifference: frequencyDifference
-                    };
-                }
-            }
-        }
-    }
-
-    return bestMatch.sampleKey ? {
-        sampleKey: bestMatch.sampleKey,
-        playbackRate: bestMatch.playbackRate
-    } : null;
-}
-
 function getNoteFrequency(note, octave) {
     const noteIndex = NOTES.indexOf(note);
     if (noteIndex === -1) {
@@ -1447,35 +1410,6 @@ function getNoteFrequency(note, octave) {
     // Calculate frequency using the formula: f = 440 * (2^(n/12))
     // where n is the number of semitones from A4
     return 440 * Math.pow(2, semitonesFromA4 / 12);
-}
-
-async function playFallbackNoteWithFrequency(frequency, volume = 0.3) {
-    try {
-        if (!audioContext) {
-            console.error("Audio context not initialized");
-            return;
-        }
-
-        console.log(`Playing fallback note at ${frequency}Hz`);
-
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-
-        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 2);
-    } catch (error) {
-        console.error("Error in playFallbackNoteWithFrequency:", error);
-    }
 }
 
 function getPitchShiftedNoteWithFrequency(note, octave, targetFrequency) {
@@ -2380,31 +2314,31 @@ function loadProgression(progressionName) {
         if (timeSignature === 4) {
             const isEighth = i % 2 === 1;
             beat.textContent = `${Math.floor(i / 2 + 1)}${isEighth ? '&' : ''}`;
-            
+
             if (soundType === 'drums') {
                 // Set initial states for all beats
-                if (isEighth) {  // All eighth notes get hihat by default
+                if (isEighth) { // All eighth notes get hihat by default
                     beat.dataset.volume = '1';
                     beat.dataset.sound = 'hihat';
                     beat.style.backgroundColor = '#9E9E9E';
-                } else {  // Quarter notes have specific defaults
-                    switch(i) {
-                        case 0:  // Beat 1
+                } else { // Quarter notes have specific defaults
+                    switch (i) {
+                        case 0: // Beat 1
                             beat.dataset.volume = '1';
                             beat.dataset.sound = 'kick';
                             beat.style.backgroundColor = '#1F618D';
                             break;
-                        case 2:  // Beat 2
+                        case 2: // Beat 2
                             beat.dataset.volume = '1';
                             beat.dataset.sound = 'snare';
                             beat.style.backgroundColor = '#4CAF50';
                             break;
-                        case 4:  // Beat 3
+                        case 4: // Beat 3
                             beat.dataset.volume = '1';
                             beat.dataset.sound = 'kick';
                             beat.style.backgroundColor = '#1F618D';
                             break;
-                        case 6:  // Beat 4
+                        case 6: // Beat 4
                             beat.dataset.volume = '1';
                             beat.dataset.sound = 'snare';
                             beat.style.backgroundColor = '#4CAF50';
@@ -2412,28 +2346,27 @@ function loadProgression(progressionName) {
                     }
                 }
 
-                beat.addEventListener('click', function() {
-                    const currentVolume = this.dataset.volume;
+                beat.addEventListener('click', function () {
                     const currentSound = this.dataset.sound;
                     let nextState;
 
-                    if (isEighth) {  // Eighth note beats
+                    if (isEighth) { // Eighth note beats
                         if (currentSound === 'hihat') {
                             nextState = { volume: '1', sound: 'kick', color: '#1F618D' };
                         } else if (currentSound === 'kick') {
                             nextState = { volume: '1', sound: 'snare', color: '#4CAF50' };
                         } else if (currentSound === 'snare') {
-                            nextState = { volume: '0', sound: 'silent', color: '#666666' };
+                            nextState = { volume: '0', sound: 'silent', color: '#6666' };
                         } else {
                             nextState = { volume: '1', sound: 'hihat', color: '#9E9E9E' };
                         }
-                    } else {  // Quarter note beats
+                    } else { // Quarter note beats
                         if (currentSound === 'kick') {
                             nextState = { volume: '1', sound: 'snare', color: '#4CAF50' };
                         } else if (currentSound === 'snare') {
                             nextState = { volume: '1', sound: 'hihat', color: '#9E9E9E' };
                         } else if (currentSound === 'hihat') {
-                            nextState = { volume: '0', sound: 'silent', color: '#666666' };
+                            nextState = { volume: '0', sound: 'silent', color: '#6666' };
                         } else {
                             nextState = { volume: '1', sound: 'kick', color: '#1F618D' };
                         }
@@ -2462,13 +2395,13 @@ function loadProgression(progressionName) {
                     beat.style.backgroundColor = '#9E9E9E';
                 }
 
-                beat.addEventListener('click', function() {
+                beat.addEventListener('click', function () {
                     const states = [
                         { volume: '1', color: '#1F618D', sound: 'default' },
                         { volume: '0.3', color: '#4CAF50', sound: 'default' },
                         { volume: '0', color: '#9E9E9E', sound: 'default' }
                     ];
-                    const currentIndex = states.findIndex(state => 
+                    const currentIndex = states.findIndex(state =>
                         state.volume === this.dataset.volume && state.sound === this.dataset.sound
                     );
                     const nextState = states[(currentIndex + 1) % states.length];
@@ -2499,13 +2432,13 @@ function loadProgression(progressionName) {
             }
 
             // Add click handler for non-4/4 time signatures
-            beat.addEventListener('click', function() {
+            beat.addEventListener('click', function () {
                 const states = [
                     { volume: '1', color: '#1F618D', sound: 'default' },
                     { volume: '0.3', color: '#4CAF50', sound: 'default' },
                     { volume: '0', color: '#9E9E9E', sound: 'default' }
                 ];
-                const currentIndex = states.findIndex(state => 
+                const currentIndex = states.findIndex(state =>
                     state.volume === this.dataset.volume && state.sound === this.dataset.sound
                 );
                 const nextState = states[(currentIndex + 1) % states.length];
