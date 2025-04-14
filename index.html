@@ -1004,24 +1004,62 @@ const FRETBOARD_FREQUENCIES = {
     'string2': [246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88],
     'string1': [329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25]
 };
+
+       // Consolidate into single initialization
+const AudioContextManager = {
+    context: null,
+    async initialize() {
+        if (!this.context) {
+            this.context = new (window.AudioContext || window.webkitAudioContext)();
+            await this.loadSounds();
+            await this.setupReverb();
+        }
+        return this.context;
+    }
+};
+       const AppState = {
+    isPlaying: false,
+    currentBeat: 0,
+    currentMeasure: 0,
+    tempo: 120,
+    audioInitialized: false
+};
+       const UI = {
+    elements: {
+        tempoDisplay: document.getElementById('tempo-display'),
+        startStopButton: document.getElementById('start-stop'),
+        measures: document.getElementById('measures')
+    },
+    init() {
+        // Cache all frequently used elements
+    }
+};
+
+           const scaleDegrees = {
+        major: {
+            'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11,
+            'i': 0, 'ii': 2, 'iii': 4, 'iv': 5, 'v': 7, 'vi': 9, 'vii': 11,
+            'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
+            'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11,
+            'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9,
+            'bIII': 3, 'bVI': 8, 'bVII': 10,
+            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10
+        },
+        minor: {
+            'i': 0, 'ii': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
+            'im': 0, 'iim': 2, 'iiim': 3, 'ivm': 5, 'vm': 7, 'VIm': 8,
+            'i7': 0, 'ii7': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
+            'im7': 0, 'iim7': 2, 'IIIm7': 3, 'ivm7': 5, 'vm7': 7, 'VIm7': 8,
+            'iim7b5': 2, 'V7b9': 7,
+            'bIII': 3, 'bVI': 8, 'bVII': 10,
+            'bIIImaj7': 3, 'bVImaj7': 8
+        }
+    };
        
 // Converts note name to index in noteMap
 function getNoteIndex(note) {
   return noteMap.indexOf(note);
 }
-
-function getChordFromFunction(key, func) {
-    // Handle minor keys
-    const isMinor = isMinorKeyName(key);  // This is a function call, not a variable
-
-    const rootKey = key.replace(/m$|min$/, '');
-    const standardizedKey = standardizeNoteName(rootKey);
-    const keyIndex = NOTES.indexOf(standardizedKey);
-
-    if (keyIndex === -1) {
-        console.error(`Invalid key: ${key}`);
-        return standardizedKey;
-    }
 
     // Complete scale degrees for both major and minor keys
     const scaleDegrees = {
@@ -2455,7 +2493,6 @@ function loadProgression(progressionName) {
 function getChordFromFunction(key, func) {
     if (!key || !func) return null;
 
-    // Handle minor keys
     const isMinor = isMinorKeyName(key);
     const rootKey = key.replace(/m$|min$/, '');
     const standardizedKey = standardizeNoteName(rootKey);
@@ -2466,27 +2503,10 @@ function getChordFromFunction(key, func) {
         return standardizedKey;
     }
 
-    // Complete scale degrees for both major and minor keys
-    const scaleDegrees = {
-        major: {
-            'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11,
-            'i': 0, 'ii': 2, 'iii': 4, 'iv': 5, 'v': 7, 'vi': 9, 'vii': 11,
-            'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
-            'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11,
-            'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9,
-            'bIII': 3, 'bVI': 8, 'bVII': 10,
-            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10
-        },
-        minor: {
-            'i': 0, 'ii': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
-            'im': 0, 'iim': 2, 'iiim': 3, 'ivm': 5, 'vm': 7, 'VIm': 8,
-            'i7': 0, 'ii7': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
-            'im7': 0, 'iim7': 2, 'IIIm7': 3, 'ivm7': 5, 'vm7': 7, 'VIm7': 8,
-            'iim7b5': 2, 'V7b9': 7,
-            'bIII': 3, 'bVI': 8, 'bVII': 10,
-            'bIIImaj7': 3, 'bVImaj7': 8
-        }
-    };
+    // Rest of the function...
+    // Make sure it has a proper return statement
+    return result; // Replace with actual return value
+}
 
     const degrees = isMinor ? scaleDegrees.minor : scaleDegrees.major;
     let degree = degrees[func];
@@ -2807,36 +2827,6 @@ function toggleDarkMode(isDark) {
 
 // Update the dark mode toggle event listener in your DOMContentLoaded
 document.addEventListener('DOMContentLoaded', async () => {
-    // ... other code ...
-
-// Dark Mode Toggle Implementation
-const darkModeToggle = document.getElementById('dark-mode-toggle');
-const body = document.body;
-
-// Check for saved dark mode preference
-const darkMode = localStorage.getItem('darkMode');
-
-// Initialize dark mode based on saved preference
-if (darkMode === 'enabled') {
-    body.classList.add('dark-mode');
-    darkModeToggle.classList.add('active');
-}
-
-// Add event listener to toggle button
-darkModeToggle.addEventListener('click', () => {
-    // Toggle dark mode class on body
-    body.classList.toggle('dark-mode');
-    darkModeToggle.classList.toggle('active');
-    
-    // Save preference to localStorage
-    if (body.classList.contains('dark-mode')) {
-        localStorage.setItem('darkMode', 'enabled');
-    } else {
-        localStorage.setItem('darkMode', null);
-    }
-});
-       
-document.addEventListener('DOMContentLoaded', async () => {
     try {
         // Initialize audio context first
         await initAudioContext();
@@ -2869,34 +2859,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-// Dark Mode Toggle Implementation
-    const darkModeToggle = document.getElementById('dark-mode-toggle');
-    const body = document.body;
+        // Dark Mode Toggle Implementation
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const body = document.body;
 
-    // Check for saved dark mode preference
-    const darkMode = localStorage.getItem('darkMode');
+        // Check for saved dark mode preference
+        const darkMode = localStorage.getItem('darkMode');
 
-    // Initialize dark mode based on saved preference
-    if (darkMode === 'enabled') {
-        body.classList.add('dark-mode');
-        darkModeToggle.classList.add('active');
-    }
-
-    // Add event listener to toggle button
-    darkModeToggle.addEventListener('click', () => {
-        // Toggle dark mode class on body
-        body.classList.toggle('dark-mode');
-        darkModeToggle.classList.toggle('active');
-        
-        // Save preference to localStorage
-        if (body.classList.contains('dark-mode')) {
-            localStorage.setItem('darkMode', 'enabled');
-        } else {
-            localStorage.setItem('darkMode', null);
+        // Initialize dark mode based on saved preference
+        if (darkMode === 'enabled') {
+            body.classList.add('dark-mode');
+            darkModeToggle.classList.add('active');
         }
-    });
-});
-        
+
+        // Add event listener to toggle button
+        darkModeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            darkModeToggle.classList.toggle('active');
+            
+            if (body.classList.contains('dark-mode')) {
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                localStorage.setItem('darkMode', null);
+            }
+        });
+
         // Set up progression selector with key awareness
         const progressionSelect = document.getElementById('progression-select');
         const keySelect = document.getElementById('keySelect');
@@ -2977,22 +2964,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize drag and drop
         initializeDragAndDrop();
 
-        // Set up dark mode toggle with localStorage persistence
-        const darkModeToggle = document.getElementById('dark-mode-toggle');
-        const isDarkMode = localStorage.getItem('darkMode') === 'true';
-        
-        if (isDarkMode) {
-            document.body.classList.add('dark-mode');
-            darkModeToggle.classList.add('active');
-        }
-
-        darkModeToggle.addEventListener('click', function() {
-            const isDark = this.classList.toggle('active');
-            document.body.classList.toggle('dark-mode', isDark);
-            localStorage.setItem('darkMode', isDark);
-            toggleDarkMode(isDark);
-        });
-
         // Create initial beats
         createBeats();
 
@@ -3017,8 +2988,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Error during initialization:', error);
     }
 });
-       
-       window.onload = () => {
+
+// Keep the window.onload event handler
+window.onload = () => {
     // Double-check fretboard initialization
     const chordFretboard = document.getElementById('chord-fretboard');
     if (chordFretboard) {
