@@ -707,17 +707,6 @@ function transposeNote(note, semitones) {
     };
 
 
-function playNote(string, fret, velocity = 1.0) {
-    // Frequency maps for accurate note mapping
-    const FRETBOARD_FREQUENCIES = {
-        'string1': [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
-        'string2': [110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00],
-        'string3': [146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66],
-        'string4': [196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00],
-        'string5': [246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88],
-        'string6': [329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25]
-    };
-
     const PIANO_NOTES = {
         'C3': 130.81, 'Cs3': 138.59, 'D3': 146.83, 'Ds3': 155.56, 'E3': 164.81, 'F3': 174.61,
         'Fs3': 185.00, 'G3': 196.00, 'Gs3': 207.65, 'A3': 220.00, 'As3': 233.08, 'B3': 246.94,
@@ -1346,12 +1335,12 @@ async function loadPianoSamples() {
 }
        
  async function playNote(string, fret, velocity = 1.0) {
-    try {
-        if (!audioContext || audioContext.state === 'suspended') {
-            const success = await initializeAudio();
-            if (!success) return;
-        }
+    if (!audioContext || audioContext.state === 'suspended') {
+        const success = await initializeAudio();
+        if (!success) return;
+    }
 
+    try {
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
         const stringIndex = parseInt(string);
         const fretNumber = parseInt(fret);
@@ -1380,8 +1369,8 @@ async function loadPianoSamples() {
                 source.buffer = pianoSampleBuffers[pitchData.sampleKey];
                 source.playbackRate.value = pitchData.playbackRate;
 
-                gainNode.gain.setValueAtTime(volume * velocity, audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume * velocity, audioContext.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
                 gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
 
                 source.connect(gainNode);
@@ -1390,20 +1379,14 @@ async function loadPianoSamples() {
                 source.start();
                 source.stop(audioContext.currentTime + 2);
 
-                // Store the source for potential note-off events
-                if (!window.activeSources) {
-                    window.activeSources = new Map();
-                }
-                window.activeSources.set(`${string}-${fret}`, source);
-
                 console.log(`Played note ${targetNote}${octave} (${frequency}Hz) using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
             } else {
                 console.warn(`No sample available for ${targetNote}${octave}, using fallback`);
-                await playFallbackNoteWithFrequency(frequency, volume * velocity);
+                await playFallbackNoteWithFrequency(frequency, volume);
             }
         } else {
             console.warn("Samples not loaded, falling back to oscillator");
-            await playFallbackNoteWithFrequency(frequency, volume * velocity);
+            await playFallbackNoteWithFrequency(frequency, volume);
         }
     } catch (error) {
         console.error("Error playing note:", error);
