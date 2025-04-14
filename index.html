@@ -1033,7 +1033,7 @@ function getChordFromFunction(key, func) {
         }
     };
 
-    const degrees = isMinorKey ? scaleDegrees.minor : scaleDegrees.major;
+    const degrees = insMinorKeyName ? scaleDegrees.minor : scaleDegrees.major;
     let degree = degrees[func];
 
     if (degree === undefined) {
@@ -2303,7 +2303,8 @@ function getChordFromFunction(key, func) {
         }
     };
 
-    const degrees = isMinorKey ? scaleDegrees.minor : scaleDegrees.major;
+    const degrees = isMinorKeyName
+        ? scaleDegrees.minor : scaleDegrees.major;
     let degree = degrees[func];
 
     if (degree === undefined) {
