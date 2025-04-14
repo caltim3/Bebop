@@ -1321,7 +1321,7 @@ async function loadPianoSamples() {
     }
 }
        
-    async function playNote(string, fret, velocity = 1.0) {
+   async function playNote(string, fret, velocity = 1.0) {
     if (!audioContext || audioContext.state === 'suspended') {
         const success = await initializeAudio();
         if (!success) return;
@@ -1330,35 +1330,41 @@ async function loadPianoSamples() {
     try {
         // Get the tuning and calculate the actual note being played
         const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-        const openNote = tuning[string];
+        const stringIndex = parseInt(string);
+        if (isNaN(stringIndex) || !tuning[stringIndex]) {
+            console.error('Invalid string number:', string);
+            return;
+        }
+
+        // Convert string number to FRETBOARD_FREQUENCIES key
+        const stringKey = `string${6 - stringIndex}`; // Convert 0-5 index to string6-string1
+        const fretNumber = parseInt(fret);
+        
+        if (isNaN(fretNumber) || fretNumber < 0 || fretNumber > 12) {
+            console.error('Invalid fret number:', fret);
+            return;
+        }
+
+        // Get the exact frequency for this string and fret
+        const frequency = FRETBOARD_FREQUENCIES[stringKey][fretNumber];
+
+        // Calculate the note and octave from the frequency
+        const openNote = tuning[stringIndex];
         const openNoteIndex = NOTES.indexOf(openNote);
         const noteIndex = (openNoteIndex + fret) % 12;
         const targetNote = NOTES[noteIndex];
         const octave = Math.floor((openNoteIndex + fret) / 12) + 2;
         const volume = parseFloat(document.getElementById('chord-fretboard-volume').value) || 0.3;
 
-        // Get the frequency for the current string and fret
-        const FRETBOARD_FREQUENCIES = {
-            'string6': [82.41, 87.31, 92.50, 98.00, 103.83, 110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81],
-            'string5': [110.00, 116.54, 123.47, 130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00],
-            'string4': [146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66],
-            'string3': [196.00, 207.65, 220.00, 233.08, 246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00],
-            'string2': [246.94, 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88],
-            'string1': [329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25, 554.37, 587.33, 622.25, 659.25]
-        };
-
-        const frequency = FRETBOARD_FREQUENCIES[`string${6-string}`][fret];
-        
         if (samplesLoaded && Object.keys(pianoSampleBuffers).length > 0) {
-            // Find the closest piano note based on frequency
-            const pitchData = getPitchShiftedNote(targetNote, octave);
+            const pitchData = getPitchShiftedNoteWithFrequency(targetNote, octave, frequency);
             
             if (pitchData && pianoSampleBuffers[pitchData.sampleKey]) {
                 const source = audioContext.createBufferSource();
                 const gainNode = audioContext.createGain();
                 
                 source.buffer = pianoSampleBuffers[pitchData.sampleKey];
-                source.playbackRate.value = pitchData.playbackRate * (frequency / getPianoFrequency(targetNote, octave));
+                source.playbackRate.value = pitchData.playbackRate;
                 
                 gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
                 gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
@@ -1370,18 +1376,168 @@ async function loadPianoSamples() {
                 source.start();
                 source.stop(audioContext.currentTime + 2);
                 
-                console.log(`Played ${targetNote}${octave} using ${pitchData.sampleKey} with frequency ${frequency}Hz`);
+                console.log(`Played note ${targetNote}${octave} (${frequency}Hz) using ${pitchData.sampleKey} with playbackRate ${pitchData.playbackRate}`);
             } else {
                 console.warn(`No sample available for ${targetNote}${octave}, using fallback`);
-                playFallbackNote(targetNote, octave, volume);
+                await playFallbackNoteWithFrequency(frequency, volume);
             }
         } else {
             console.warn("Samples not loaded, falling back to oscillator");
-            playFallbackNote(targetNote, octave, volume);
+            await playFallbackNoteWithFrequency(frequency, volume);
         }
     } catch (error) {
         console.error("Error playing note:", error);
-        playFallbackNote(targetNote, octave, volume);
+    }
+}
+
+function getPitchShiftedNoteWithFrequency(note, octave, targetFrequency) {
+    // Available sample notes (C, Ds, Fs, A)
+    const sampleNotes = ['C', 'Ds', 'Fs', 'A'];
+    
+    // Find the closest sample note
+    let bestMatch = {
+        sampleKey: null,
+        playbackRate: 1,
+        frequencyDifference: Infinity
+    };
+
+    for (const sampleNote of sampleNotes) {
+        for (let sampleOctave = 2; sampleOctave <= 6; sampleOctave++) {
+            const sampleKey = `${sampleNote}${sampleOctave}v12`;
+            const sampleFrequency = getNoteFrequency(sampleNote, sampleOctave);
+            const playbackRate = targetFrequency / sampleFrequency;
+
+            // Check if this playback rate is within reasonable limits (0.5 to 2.0)
+            if (playbackRate >= 0.5 && playbackRate <= 2.0) {
+                const frequencyDifference = Math.abs(targetFrequency - (sampleFrequency * playbackRate));
+                if (frequencyDifference < bestMatch.frequencyDifference) {
+                    bestMatch = {
+                        sampleKey: sampleKey,
+                        playbackRate: playbackRate,
+                        frequencyDifference: frequencyDifference
+                    };
+                }
+            }
+        }
+    }
+
+    return bestMatch.sampleKey ? {
+        sampleKey: bestMatch.sampleKey,
+        playbackRate: bestMatch.playbackRate
+    } : null;
+}
+
+function getNoteFrequency(note, octave) {
+    const noteIndex = NOTES.indexOf(note);
+    if (noteIndex === -1) {
+        console.error(`Invalid note: ${note}`);
+        return 440; // Default to A4 if there's an error
+    }
+
+    // A4 is 440Hz
+    const a4Index = NOTES.indexOf('A');
+    const a4Octave = 4;
+    
+    // Calculate semitones from A4
+    const semitonesFromA4 = (octave - a4Octave) * 12 + (noteIndex - a4Index);
+    
+    // Calculate frequency using the formula: f = 440 * (2^(n/12))
+    // where n is the number of semitones from A4
+    return 440 * Math.pow(2, semitonesFromA4 / 12);
+}
+
+async function playFallbackNoteWithFrequency(frequency, volume = 0.3) {
+    try {
+        if (!audioContext) {
+            console.error("Audio context not initialized");
+            return;
+        }
+
+        console.log(`Playing fallback note at ${frequency}Hz`);
+
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+
+        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 2);
+    } catch (error) {
+        console.error("Error in playFallbackNoteWithFrequency:", error);
+    }
+}
+
+function getPitchShiftedNoteWithFrequency(note, octave, targetFrequency) {
+    // Available sample notes (C, Ds, Fs, A)
+    const sampleNotes = ['C', 'Ds', 'Fs', 'A'];
+    
+    // Find the closest sample note
+    let bestMatch = {
+        sampleKey: null,
+        playbackRate: 1,
+        frequencyDifference: Infinity
+    };
+
+    for (const sampleNote of sampleNotes) {
+        for (let sampleOctave = 2; sampleOctave <= 6; sampleOctave++) {
+            const sampleKey = `${sampleNote}${sampleOctave}v12`;
+            const sampleFrequency = getNoteFrequency(sampleNote, sampleOctave);
+            const playbackRate = targetFrequency / sampleFrequency;
+
+            // Check if this playback rate is within reasonable limits (0.5 to 2.0)
+            if (playbackRate >= 0.5 && playbackRate <= 2.0) {
+                const frequencyDifference = Math.abs(targetFrequency - (sampleFrequency * playbackRate));
+                if (frequencyDifference < bestMatch.frequencyDifference) {
+                    bestMatch = {
+                        sampleKey: sampleKey,
+                        playbackRate: playbackRate,
+                        frequencyDifference: frequencyDifference
+                    };
+                }
+            }
+        }
+    }
+
+    return bestMatch.sampleKey ? {
+        sampleKey: bestMatch.sampleKey,
+        playbackRate: bestMatch.playbackRate
+    } : null;
+}
+
+async function playFallbackNoteWithFrequency(frequency, volume = 0.3) {
+    try {
+        if (!audioContext) {
+            console.error("Audio context not initialized");
+            return;
+        }
+
+        console.log(`Playing fallback note at ${frequency}Hz`);
+
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+
+        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 2);
+    } catch (error) {
+        console.error("Error in playFallbackNoteWithFrequency:", error);
     }
 }
 
@@ -2031,90 +2187,7 @@ function createFretboard(container, tuning) {
         }
     }
 
-function loadProgression(progressionName) {
-    const progression = progressions[progressionName];
-    if (!progression) {
-        console.error(`Progression ${progressionName} not found`);
-        return;
-    }
-
-    const keySelect = document.getElementById('keySelect');
-    const selectedKey = keySelect.value || progression.defaultKey;
-    keySelect.value = selectedKey;
-
-    const measuresDiv = document.getElementById('measures');
-    measuresDiv.innerHTML = '';
-
-    progression.progression.forEach((chordFunc, index) => {
-        const chord = getChordFromFunction(selectedKey, chordFunc);
-        if (!chord) {
-            console.error(`Failed to get chord for ${chordFunc} in key ${selectedKey}`);
-            return;
-        }
-        
-        const [root, quality] = parseChord(chord);
-        
-        // Add a new measure
-        const newMeasure = document.createElement('div');
-        newMeasure.className = 'measure';
-        newMeasure.draggable = true;
-        
-        // Create the measure content with the correct chord values
-        newMeasure.innerHTML = `
-            <span class="measure-number">${index + 1}</span>
-            <div class="chord-controls">
-                <select class="root-note">
-                    ${NOTES.map(note => 
-                        `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`
-                    ).join('')}
-                </select>
-                <select class="chord-quality">
-                    <option value="major" ${quality === '' ? 'selected' : ''}>Major</option>
-                    <option value="minor" ${quality === 'm' ? 'selected' : ''}>Minor</option>
-                    <option value="dom7" ${quality === '7' ? 'selected' : ''}>7</option>
-                    <option value="maj7" ${quality === 'maj7' ? 'selected' : ''}>Maj7</option>
-                    <option value="min7" ${quality === 'm7' ? 'selected' : ''}>Min7</option>
-                    <option value="min7b5" ${quality === 'min7b5' ? 'selected' : ''}>Min7b5 (Half Diminished)</option>
-                </select>
-            </div>
-            <div class="scale-controls">
-                <select class="second-key">
-                    ${NOTES.map(note => 
-                        `<option value="${note}" ${note === root ? 'selected' : ''}>${note}</option>`
-                    ).join('')}
-                </select>
-                <select class="scale-select">
-                    ${Object.keys(SCALES).map(scale => 
-                        `<option value="${scale}" ${scale === suggestScaleForQuality(quality) ? 'selected' : ''}>${scale}</option>`
-                    ).join('')}
-                </select>
-            </div>
-        `;
-
-        // Add event listeners
-        newMeasure.addEventListener('dragstart', dragStart);
-        newMeasure.addEventListener('dragover', dragOver);
-        newMeasure.addEventListener('drop', drop);
-        newMeasure.addEventListener('dragend', dragEnd);
-
-        measuresDiv.appendChild(newMeasure);
-    });
-
-    // Update measure numbers
-    updateMeasureNumbers();
-
-    // Add first chord listener
-    addFirstChordListener();
-
-    // Update the fretboard display
-    const firstMeasure = measuresDiv.firstChild;
-    if (firstMeasure) {
-        const rootNote = firstMeasure.querySelector('.root-note').value;
-        const scaleType = firstMeasure.querySelector('.scale-select').value;
-        const tuning = TUNINGS[document.getElementById('chord-tuning').value] || TUNINGS.standard;
-        updateFretboardNotes(document.getElementById('chord-fretboard'), rootNote, scaleType, tuning);
-    }
-}
+function loadProgression
        
     function createBeats() {
     const container = document.querySelector('.beats-container');
