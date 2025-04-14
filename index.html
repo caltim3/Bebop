@@ -998,10 +998,13 @@ function getNoteIndex(note) {
 }
 
 function getChordFromFunction(key, func) {
-    if (!key || !func) return null;
+    if (!key || !func) {
+        console.error('Invalid key or function:', { key, func });
+        return null;
+    }
 
-    // Use updated logic to determine if the key is minor
-    const isMinor = isMinorKeyName(key);
+    // Handle minor keys
+    const isMinor = key.endsWith('m') || key.endsWith('min');
     const rootKey = key.replace(/m$|min$/, '');
     const standardizedKey = standardizeNoteName(rootKey);
     const keyIndex = NOTES.indexOf(standardizedKey);
@@ -1033,12 +1036,12 @@ function getChordFromFunction(key, func) {
         }
     };
 
-    const degrees = insMinorKeyName ? scaleDegrees.minor : scaleDegrees.major;
+    const degrees = isMinor ? scaleDegrees.minor : scaleDegrees.major;
     let degree = degrees[func];
 
     if (degree === undefined) {
         console.error(`Invalid chord function: ${func}`);
-        return standardizedKey;
+        return null;
     }
 
     const noteIndex = (keyIndex + degree) % 12;
@@ -2050,6 +2053,11 @@ function createFretboard(container, tuning) {
     // Create measures for each chord in the progression
     progression.progression.forEach((chordFunc, index) => {
         const chord = getChordFromFunction(selectedKey, chordFunc);
+        if (!chord) {
+            console.error(`Could not generate chord for function: ${chordFunc}`);
+            return;
+        }
+        
         const [root, quality] = parseChord(chord);
         
         // Add a new measure
