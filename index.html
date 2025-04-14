@@ -236,8 +236,8 @@ body.dark-mode {
 
 /* Fretboard */
 .dark-mode .fretboard {
-    background-color: #606c38;
-    border: 2px solid #bc6c25; /* Brown border for contrast */
+    background-color: #dda15e; /* New color as requested */
+    border: 2px solid #4b4b4b; /* Darker border for contrast */
     border-radius: 5px;
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
@@ -621,6 +621,8 @@ document.getElementById('dark-mode-toggle').addEventListener('click', function()
     localStorage.setItem('darkMode', body.classList.contains('dark-mode'));
 });
 
+
+       
 // Check for saved dark mode preference on page load (optional)
 document.addEventListener('DOMContentLoaded', function() {
     const darkModeSaved = localStorage.getItem('darkMode') === 'true';
@@ -2562,6 +2564,31 @@ function loadProgression(progressionName) {
         container.appendChild(beat);
     }
 }
+const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const body = document.body;
+
+    // Check for saved dark mode preference
+    const darkMode = localStorage.getItem('darkMode');
+    if (darkMode === 'enabled') {
+        body.classList.add('dark-mode');
+        darkModeToggle.textContent = 'Light Mode';
+    }
+
+    // Dark mode toggle handler
+    darkModeToggle.addEventListener('click', () => {
+        if (body.classList.contains('dark-mode')) {
+            // Switch to light mode
+            body.classList.remove('dark-mode');
+            localStorage.setItem('darkMode', null);
+            darkModeToggle.textContent = 'Dark Mode';
+        } else {
+            // Switch to dark mode
+            body.classList.add('dark-mode');
+            localStorage.setItem('darkMode', 'enabled');
+            darkModeToggle.textContent = 'Light Mode';
+        }
+    });
+
        
 function getChordFromFunction(key, func) {
     if (!key || !func) return null;
