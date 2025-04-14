@@ -998,20 +998,17 @@ function getNoteIndex(note) {
 }
 
 function getChordFromFunction(key, func) {
-    if (!key || !func) {
-        console.error('Invalid key or function:', { key, func });
-        return null;
-    }
-
+    if (!key || !func) return null;
+    
     // Handle minor keys
-    const isMinor = key.endsWith('m') || key.endsWith('min');
+    const isMinor = isMinorKeyName(key);
     const rootKey = key.replace(/m$|min$/, '');
     const standardizedKey = standardizeNoteName(rootKey);
     const keyIndex = NOTES.indexOf(standardizedKey);
 
     if (keyIndex === -1) {
         console.error(`Invalid key: ${key}`);
-        return standardizedKey;
+        return null;
     }
 
     // Complete scale degrees for both major and minor keys
@@ -2034,27 +2031,24 @@ function createFretboard(container, tuning) {
         }
     }
 
-  function loadProgression(progressionName) {
+function loadProgression(progressionName) {
     const progression = progressions[progressionName];
     if (!progression) {
         console.error(`Progression ${progressionName} not found`);
         return;
     }
 
-    // Get the current key from the key selector or use the default key
     const keySelect = document.getElementById('keySelect');
     const selectedKey = keySelect.value || progression.defaultKey;
-    keySelect.value = selectedKey; // Set the key selector to match
+    keySelect.value = selectedKey;
 
-    // Clear existing measures
     const measuresDiv = document.getElementById('measures');
     measuresDiv.innerHTML = '';
 
-    // Create measures for each chord in the progression
     progression.progression.forEach((chordFunc, index) => {
         const chord = getChordFromFunction(selectedKey, chordFunc);
         if (!chord) {
-            console.error(`Could not generate chord for function: ${chordFunc}`);
+            console.error(`Failed to get chord for ${chordFunc} in key ${selectedKey}`);
             return;
         }
         
@@ -2311,8 +2305,7 @@ function getChordFromFunction(key, func) {
         }
     };
 
-    const degrees = isMinorKeyName
-        ? scaleDegrees.minor : scaleDegrees.major;
+    const degrees = isMinorKeyName(key) ? scaleDegrees.minor : scaleDegrees.major;
     let degree = degrees[func];
 
     if (degree === undefined) {
