@@ -593,12 +593,17 @@ async function initializeAudio() {
 }
        
 async function initAudioContext() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        await loadSounds();
-        await setupReverb();
+    try {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            await loadSounds();
+            await setupReverb();
+        }
+        return audioContext;
+    } catch (error) {
+        console.error("Failed to initialize audio context:", error);
+        throw error;
     }
-    return audioContext;
 }
 
     // Piano sample configuration
@@ -1017,13 +1022,18 @@ const AudioContextManager = {
         return this.context;
     }
 };
-       const AppState = {
+const AppState = {
     isPlaying: false,
     currentBeat: 0,
     currentMeasure: 0,
     tempo: 120,
-    audioInitialized: false
-};
+    audioInitialized: false,
+    darkMode: false,
+    
+    updateState(newState) {
+        Object.assign(this, newState);
+        this.notifyListeners();
+    },
        const UI = {
     elements: {
         tempoDisplay: document.getElementById('tempo-display'),
@@ -1035,27 +1045,7 @@ const AudioContextManager = {
     }
 };
 
-           const scaleDegrees = {
-        major: {
-            'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11,
-            'i': 0, 'ii': 2, 'iii': 4, 'iv': 5, 'v': 7, 'vi': 9, 'vii': 11,
-            'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
-            'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11,
-            'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9,
-            'bIII': 3, 'bVI': 8, 'bVII': 10,
-            'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10
-        },
-        minor: {
-            'i': 0, 'ii': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
-            'im': 0, 'iim': 2, 'iiim': 3, 'ivm': 5, 'vm': 7, 'VIm': 8,
-            'i7': 0, 'ii7': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
-            'im7': 0, 'iim7': 2, 'IIIm7': 3, 'ivm7': 5, 'vm7': 7, 'VIm7': 8,
-            'iim7b5': 2, 'V7b9': 7,
-            'bIII': 3, 'bVI': 8, 'bVII': 10,
-            'bIIImaj7': 3, 'bVImaj7': 8
-        }
-    };
-       
+    
 // Converts note name to index in noteMap
 function getNoteIndex(note) {
   return noteMap.indexOf(note);
@@ -1302,20 +1292,23 @@ async function setupReverb() {
       
 async function loadPianoSamples() {
     log('Starting piano sample loading...');
+    
+    // Initialize audio context if not already done
     if (!audioContext) {
         await initializeAudio();
     }
 
     const loadPromises = [];
-    // './' means "current directory" - where your HTML file is located
-    const baseUrl = "./";
+    const baseUrl = "./"; // Current directory where HTML file is located
 
+    // Iterate through all sampled notes and their octaves
     for (let note of SAMPLED_NOTES) {
         for (let octave of PIANO_CONFIG.octaves[note]) {
             const sampleName = `${note}${octave}v12`;
             const fileName = `${sampleName}.ogg`;
             const url = baseUrl + fileName;
 
+            // Create promise for each sample load
             const loadPromise = (async () => {
                 try {
                     log(`Attempting to load: ${fileName}`);
@@ -1330,7 +1323,10 @@ async function loadPianoSamples() {
                     try {
                         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                         log(`Successfully loaded ${sampleName}`);
-                        return { name: sampleName, buffer: audioBuffer };
+                        return { 
+                            name: sampleName, 
+                            buffer: audioBuffer 
+                        };
                     } catch (decodeError) {
                         log(`Failed to decode ${fileName}: ${decodeError.message}`);
                         return null;
@@ -1345,9 +1341,12 @@ async function loadPianoSamples() {
         }
     }
 
+    // Process all load promises
     try {
         const results = await Promise.all(loadPromises);
         let loadedCount = 0;
+
+        // Store successfully loaded samples
         results.forEach(result => {
             if (result) {
                 pianoSampleBuffers[result.name] = result.buffer;
@@ -1355,10 +1354,12 @@ async function loadPianoSamples() {
             }
         });
 
+        // Update sample loading status
         samplesLoaded = loadedCount > 0;
         log(`Piano sample loading completed. Successfully loaded ${loadedCount} samples`);
         log(`Loaded samples: ${Object.keys(pianoSampleBuffers).join(', ')}`);
 
+        // Update UI based on loading results
         if (!samplesLoaded) {
             log('Warning: No samples were loaded successfully');
             updateLoadingStatus('Piano samples not found. Using fallback synthesizer.');
@@ -1370,6 +1371,8 @@ async function loadPianoSamples() {
         samplesLoaded = false;
         updateLoadingStatus('Error loading piano samples. Using fallback synthesizer.');
     }
+
+    return samplesLoaded;
 }
        
  async function playNote(string, fret, velocity = 1.0) {
@@ -2493,33 +2496,31 @@ function loadProgression(progressionName) {
 function getChordFromFunction(key, func) {
     if (!key || !func) return null;
 
+    // Determine if the key is minor
     const isMinor = isMinorKeyName(key);
-    const rootKey = key.replace(/m$|min$/, '');
-    const standardizedKey = standardizeNoteName(rootKey);
+    const rootKey = key.replace(/m$|min$/, ''); // Remove minor suffix
+    const standardizedKey = standardizeNoteName(rootKey); // Standardize note name
     const keyIndex = NOTES.indexOf(standardizedKey);
 
     if (keyIndex === -1) {
         console.error(`Invalid key: ${key}`);
-        return standardizedKey;
+        return null;
     }
 
-    // Rest of the function...
-    // Make sure it has a proper return statement
-    return result; // Replace with actual return value
-}
-
+    // Determine the scale degrees based on the key type
     const degrees = isMinor ? scaleDegrees.minor : scaleDegrees.major;
     let degree = degrees[func];
 
     if (degree === undefined) {
         console.error(`Invalid chord function: ${func}`);
-        return standardizedKey;
+        return null;
     }
 
+    // Calculate the note index and determine the note
     const noteIndex = (keyIndex + degree) % 12;
     const note = NOTES[noteIndex];
 
-    // Determine chord quality based on function
+    // Determine chord quality based on the function
     let quality = '';
     if (func.includes('m7b5')) quality = 'min7b5';
     else if (func.includes('7b9')) quality = '7b9';
@@ -2530,6 +2531,7 @@ function getChordFromFunction(key, func) {
     else if (func.includes('°')) quality = 'dim';
     else if (func.includes('ø')) quality = 'min7b5';
 
+    // Return the final chord
     return note + quality;
 }
 
