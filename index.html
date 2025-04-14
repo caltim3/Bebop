@@ -2378,7 +2378,7 @@ function loadProgression(progressionName) {
     addFirstChordListener();
 }
        
-    function createBeats() {
+ function createBeats() {
     const container = document.querySelector('.beats-container');
     container.innerHTML = '';
     const timeSignature = parseInt(document.getElementById('time-signature').value);
@@ -2491,7 +2491,7 @@ function loadProgression(progressionName) {
                 });
             }
         } else {
-            // Other time signatures (unchanged)
+            // Other time signatures
             beat.textContent = i + 1;
             if (timeSignature === 6) {
                 beat.dataset.volume = (i === 0 || i === 3) ? '1' : '0.3';
