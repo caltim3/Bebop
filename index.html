@@ -775,6 +775,7 @@ const scaleDegrees = {
         'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11,
         'i': 0, 'ii': 2, 'iii': 4, 'iv': 5, 'v': 7, 'vi': 9, 'vii': 11,
         'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
+        'i7': 0, 'ii7': 2, 'iii7': 4, 'iv7': 5, 'v7': 7, 'vi7': 9, 'vii7': 11,  // Add these
         'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11,
         'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9,
         'bIII': 3, 'bVI': 8, 'bVII': 10,
@@ -789,6 +790,7 @@ const scaleDegrees = {
         'bIII': 3, 'bVI': 8, 'bVII': 10,
         'bIIImaj7': 3, 'bVImaj7': 8
     }
+};
 };
 
 // State Management
@@ -1070,9 +1072,10 @@ function isMinorKeyName(key) {
 function getChordFromFunction(key, func) {
     if (!key || !func) return null;
 
+    // Determine if the key is minor
     const isMinorKey = isMinorKeyName(key);
-    const rootKey = key.replace(/m$|min$/, '');
-    const standardizedKey = standardizeNoteName(rootKey);
+    const rootKey = key.replace(/m$|min$/, ''); // Remove "m" or "min" from minor keys
+    const standardizedKey = standardizeNoteName(rootKey); // Standardize note name (e.g., "Db" -> "C#")
     const keyIndex = NOTES.indexOf(standardizedKey);
 
     if (keyIndex === -1) {
@@ -1080,6 +1083,7 @@ function getChordFromFunction(key, func) {
         return null;
     }
 
+    // Use the appropriate scale degrees based on the key type (major or minor)
     const degrees = isMinorKey ? scaleDegrees.minor : scaleDegrees.major;
     let degree = degrees[func];
 
@@ -1089,7 +1093,7 @@ function getChordFromFunction(key, func) {
             const [secondary, target] = func.split('/');
             const targetDegree = degrees[target] ?? degrees[target.toLowerCase()];
             if (targetDegree !== undefined && secondary.startsWith('V7')) {
-                degree = (targetDegree + 7) % 12;
+                degree = (targetDegree + 7) % 12; // Add 7 semitones for the secondary dominant
             } else {
                 console.error(`Invalid secondary function: ${func}`);
                 return null;
@@ -1100,21 +1104,26 @@ function getChordFromFunction(key, func) {
         }
     }
 
+    // Calculate the note index based on the key and degree
     const noteIndex = (keyIndex + degree) % 12;
     const note = NOTES[noteIndex];
 
+    // Determine the chord quality based on the function
     let quality = '';
-    if (/m7b5/i.test(func)) quality = 'min7b5';
-    else if (/7b9/i.test(func)) quality = '7b9';
-    else if (/maj7/i.test(func)) quality = 'maj7';
-    else if (/min7/i.test(func)) quality = 'min7';
-    else if (/m7/i.test(func)) quality = 'min7';
-    else if (/m$/.test(func) || /^i{1,3}$/.test(func)) quality = 'minor';
-    else if (/7/.test(func)) quality = '7';
+    if (/m7b5/i.test(func)) quality = 'min7b5'; // Minor 7 flat 5
+    else if (/7b9/i.test(func)) quality = '7b9'; // Dominant 7 flat 9
+    else if (/maj7/i.test(func)) quality = 'maj7'; // Major 7
+    else if (/m7|min7/i.test(func)) quality = 'min7'; // Minor 7
+    else if (/7/.test(func)) {
+        // Check if it's a minor seventh or dominant seventh
+        if (/^[a-z]+7/.test(func)) quality = 'min7'; // Lowercase = minor 7
+        else quality = '7'; // Uppercase = dominant 7
+    } else if (/^[a-z]/.test(func)) quality = 'minor'; // Lowercase = minor triad
+    else quality = 'major'; // Default to major triad for uppercase
 
-    return note + (quality === 'minor' ? 'm' : quality);
+    // Return the full chord (note + quality)
+    return note + (quality ? quality : '');
 }
-
 function parseChord(chord) {
     if (!chord) return ['C', ''];
     // Updated regex to better handle 7th chords
