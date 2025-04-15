@@ -1120,109 +1120,118 @@ function isMinorKeyName(key) {
     return key && (key.endsWith('m') || key.endsWith('min'));
 }
 
-function getChordFromFunction(func, key = 'C') {
+function getChordFromFunction(key, chordFunction) {
+    if (!key || !chordFunction) return null;
+
+    // Helper function to convert roman numeral to number
+    function romanToNumber(roman) {
+        const romanNumerals = {
+            'i': 1, 'ii': 2, 'iii': 3, 'iv': 4, 'v': 5, 'vi': 6, 'vii': 7,
+            'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7
+        };
+        return romanNumerals[roman.toLowerCase()];
+    }
+
     // Helper function to get note from scale degree
     function getNoteFromScaleDegree(degree, key, scale) {
-        const chromaticScale = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-        const keyIndex = chromaticScale.indexOf(standardizeNoteName(key));
+        const notes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+        const keyIndex = notes.indexOf(standardizeNoteName(key));
         if (keyIndex === -1) return null;
-        const noteIndex = (keyIndex + scale[degree]) % 12;
-        return chromaticScale[noteIndex];
+        
+        // Handle flattened scale degrees
+        let actualDegree = degree - 1;
+        if (actualDegree < 0) actualDegree += 7;
+        
+        const noteIndex = (keyIndex + scale[actualDegree]) % 12;
+        return notes[noteIndex];
     }
 
-    // Initialize scales
-    const majorScale = [0, 2, 4, 5, 7, 9, 11];
-    const minorScale = [0, 2, 3, 5, 7, 8, 10];
+    // Handle direct chord names
+    if (/^[A-G]/.test(chordFunction)) {
+        return chordFunction;
+    }
 
+    // Updated regex to handle more variations including flattened chords
+    const functionRegex = /^(b?[ivIV]+)(dim|ø|maj|min|aug|\+)?([679]|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?$/;
+    const match = chordFunction.match(functionRegex);
+    
+    if (!match) {
+        console.error("Invalid chord function:", chordFunction);
+        return null;
+    }
+
+    let [_, romanNumeral, quality, extension, alteration] = match;
+    
     // Determine if we're in a minor key
-    const isMinorKey = key.toLowerCase().includes('m');
-    const actualKey = isMinorKey ? key.replace('m', '') : key;
-    const scale = isMinorKey ? minorScale : majorScale;
-
-    // Handle empty or invalid input
-    if (!func) return null;
-
-    // Enhanced regex to handle all chord types including diminished, half-diminished, and alterations
-    const regex = /^(b?[ivIV]+)(o|ø|°|\+|maj|m|M)?([67]|9|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?(\([b#]5\)|\([b#]9\)|\([b#]11\)|\([b#]13\))?$/;
-    const match = func.match(regex);
-    if (!match) return null;
-
-    let [_, roman, quality, extension, alteration, parenthesizedAlteration] = match;
-
-    // Handle flattened degrees
-    const isFlat = roman.startsWith('b');
-    if (isFlat) roman = roman.substring(1);
-
-    // Convert roman numeral to scale degree
-    const romanToNumber = {
-        'I': 0, 'II': 1, 'III': 2, 'IV': 3, 'V': 4, 'VI': 5, 'VII': 6,
-        'i': 0, 'ii': 1, 'iii': 2, 'iv': 3, 'v': 4, 'vi': 5, 'vii': 6
-    };
-
-    let degree = romanToNumber[roman];
-    if (degree === undefined) return null;
-
-    // Store whether the original numeral was lowercase
-    const isLowerCase = /^[b]?[iv]+$/.test(roman);
-
-    // Apply flat modification if present
-    if (isFlat) {
-        degree = (degree - 1 + 7) % 7;
+    const isMinor = key.toLowerCase().includes('m');
+    
+    // Get the scale degree
+    const isFlattened = romanNumeral.startsWith('b');
+    if (isFlattened) {
+        romanNumeral = romanNumeral.substring(1);
     }
+    
+    const degree = romanToNumber(romanNumeral);
+    if (degree === null) return null;
 
     // Get the root note
-    const rootNote = getNoteFromScaleDegree(degree, actualKey, scale);
-    if (!rootNote) return null;
+    const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11];
+    const MINOR_SCALE = [0, 2, 3, 5, 7, 8, 10];
+    const scale = isMinor ? MINOR_SCALE : MAJOR_SCALE;
+    
+    let root = getNoteFromScaleDegree(degree, key.replace(/m$/, ''), scale);
+    if (!root) return null;
 
-    // Determine chord quality
-    let chordQuality = '';
-
-    // Handle special symbols first
-    if (quality === 'o' || quality === '°') {
-        chordQuality = extension === '7' ? 'dim7' : 'dim';
-    } else if (quality === 'ø') {
-        chordQuality = 'm7b5';
-    } else if (quality === '+') {
-        chordQuality = 'aug';
-    } else if (quality === 'maj' || quality === 'M') {
-        chordQuality = extension ? 'maj' + extension : '';
-    } else if (quality === 'm') {
-        chordQuality = 'm' + (extension || '');
-    } else {
-        // Default qualities based on scale degree and mode
-        if (isMinorKey) {
-            if (isLowerCase) {
-                chordQuality = 'm';
-            } else {
-                chordQuality = ['m', 'dim', 'maj', 'm', 'm', 'maj', 'maj'][degree];
-            }
-        } else {
-            if (isLowerCase) {
-                chordQuality = 'm';
-            } else {
-                chordQuality = ['', 'm', 'm', '', '', 'm', 'dim'][degree];
-            }
-        }
+    // If flattened, lower the root by a semitone
+    if (isFlattened) {
+        const notes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+        const rootIndex = notes.indexOf(root);
+        root = notes[(rootIndex + 11) % 12]; // Move down one semitone
     }
 
-    // Handle extensions
+    // Initialize chord quality
+    let chordQuality = '';
+    const isUpperCase = romanNumeral === romanNumeral.toUpperCase();
+
+    // Special handling for diminished and half-diminished chords
+    if (quality === 'dim') {
+        return root + (extension === '7' ? 'dim7' : 'dim');
+    }
+    if (quality === 'ø') {
+        return root + 'm7b5';
+    }
+
+    // Handle seventh chords and extended chords
     if (extension) {
-        if (extension === '7') {
-            // Special handling for dominant 7th
-            if (!quality && !isLowerCase && (degree === 4 || func.toUpperCase().includes('V7'))) {
-                chordQuality = '7';
-            } else if (chordQuality === 'm') {
-                chordQuality = 'm7';
-            } else if (chordQuality === '') {
-                chordQuality = '7';
-            } else {
-                chordQuality += '7';
-            }
-        } else if (extension === '6') {
-            chordQuality = chordQuality === 'm' ? 'm6' : '6';
+        if (quality === 'maj') {
+            chordQuality = 'maj' + extension;
+        } else if (quality === 'min') {
+            chordQuality = 'm' + extension;
+        } else if (quality === 'aug' || quality === '+') {
+            chordQuality = 'aug' + extension;
         } else {
-            // Handle 9, 11, 13 extensions
-            chordQuality += extension;
+            // Default seventh chord behavior based on numeral case and scale degree
+            if (isUpperCase) {
+                chordQuality = extension; // Dominant seventh
+            } else {
+                chordQuality = 'm' + extension; // Minor seventh
+            }
+        }
+    } else {
+        // Handle triads
+        if (quality) {
+            if (quality === 'maj') {
+                chordQuality = '';
+            } else if (quality === 'min') {
+                chordQuality = 'm';
+            } else if (quality === 'aug' || quality === '+') {
+                chordQuality = 'aug';
+            }
+        } else {
+            // Default triad behavior
+            if (!isUpperCase) {
+                chordQuality = 'm';
+            }
         }
     }
 
@@ -1231,15 +1240,7 @@ function getChordFromFunction(func, key = 'C') {
         chordQuality += alteration;
     }
 
-    // Handle parenthesized alterations
-    if (parenthesizedAlteration) {
-        chordQuality += parenthesizedAlteration.replace(/[()]/g, '');
-    }
-
-    // Build the final chord symbol
-    let chordSymbol = rootNote + chordQuality;
-
-    return chordSymbol;
+    return root + chordQuality;
 }
         
         function parseChord(chord) {
