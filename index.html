@@ -2031,21 +2031,6 @@ function initializeFretFlow() {
     log("FretFlow initialized");
 }
 
-            // Reattach note click handlers after updating fretboard
-            const updatedNotes = fretboard.getElementsByClassName('note');
-            Array.from(updatedNotes).forEach(note => {
-                note.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    const noteName = this.dataset.note;
-                    if (noteName) {
-                        const fretboardVolume = parseFloat(UI.elements.fretboardVolume.value) || 1.0;
-                        playNote(noteName, fretboardVolume, 500);
-                        log(`Playing note: ${noteName}`);
-                    }
-                });
-            });
-        });
-
 // Event Listeners
 function addFirstChordListener() {
     const firstMeasure = UI.elements.measures.firstElementChild;
