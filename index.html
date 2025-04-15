@@ -1120,7 +1120,7 @@ function isMinorKeyName(key) {
     return key && (key.endsWith('m') || key.endsWith('min'));
 }
 
-function getChordFromFunction(chordFunction, key = 'C') {
+function getChordFromFunction(func, key = 'C') {
     // Helper function to get note from scale degree
     function getNoteFromScaleDegree(degree, key, scale) {
         const chromaticScale = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
@@ -1140,15 +1140,15 @@ function getChordFromFunction(chordFunction, key = 'C') {
     const scale = isMinorKey ? minorScale : majorScale;
 
     // Handle empty or invalid input
-    if (!chordFunction) return null;
+    if (!func) return null;
 
-    // Enhanced regex to handle all chord types including 6ths and altered chords
-    const functionRegex = /^(b?[iIvV]+)([°ø]|maj|m|M)?([67]|9|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?(\([b#]5\)|\([b#]9\)|\([b#]11\)|\([b#]13\))?$/;
-    const match = chordFunction.match(functionRegex);
+    // Enhanced regex to handle all chord types including diminished, half-diminished, and alterations
+    const regex = /^(b?[ivIV]+)(o|ø|°|\+|maj|m|M)?([67]|9|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?(\([b#]5\)|\([b#]9\)|\([b#]11\)|\([b#]13\))?$/;
+    const match = func.match(regex);
     if (!match) return null;
 
     let [_, roman, quality, extension, alteration, parenthesizedAlteration] = match;
-    
+
     // Handle flattened degrees
     const isFlat = roman.startsWith('b');
     if (isFlat) roman = roman.substring(1);
@@ -1177,26 +1177,30 @@ function getChordFromFunction(chordFunction, key = 'C') {
     // Determine chord quality
     let chordQuality = '';
 
-    // First check if there's an explicit quality specified
-    if (quality === '°') {
-        chordQuality = 'dim';
+    // Handle special symbols first
+    if (quality === 'o' || quality === '°') {
+        chordQuality = extension === '7' ? 'dim7' : 'dim';
     } else if (quality === 'ø') {
         chordQuality = 'm7b5';
+    } else if (quality === '+') {
+        chordQuality = 'aug';
     } else if (quality === 'maj' || quality === 'M') {
-        chordQuality = 'maj';
+        chordQuality = extension ? 'maj' + extension : '';
     } else if (quality === 'm') {
-        chordQuality = 'm';
+        chordQuality = 'm' + (extension || '');
     } else {
-        // If no explicit quality, determine based on scale degree and mode
-        if (!isMinorKey && isLowerCase) {
-            chordQuality = 'm';
-        } else {
-            if (isMinorKey) {
-                const minorDefaultQualities = ['m', 'dim', 'maj', 'm', 'm', 'maj', 'maj'];
-                chordQuality = minorDefaultQualities[degree];
+        // Default qualities based on scale degree and mode
+        if (isMinorKey) {
+            if (isLowerCase) {
+                chordQuality = 'm';
             } else {
-                const majorDefaultQualities = ['maj', 'm', 'm', 'maj', 'maj', 'm', 'dim'];
-                chordQuality = majorDefaultQualities[degree];
+                chordQuality = ['m', 'dim', 'maj', 'm', 'm', 'maj', 'maj'][degree];
+            }
+        } else {
+            if (isLowerCase) {
+                chordQuality = 'm';
+            } else {
+                chordQuality = ['', 'm', 'm', '', '', 'm', 'dim'][degree];
             }
         }
     }
@@ -1205,10 +1209,12 @@ function getChordFromFunction(chordFunction, key = 'C') {
     if (extension) {
         if (extension === '7') {
             // Special handling for dominant 7th
-            if (chordQuality === 'maj' && (degree === 4 || chordFunction.toUpperCase().includes('V7'))) {
+            if (!quality && !isLowerCase && (degree === 4 || func.toUpperCase().includes('V7'))) {
                 chordQuality = '7';
             } else if (chordQuality === 'm') {
                 chordQuality = 'm7';
+            } else if (chordQuality === '') {
+                chordQuality = '7';
             } else {
                 chordQuality += '7';
             }
@@ -1232,150 +1238,6 @@ function getChordFromFunction(chordFunction, key = 'C') {
 
     // Build the final chord symbol
     let chordSymbol = rootNote + chordQuality;
-
-    return chordSymbol;
-}
-    function standardizeNoteName(note) {
-        // Convert sharps to flats for consistency
-        const sharpToFlat = {
-            'C#': 'Db',
-            'D#': 'Eb',
-            'F#': 'Gb',
-            'G#': 'Ab',
-            'A#': 'Bb'
-        };
-        return sharpToFlat[note] || note;
-    }
-
-    // Initialize scales
-    const majorScale = [0, 2, 4, 5, 7, 9, 11];
-    const minorScale = [0, 2, 3, 5, 7, 8, 10];
-
-    // Determine if we're in a minor key
-    const isMinorKey = key.toLowerCase().includes('m');
-    const actualKey = isMinorKey ? key.replace('m', '') : key;
-    const scale = isMinorKey ? minorScale : majorScale;
-
-    // Handle empty or invalid input
-    if (!chordFunction) return null;
-
-    // Parse the chord function
-    // Updated regex to handle more chord variations
-    let match = chordFunction.match(/^(b?[ivIV]+)([°ø]|maj|m|M)?([679]|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?(\([b#]5\)|\([b#]9\)|\([b#]11\)|\([b#]13\))?$/);
-    if (!match) return null;
-
-    let [_, roman, quality, extension, alteration, parenthesizedAlteration] = match;
-    
-    // Handle flattened degrees
-    const isFlat = roman.startsWith('b');
-    if (isFlat) roman = roman.substring(1);
-
-    // Convert roman numeral to scale degree
-    const romanToNumber = {
-        'I': 0, 'II': 1, 'III': 2, 'IV': 3, 'V': 4, 'VI': 5, 'VII': 6,
-        'i': 0, 'ii': 1, 'iii': 2, 'iv': 3, 'v': 4, 'vi': 5, 'vii': 6
-    };
-
-    let degree = romanToNumber[roman];
-    if (degree === undefined) return null;
-
-    // Store whether the original numeral was lowercase
-    const isLowerCase = /^[b]?[iv]+$/.test(roman);
-
-    // Apply flat modification if present
-    if (isFlat) {
-        degree = (degree - 1 + 7) % 7;
-    }
-
-    // Get the root note
-    const rootNote = getNoteFromScaleDegree(degree, actualKey, scale);
-    if (!rootNote) return null;
-
-    // Determine chord quality
-    let chordQuality = '';
-    let chordExtension = '';
-    let chordAlteration = '';
-
-    // First check if there's an explicit quality specified
-    if (quality === '°') {
-        chordQuality = 'dim';
-    } else if (quality === 'ø') {
-        chordQuality = 'm7b5';
-    } else if (quality === 'maj' || quality === 'M') {
-        chordQuality = 'maj';
-    } else if (quality === 'm') {
-        chordQuality = 'm';
-    } else {
-        // If no explicit quality, check if it's lowercase (should be minor in major key)
-        if (!isMinorKey && isLowerCase) {
-            chordQuality = 'm';
-        } else {
-            // Use default qualities based on scale degree and mode
-            if (isMinorKey) {
-                const minorDefaultQualities = ['m', 'dim', 'maj', 'm', 'm', 'maj', 'maj'];
-                chordQuality = minorDefaultQualities[degree];
-            } else {
-                const majorDefaultQualities = ['maj', 'm', 'm', 'maj', 'maj', 'm', 'dim'];
-                chordQuality = majorDefaultQualities[degree];
-            }
-        }
-    }
-
-    // Handle extensions
-    if (extension) {
-        if (extension === '7') {
-            // Special handling for dominant 7th
-            if (chordQuality === 'maj' && (degree === 4 || chordFunction.toUpperCase().includes('V7'))) {
-                chordQuality = '7';
-            } else if (chordQuality === 'm') {
-                chordQuality = 'm7';
-            } else {
-                chordQuality += '7';
-            }
-        } else {
-            // Handle 9, 11, 13 extensions
-            if (chordQuality === 'maj') {
-                chordQuality = 'maj' + extension;
-            } else if (chordQuality === 'm') {
-                chordQuality = 'm' + extension;
-            } else {
-                chordQuality += extension;
-            }
-        }
-    }
-
-    // Handle alterations
-    if (alteration) {
-        chordAlteration = alteration;
-    }
-
-    // Handle parenthesized alterations
-    if (parenthesizedAlteration) {
-        chordAlteration += parenthesizedAlteration.replace(/[()]/g, '');
-    }
-
-    // Special cases for secondary dominants
-    if (chordFunction.includes('7') && !isMinorKey && degree !== 4 && !isLowerCase) {
-        chordQuality = '7'; // Make it dominant 7
-    }
-
-    // Special handling for diminished sevenths
-    if (chordQuality === 'dim' && extension === '7') {
-        chordQuality = 'dim7';
-    }
-
-    // Build the final chord symbol
-    let chordSymbol = rootNote;
-    
-    // Add the chord quality
-    if (chordQuality !== 'maj' || extension) {
-        chordSymbol += chordQuality;
-    }
-
-    // Add any alterations
-    if (chordAlteration) {
-        chordSymbol += chordAlteration;
-    }
 
     return chordSymbol;
 }
