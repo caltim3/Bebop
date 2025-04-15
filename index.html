@@ -1241,8 +1241,15 @@ function getChordNotes(root, quality) {
     return intervals.map(interval => NOTES[(rootIndex + interval) % 12]);
 }
 
-async function playMetronomeSound(volume) {
-    if (!AudioContextManager.context || volume <= 0) return;
+async function playMetronomeSound(baseVolume) {
+    if (!AudioContextManager.context) return;
+    
+    // Get the metronome volume slider value and combine it with base volume
+    const metronomeVolumeControl = document.getElementById('metronome-volume');
+    const metronomeVolume = parseFloat(metronomeVolumeControl.value);
+    const combinedVolume = baseVolume * metronomeVolume;
+    
+    if (combinedVolume <= 0) return;
     
     const soundType = UI.elements.soundType.value;
     const beatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
@@ -1250,14 +1257,14 @@ async function playMetronomeSound(volume) {
     if (!beatElement) return;
 
     const drumSounds = beatElement.dataset.sound.split(',');
-    const baseVolume = parseFloat(beatElement.dataset.baseVolume) || 0;
-    const isAccent = baseVolume >= 1 && ['kick', 'snare'].includes(drumSounds[0]);
+    const baseVolumeValue = parseFloat(beatElement.dataset.baseVolume) || 0;
+    const isAccent = baseVolumeValue >= 1 && ['kick', 'snare'].includes(drumSounds[0]);
     const accentBoost = parseFloat(UI.elements.accentIntensity?.value || 1);
     
     // Apply accent boost if applicable
-    let adjustedVolume = volume;
+    let adjustedVolume = combinedVolume;
     if (isAccent) {
-        adjustedVolume = Math.min(volume * accentBoost, 1); // cap at 1.0
+        adjustedVolume = Math.min(combinedVolume * accentBoost, 1); // cap at 1.0
     }
 
     // Process each sound in the drum pattern
@@ -1301,7 +1308,6 @@ async function playMetronomeSound(volume) {
         
         // Ensure volume doesn't exceed 1.0
         finalVolume = Math.min(finalVolume, 1.0);
-        
         gainNode.gain.value = finalVolume;
 
         // Connect the audio nodes
@@ -1324,9 +1330,7 @@ async function playMetronomeSound(volume) {
         }
     }
 }
-// ... (previous code)
-
-// Improved fretboard creation and update
+ 
 function createFretboard(container, tuning) {
     container.innerHTML = '';
 
@@ -1551,7 +1555,6 @@ function createBeats() {
                 }
             }
         } else {
-            // Handle other time signatures...
             beat.textContent = i + 1;
             const isStrong = config.strongBeats.includes(i);
 
@@ -1944,40 +1947,39 @@ function setupEventListeners() {
         }
     });
 
-    // Modified dark mode toggle
-    // Modified dark mode toggle
-let colorMode = 0; // 0 = light, 1 = dark-mode-1, 2 = dark-mode-2, 3 = dark-mode-3
-UI.elements.darkModeToggle.addEventListener('click', () => {
-    colorMode = (colorMode + 1) % 4; // Cycle through 0, 1, 2, 3
-    
-    // Remove all mode classes first
-    document.body.classList.remove('dark-mode', 'dark-mode-2', 'dark-mode-3');
-    UI.elements.darkModeToggle.classList.remove('active', 'active-2', 'active-3');
-    
-    // Apply appropriate mode
-    switch(colorMode) {
-        case 1: // First dark mode (green)
-            document.body.classList.add('dark-mode');
-            UI.elements.darkModeToggle.classList.add('active');
-            log('Dark mode 1 enabled');
-            break;
-        case 2: // Second dark mode (blue)
-            document.body.classList.add('dark-mode-2');
-            UI.elements.darkModeToggle.classList.add('active-2');
-            log('Dark mode 2 enabled');
-            break;
-        case 3: // Third dark mode (earthy)
-            document.body.classList.add('dark-mode-3');
-            UI.elements.darkModeToggle.classList.add('active-3');
-            log('Dark mode 3 enabled');
-            break;
-        default: // Light mode
-            log('Light mode enabled');
-            break;
-    }
-});
+    // Modified dark mode toggle with three modes
+    let colorMode = 0; // 0 = light, 1 = dark-mode-1, 2 = dark-mode-2, 3 = dark-mode-3
+    UI.elements.darkModeToggle.addEventListener('click', () => {
+        colorMode = (colorMode + 1) % 4; // Cycle through 0, 1, 2, 3
+        
+        // Remove all mode classes first
+        document.body.classList.remove('dark-mode', 'dark-mode-2', 'dark-mode-3');
+        UI.elements.darkModeToggle.classList.remove('active', 'active-2', 'active-3');
+        
+        // Apply appropriate mode
+        switch(colorMode) {
+            case 1: // First dark mode (green)
+                document.body.classList.add('dark-mode');
+                UI.elements.darkModeToggle.classList.add('active');
+                log('Dark mode 1 enabled');
+                break;
+            case 2: // Second dark mode (blue)
+                document.body.classList.add('dark-mode-2');
+                UI.elements.darkModeToggle.classList.add('active-2');
+                log('Dark mode 2 enabled');
+                break;
+            case 3: // Third dark mode (earthy)
+                document.body.classList.add('dark-mode-3');
+                UI.elements.darkModeToggle.classList.add('active-3');
+                log('Dark mode 3 enabled');
+                break;
+            default: // Light mode
+                log('Light mode enabled');
+                break;
+        }
+    });
 
-    // Replace checkbox listener with button toggle
+    // Chords enabled button toggle
     const chordsButton = UI.elements.chordsEnabled;
     let chordsEnabled = true;
     chordsButton.addEventListener('click', () => {
@@ -1986,6 +1988,7 @@ UI.elements.darkModeToggle.addEventListener('click', () => {
         chordsButton.classList.toggle('active', chordsEnabled);
         log(`Chords ${chordsEnabled ? 'enabled' : 'disabled'}`);
     });
+
     UI.elements.tempo.addEventListener('input', () => {
         AppState.tempo = parseInt(UI.elements.tempo.value);
         UI.elements.tempoDisplay.textContent = `${AppState.tempo} BPM`;
@@ -2006,7 +2009,8 @@ UI.elements.darkModeToggle.addEventListener('click', () => {
     UI.elements.soundType.addEventListener('change', createBeats);
 
     UI.elements.metronomeVolume.addEventListener('input', () => {
-        createBeats();
+        const volume = parseFloat(UI.elements.metronomeVolume.value);
+        log(`Metronome volume set to ${volume}`);
     });
 
     UI.elements.progressionSelect.addEventListener('change', () => {
@@ -2046,13 +2050,6 @@ UI.elements.darkModeToggle.addEventListener('click', () => {
         AppState.lastTap = now;
     });
 
-    UI.elements.darkModeToggle.addEventListener('click', () => {
-        AppState.darkMode = !AppState.darkMode;
-        document.body.classList.toggle('dark-mode', AppState.darkMode);
-        UI.elements.darkModeToggle.classList.toggle('active', AppState.darkMode);
-        log(`Dark mode ${AppState.darkMode ? 'enabled' : 'disabled'}`);
-    });
-
     UI.elements.chordFretboardVolume.addEventListener('input', () => {
         log(`Chord fretboard volume set to ${UI.elements.chordFretboardVolume.value}`);
     });
@@ -2063,10 +2060,6 @@ UI.elements.darkModeToggle.addEventListener('click', () => {
 
     UI.elements.fretboardVolume.addEventListener('input', () => {
         log(`Fretboard volume set to ${UI.elements.fretboardVolume.value}`);
-    });
-
-    UI.elements.chordsEnabled.addEventListener('change', () => {
-        log(`Chords ${UI.elements.chordsEnabled.checked ? 'enabled' : 'disabled'}`);
     });
 
     UI.elements.measures.addEventListener('change', (e) => {
