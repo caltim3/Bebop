@@ -1034,15 +1034,14 @@ function findNearestSampledNote(note, octave) {
 }
 function getScaleNotes(root, scaleName) {
     if (!root) return [];
-
-    const scaleIntervals = SCALES[scaleName] || SCALES['major'];
-    const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     
-    // Find the root note index
+    const scaleIntervals = SCALES[scaleName];
+    if (!scaleIntervals) return [];
+    
+    const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     let rootIndex = chromaticScale.indexOf(standardizeNoteName(root));
     if (rootIndex === -1) return [];
-
-    // Generate the scale
+    
     return scaleIntervals.map(interval => {
         const noteIndex = (rootIndex + interval) % 12;
         return chromaticScale[noteIndex];
@@ -1106,15 +1105,17 @@ function getChordFromFunction(key, chordFunction) {
     if (quality) {
         chordQuality = quality;
     } else {
-        // Default qualities
-        if (roman === 'V') chordQuality = '7';
-        else if (isMinor) chordQuality = 'm7';
-        else chordQuality = 'maj7';
+        if (isMinor) {
+            chordQuality = 'm7';
+        } else if (roman === 'V' || roman === 'v') {
+            chordQuality = '7';
+        } else {
+            chordQuality = 'maj7';
+        }
     }
 
     return root + chordQuality;
 }
-
 
 function parseChord(chord) {
     if (!chord) return ['C', ''];
@@ -2015,15 +2016,6 @@ function initializeFretFlow() {
     
     log("FretFlow initialized");
 }
-
-            // Add hover effects
-            note.addEventListener('mouseenter', function () {
-                this.classList.add('hovered');
-            });
-            note.addEventListener('mouseleave', function () {
-                this.classList.remove('hovered');
-            });
-        });
 
         // Add tuning change handler
         const tuningSelect = container.querySelector(`#fretflow-tuning-${index}`);
