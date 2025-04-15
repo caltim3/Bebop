@@ -215,6 +215,19 @@
             border-radius: 5px;
             z-index: 1000;
         }
+
+        .checkbox-wrapper {
+            margin-top: 20px;  /* Add space above the button */
+            margin-left: 20px; /* Move button to the left */
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Optional: adjust the button itself for better alignment */
+        #chordsEnabled {
+            margin-bottom: 10px;  /* Add some space below the button */
+            padding: 8px 16px;    /* Slightly adjust padding if needed */
+        }
         body.dark-mode {
             background-color: #283618;
             color: #fefae0;
@@ -395,6 +408,88 @@
     background-color: #1282a2;
     color: #fefcfb;
     border: 1px solid #034078;
+}
+
+        .dark-mode-3 {
+    background-color: #6b705c;
+    color: #ffe8d6;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-mode-3 .app-section {
+    background: linear-gradient(145deg, #6b705c, #a5a58d);
+    color: #ffe8d6;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode-3 .fretboard-container {
+    background-color: #ddbea9;
+    border: 1px solid #cb997e;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode-3 .fretboard {
+    background-color: #cb997e;
+    border: 2px solid #6b705c;
+    border-radius: 5px;
+}
+
+.dark-mode-3 .note {
+    background-color: #b7b7a4;
+    color: #6b705c;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode-3 .scale-display {
+    color: #ffe8d6;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode-3 button {
+    background-color: #cb997e;
+    color: #ffe8d6;
+    border: 1px solid #6b705c;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode-3 select {
+    background-color: #ddbea9;
+    color: #6b705c;
+    border: 1px solid #cb997e;
+}
+
+.dark-mode-3 .measure {
+    background-color: #a5a58d;
+    color: #ffe8d6;
+    border: 1px solid #cb997e;
+}
+
+.dark-mode-3 .measure.active {
+    background-color: #ddbea9;
+    border-color: #cb997e;
+}
+
+.dark-mode-3 .beat {
+    background-color: #ddbea9;
+    color: #6b705c;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode-3 .beat.active {
+    background-color: #cb997e;
+    transform: translateY(-5px);
+}
+
+.dark-mode-3 .volume-control {
+    color: #ffe8d6;
+}
+
+#dark-mode-toggle.active-3 {
+    background-color: #cb997e;
+    color: #ffe8d6;
+    border: 1px solid #6b705c;
 }
         
     </style>
@@ -1850,31 +1945,37 @@ function setupEventListeners() {
     });
 
     // Modified dark mode toggle
-    let colorMode = 0; // 0 = light, 1 = dark-mode-1, 2 = dark-mode-2
-    UI.elements.darkModeToggle.addEventListener('click', () => {
-        colorMode = (colorMode + 1) % 3; // Cycle through 0, 1, 2
-        
-        // Remove all mode classes first
-        document.body.classList.remove('dark-mode', 'dark-mode-2');
-        UI.elements.darkModeToggle.classList.remove('active', 'active-2');
-        
-        // Apply appropriate mode
-        switch(colorMode) {
-            case 1: // First dark mode (green)
-                document.body.classList.add('dark-mode');
-                UI.elements.darkModeToggle.classList.add('active');
-                log('Dark mode 1 enabled');
-                break;
-            case 2: // Second dark mode (blue)
-                document.body.classList.add('dark-mode-2');
-                UI.elements.darkModeToggle.classList.add('active-2');
-                log('Dark mode 2 enabled');
-                break;
-            default: // Light mode
-                log('Light mode enabled');
-                break;
-        }
-    });
+    // Modified dark mode toggle
+let colorMode = 0; // 0 = light, 1 = dark-mode-1, 2 = dark-mode-2, 3 = dark-mode-3
+UI.elements.darkModeToggle.addEventListener('click', () => {
+    colorMode = (colorMode + 1) % 4; // Cycle through 0, 1, 2, 3
+    
+    // Remove all mode classes first
+    document.body.classList.remove('dark-mode', 'dark-mode-2', 'dark-mode-3');
+    UI.elements.darkModeToggle.classList.remove('active', 'active-2', 'active-3');
+    
+    // Apply appropriate mode
+    switch(colorMode) {
+        case 1: // First dark mode (green)
+            document.body.classList.add('dark-mode');
+            UI.elements.darkModeToggle.classList.add('active');
+            log('Dark mode 1 enabled');
+            break;
+        case 2: // Second dark mode (blue)
+            document.body.classList.add('dark-mode-2');
+            UI.elements.darkModeToggle.classList.add('active-2');
+            log('Dark mode 2 enabled');
+            break;
+        case 3: // Third dark mode (earthy)
+            document.body.classList.add('dark-mode-3');
+            UI.elements.darkModeToggle.classList.add('active-3');
+            log('Dark mode 3 enabled');
+            break;
+        default: // Light mode
+            log('Light mode enabled');
+            break;
+    }
+});
 
     // Replace checkbox listener with button toggle
     const chordsButton = UI.elements.chordsEnabled;
