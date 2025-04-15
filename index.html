@@ -1106,9 +1106,12 @@ function isMinorKeyName(key) {
 
 function getChordFromFunction(chordFunction, key = 'C') {
     // Helper function to get note from scale degree
-    function getNoteFromScaleDegree(degree, key, scale = majorScale) {
-        const keyIndex = noteToMidiNumber(key) % 12;
-        return midiNumberToNote((keyIndex + scale[degree]) % 12);
+    function getNoteFromScaleDegree(degree, key, scale) {
+        const chromaticScale = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+        const keyIndex = chromaticScale.indexOf(standardizeNoteName(key));
+        if (keyIndex === -1) return null;
+        const noteIndex = (keyIndex + scale[degree]) % 12;
+        return chromaticScale[noteIndex];
     }
 
     // Initialize scales
@@ -1149,6 +1152,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
 
     // Get the root note
     const rootNote = getNoteFromScaleDegree(degree, actualKey, scale);
+    if (!rootNote) return null;
 
     // Determine chord quality
     let chordQuality = '';
@@ -1196,6 +1200,11 @@ function getChordFromFunction(chordFunction, key = 'C') {
         chordAlteration = alteration;
     }
 
+    // Special cases for secondary dominants
+    if (chordFunction.includes('7') && !isMinorKey && degree !== 4) {
+        chordQuality = '7'; // Make it dominant 7
+    }
+
     // Build the final chord symbol
     let chordSymbol = rootNote;
     if (chordQuality !== 'maj') {
@@ -1205,8 +1214,16 @@ function getChordFromFunction(chordFunction, key = 'C') {
         chordSymbol += chordAlteration;
     }
 
+    // Handle special cases for diminished and half-diminished
+    if (quality === '°') {
+        chordSymbol = rootNote + 'dim';
+    } else if (quality === 'ø') {
+        chordSymbol = rootNote + 'm7b5';
+    }
+
     return chordSymbol;
 }
+        
         function parseChord(chord) {
     if (!chord) return ['C', ''];
     // Updated regex to better handle 7th chords
@@ -1967,7 +1984,7 @@ function loadProgression(progressionName, overrideKey = null) {
     UI.elements.measures.innerHTML = '';
 
     progression.progression.forEach((chordFunction, index) => {
-        const chord = getChordFromFunction(selectedKey, chordFunction);
+        const chord = getChordFromFunction(chordFunction, selectedKey);
         const [root, quality] = parseChord(chord);
         
         // Get the proper quality value and suggested scale
