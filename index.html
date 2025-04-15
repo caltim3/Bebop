@@ -301,6 +301,102 @@
             color: #fefae0;
             border: 1px solid #dda15e;
         }
+
+.dark-mode-2 {
+    background-color: #0a1128;
+    color: #fefcfb;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-mode-2 .app-section {
+    background: linear-gradient(145deg, #001f54, #034078);
+    color: #fefcfb;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode-2 .fretboard-container {
+    background-color: #034078;
+    border: 1px solid #1282a2;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode-2 .fretboard {
+    background-color: #001f54;
+    border: 2px solid #1282a2;
+    border-radius: 5px;
+}
+
+.dark-mode-2 .note {
+    background-color: #1282a2;
+    color: #fefcfb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode-2 .scale-display {
+    color: #fefcfb;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode-2 button {
+    background-color: #1282a2;
+    color: #fefcfb;
+    border: 1px solid #034078;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode-2 select {
+    background-color: #034078;
+    color: #fefcfb;
+    border: 1px solid #1282a2;
+}
+
+.dark-mode-2 .measure {
+    background-color: #034078;
+    color: #fefcfb;
+    border: 1px solid #1282a2;
+}
+
+.dark-mode-2 .measure.active {
+    background-color: #1282a2;
+    border-color: #fefcfb;
+}
+
+.dark-mode-2 .beat {
+    background-color: #1282a2;
+    color: #fefcfb;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode-2 .beat.active {
+    background-color: #034078;
+    transform: translateY(-5px);
+}
+        .toggle-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.toggle-button.active {
+    background: #4CAF50;
+}
+
+.toggle-button:not(.active) {
+    background: #9E9E9E;
+}
+
+#dark-mode-toggle.active-2 {
+    background-color: #1282a2;
+    color: #fefcfb;
+    border: 1px solid #034078;
+}
+        
     </style>
 </head>
 <body>
@@ -406,8 +502,7 @@
         <button onclick="addMeasure()" aria-label="Add measure">Add Measure</button>
         <button onclick="removeMeasure()" aria-label="Remove measure">Remove Measure</button>
         <div class="checkbox-wrapper">
-            <input type="checkbox" id="chordsEnabled" checked aria-label="Enable chords">
-            <label for="chordsEnabled">Enable Chords</label>
+            <<button id="chordsEnabled" class="toggle-button active">Chords Enabled</button>
         </div>
         <div class="volume-control">
             <label for="chord-volume">Chord Volume:</label>
@@ -972,7 +1067,7 @@ async function playNote(stringId, fret, volume) {
 
 
 async function playChord(root, quality, startTime = AudioContextManager.context.currentTime, duration = 1, isPassingChord = false) {
-    if (!UI.elements.chordsEnabled.checked) return;
+    if (!document.getElementById('chordsEnabled').classList.contains('active')) return;
     await AudioContextManager.ensureAudioContext();
     const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
     if (chordVolume <= 0) return;
@@ -1646,6 +1741,42 @@ function setupEventListeners() {
         }
     });
 
+    // Modified dark mode toggle
+    let colorMode = 0; // 0 = light, 1 = dark-mode-1, 2 = dark-mode-2
+    UI.elements.darkModeToggle.addEventListener('click', () => {
+        colorMode = (colorMode + 1) % 3; // Cycle through 0, 1, 2
+        
+        // Remove all mode classes first
+        document.body.classList.remove('dark-mode', 'dark-mode-2');
+        UI.elements.darkModeToggle.classList.remove('active', 'active-2');
+        
+        // Apply appropriate mode
+        switch(colorMode) {
+            case 1: // First dark mode (green)
+                document.body.classList.add('dark-mode');
+                UI.elements.darkModeToggle.classList.add('active');
+                log('Dark mode 1 enabled');
+                break;
+            case 2: // Second dark mode (blue)
+                document.body.classList.add('dark-mode-2');
+                UI.elements.darkModeToggle.classList.add('active-2');
+                log('Dark mode 2 enabled');
+                break;
+            default: // Light mode
+                log('Light mode enabled');
+                break;
+        }
+    });
+
+    // Replace checkbox listener with button toggle
+    const chordsButton = UI.elements.chordsEnabled;
+    let chordsEnabled = true;
+    chordsButton.addEventListener('click', () => {
+        chordsEnabled = !chordsEnabled;
+        chordsButton.textContent = chordsEnabled ? 'Chords Enabled' : 'Chords Disabled';
+        chordsButton.classList.toggle('active', chordsEnabled);
+        log(`Chords ${chordsEnabled ? 'enabled' : 'disabled'}`);
+    });
     UI.elements.tempo.addEventListener('input', () => {
         AppState.tempo = parseInt(UI.elements.tempo.value);
         UI.elements.tempoDisplay.textContent = `${AppState.tempo} BPM`;
