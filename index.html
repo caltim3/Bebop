@@ -1109,68 +1109,85 @@ function getChordNotes(root, quality) {
 
 async function playMetronomeSound(volume) {
     if (!AudioContextManager.context || volume <= 0) return;
+    
     const soundType = UI.elements.soundType.value;
     const beatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
-    const drumSound = beatElement?.dataset.sound || 'default';
-    let soundKey = soundType;
-    if (soundType === 'drums' && drumSound !== 'default') {
-        soundKey = drumSound;
-    }
-    const buffer = AudioContextManager.soundBuffers[soundKey] || AudioContextManager.soundBuffers['click'];
-    if (!buffer) return;
-    const source = AudioContextManager.context.createBufferSource();
-    source.buffer = buffer;
-    const gainNode = AudioContextManager.context.createGain();
-    gainNode.gain.value = volume;
-    source.connect(gainNode);
-    gainNode.connect(AudioContextManager.context.destination);
-    source.start();
-}
+    
+    if (!beatElement) return;
 
-// Fretboard Management
-function createFretboard(container, tuning) {
-    if (!(container instanceof HTMLElement)) return;
-    container.innerHTML = '';
-    const markersContainer = document.createElement('div');
-    markersContainer.style.position = 'absolute';
-    markersContainer.style.width = '100%';
-    markersContainer.style.height = '100%';
-    markersContainer.style.pointerEvents = 'none';
-    container.appendChild(markersContainer);
-    [3, 5, 7, 9, 12].forEach(fret => {
-        const marker = document.createElement('div');
-        marker.className = 'fret-marker';
-        marker.style.left = `${((fret - 0.5) / 12) * 100}%`;
-        if (fret === 12) {
-            const marker1 = marker.cloneNode();
-            marker1.style.top = '40%';
-            markersContainer.appendChild(marker1);
-            const marker2 = marker.cloneNode();
-            marker2.style.top = '60%';
-            markersContainer.appendChild(marker2);
-        } else {
-            marker.style.top = '50%';
-            markersContainer.appendChild(marker);
-        }
-    });
-    for (let i = 0; i <= 12; i++) {
-        const fretLine = document.createElement('div');
-        fretLine.className = 'fret-line';
-        fretLine.style.left = `${(i / 12) * 100}%`;
-        container.appendChild(fretLine);
-        if ([3, 5, 7, 9, 12].includes(i)) {
-            const fretNumber = document.createElement('div');
-            fretNumber.className = 'fret-number';
-            fretNumber.textContent = i;
-            fretNumber.style.left = `${(i / 12) * 100}%`;
-            container.appendChild(fretNumber);
-        }
+    const drumSounds = beatElement.dataset.sound.split(',');
+    const baseVolume = parseFloat(beatElement.dataset.baseVolume) || 0;
+    const isAccent = baseVolume >= 1 && ['kick', 'snare'].includes(drumSounds[0]);
+    const accentBoost = parseFloat(UI.elements.accentIntensity?.value || 1);
+    
+    // Apply accent boost if applicable
+    let adjustedVolume = volume;
+    if (isAccent) {
+        adjustedVolume = Math.min(volume * accentBoost, 1); // cap at 1.0
     }
-    for (let i = 0; i < 6; i++) {
-        const stringLine = document.createElement('div');
-        stringLine.className = 'string-line';
-        stringLine.style.top = `${(i / 5) * 100}%`;
-        container.appendChild(stringLine);
+
+    // Process each sound in the drum pattern
+    for (let soundKey of drumSounds) {
+        soundKey = soundKey.trim();
+        
+        // Skip if it's a silent beat
+        if (soundKey === 'silent') continue;
+
+        // Determine which sound buffer to use
+        let buffer;
+        if (soundType === 'drums' && soundKey !== 'default') {
+            buffer = AudioContextManager.soundBuffers[soundKey];
+        } else {
+            buffer = AudioContextManager.soundBuffers[soundType] || AudioContextManager.soundBuffers['click'];
+        }
+
+        if (!buffer) continue;
+
+        // Create and configure audio nodes
+        const source = AudioContextManager.context.createBufferSource();
+        source.buffer = buffer;
+        
+        const gainNode = AudioContextManager.context.createGain();
+        
+        // Adjust volume based on sound type and context
+        let finalVolume = adjustedVolume;
+        if (soundType === 'drums') {
+            // Reduce hi-hat volume when playing with other sounds
+            if (soundKey === 'hihat' && drumSounds.length > 1) {
+                finalVolume *= 0.5;
+            }
+            // Adjust kick and snare volumes
+            else if (soundKey === 'kick') {
+                finalVolume *= 1.2; // Slightly boost kick
+            }
+            else if (soundKey === 'snare') {
+                finalVolume *= 1.1; // Slightly boost snare
+            }
+        }
+        
+        // Ensure volume doesn't exceed 1.0
+        finalVolume = Math.min(finalVolume, 1.0);
+        
+        gainNode.gain.value = finalVolume;
+
+        // Connect the audio nodes
+        source.connect(gainNode);
+        gainNode.connect(AudioContextManager.context.destination);
+
+        // Add slight reverb for drums
+        if (soundType === 'drums' && AudioContextManager.reverbNode) {
+            const reverbGain = AudioContextManager.context.createGain();
+            reverbGain.gain.value = 0.1; // Subtle reverb
+            source.connect(reverbGain);
+            reverbGain.connect(AudioContextManager.reverbNode);
+        }
+
+        // Start the sound
+        try {
+            source.start(0);
+        } catch (error) {
+            console.error('Error playing metronome sound:', error);
+        }
     }
 }
 
@@ -1281,18 +1298,16 @@ function createBeats() {
     const timeSignature = parseInt(UI.elements.timeSignature.value);
     const soundType = UI.elements.soundType.value;
 
-    // Determine the total number of beats
     let totalBeats = timeSignature === 4 ? 8 : timeSignature; // 8 beats for 4/4 time (eighth notes)
 
-    // Define drum patterns and configurations for different time signatures
     const beatConfigs = {
         4: { 
             strongBeats: [0, 4], 
             drumSounds: { 
-                0: { sound: 'kick', volume: '1', color: '#1F618D' },
-                2: { sound: 'snare', volume: '1', color: '#4CAF50' },
-                4: { sound: 'kick', volume: '1', color: '#1F618D' },
-                6: { sound: 'snare', volume: '1', color: '#4CAF50' }
+                0: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },
+                2: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' },
+                4: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },
+                6: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' }
             }
         },
         3: { strongBeats: [0, 3, 6] },
@@ -1307,7 +1322,6 @@ function createBeats() {
 
     const config = beatConfigs[timeSignature] || { strongBeats: [0] };
 
-    // Create beats for the selected time signature
     for (let i = 0; i < totalBeats; i++) {
         const beat = document.createElement('div');
         beat.className = 'beat';
@@ -1318,29 +1332,29 @@ function createBeats() {
             beat.textContent = `${Math.floor(i / 2 + 1)}${isQuarterNote ? '' : '&'}`;
 
             if (soundType === 'drums') {
-                // Default hi-hat on all eighth notes
-                let volume = '0.7';  // Slightly lower volume for hi-hats
+                // Set default hi-hat for all beats
+                let volume = '0.7';
                 let sound = 'hihat';
                 let color = '#9E9E9E';
 
-                // Override with kick or snare if it's a main beat
+                // Check if this beat should also have kick or snare
                 const drumConfig = config.drumSounds[i];
                 if (drumConfig) {
-                    sound = drumConfig.sound;
+                    sound = drumConfig.sound;  // This will be an array ['kick', 'hihat'] or ['snare', 'hihat']
                     volume = drumConfig.volume;
                     color = drumConfig.color;
                 }
 
                 beat.dataset.baseVolume = volume;
                 beat.dataset.volume = volume;
-                beat.dataset.sound = sound;
+                beat.dataset.sound = Array.isArray(sound) ? sound.join(',') : sound;
                 beat.style.backgroundColor = color;
             } else {
                 // For click and woodblock, only play on quarter notes
                 if (isQuarterNote) {
                     beat.dataset.sound = soundType;
-                    beat.dataset.baseVolume = i === 0 ? '1' : '0.5';
-                    beat.dataset.volume = i === 0 ? '1' : '0.5';
+                    beat.dataset.baseVolume = i === 0 ? '1' : '0.3';
+                    beat.dataset.volume = i === 0 ? '1' : '0.3';
                     beat.style.backgroundColor = i === 0 ? '#1F618D' : '#4CAF50';
                 } else {
                     beat.dataset.sound = 'silent';
@@ -1350,7 +1364,7 @@ function createBeats() {
                 }
             }
         } else {
-            // Handle other time signatures
+            // Handle other time signatures...
             beat.textContent = i + 1;
             const isStrong = config.strongBeats.includes(i);
 
@@ -1367,12 +1381,11 @@ function createBeats() {
             }
         }
 
-        // Add click event to toggle beat state
         beat.addEventListener('click', () => toggleBeatState(beat, timeSignature, soundType));
         container.appendChild(beat);
     }
 }
-
+        
 function toggleBeatState(beat, timeSignature, soundType) {
     const isEighth = timeSignature === 4 && parseInt(beat.dataset.beat) % 2 === 1;
     const states = soundType === 'drums' && timeSignature === 4 ? (
