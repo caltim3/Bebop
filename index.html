@@ -1114,6 +1114,18 @@ function getChordFromFunction(chordFunction, key = 'C') {
         return chromaticScale[noteIndex];
     }
 
+    function standardizeNoteName(note) {
+        // Convert sharps to flats for consistency
+        const sharpToFlat = {
+            'C#': 'Db',
+            'D#': 'Eb',
+            'F#': 'Gb',
+            'G#': 'Ab',
+            'A#': 'Bb'
+        };
+        return sharpToFlat[note] || note;
+    }
+
     // Initialize scales
     const majorScale = [0, 2, 4, 5, 7, 9, 11];
     const minorScale = [0, 2, 3, 5, 7, 8, 10];
@@ -1127,10 +1139,11 @@ function getChordFromFunction(chordFunction, key = 'C') {
     if (!chordFunction) return null;
 
     // Parse the chord function
-    let match = chordFunction.match(/^(b?[ivIV]+)([°ø]|maj|m|M)?([679]|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?$/);
+    // Updated regex to handle more chord variations
+    let match = chordFunction.match(/^(b?[ivIV]+)([°ø]|maj|m|M)?([679]|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?(\([b#]5\)|\([b#]9\)|\([b#]11\)|\([b#]13\))?$/);
     if (!match) return null;
 
-    let [_, roman, quality, extension, alteration] = match;
+    let [_, roman, quality, extension, alteration, parenthesizedAlteration] = match;
     
     // Handle flattened degrees
     const isFlat = roman.startsWith('b');
@@ -1144,6 +1157,9 @@ function getChordFromFunction(chordFunction, key = 'C') {
 
     let degree = romanToNumber[roman];
     if (degree === undefined) return null;
+
+    // Store whether the original numeral was lowercase
+    const isLowerCase = /^[b]?[iv]+$/.test(roman);
 
     // Apply flat modification if present
     if (isFlat) {
@@ -1159,7 +1175,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
     let chordExtension = '';
     let chordAlteration = '';
 
-    // Handle chord qualities
+    // First check if there's an explicit quality specified
     if (quality === '°') {
         chordQuality = 'dim';
     } else if (quality === 'ø') {
@@ -1169,15 +1185,18 @@ function getChordFromFunction(chordFunction, key = 'C') {
     } else if (quality === 'm') {
         chordQuality = 'm';
     } else {
-        // Default qualities based on scale degree and mode
-        if (isMinorKey) {
-            // Natural minor (Aeolian) default qualities
-            const minorDefaultQualities = ['m', 'dim', 'maj', 'm', 'm', 'maj', 'maj'];
-            chordQuality = minorDefaultQualities[degree];
+        // If no explicit quality, check if it's lowercase (should be minor in major key)
+        if (!isMinorKey && isLowerCase) {
+            chordQuality = 'm';
         } else {
-            // Major scale default qualities
-            const majorDefaultQualities = ['maj', 'm', 'm', 'maj', 'maj', 'm', 'dim'];
-            chordQuality = majorDefaultQualities[degree];
+            // Use default qualities based on scale degree and mode
+            if (isMinorKey) {
+                const minorDefaultQualities = ['m', 'dim', 'maj', 'm', 'm', 'maj', 'maj'];
+                chordQuality = minorDefaultQualities[degree];
+            } else {
+                const majorDefaultQualities = ['maj', 'm', 'm', 'maj', 'maj', 'm', 'dim'];
+                chordQuality = majorDefaultQualities[degree];
+            }
         }
     }
 
@@ -1185,13 +1204,22 @@ function getChordFromFunction(chordFunction, key = 'C') {
     if (extension) {
         if (extension === '7') {
             // Special handling for dominant 7th
-            if (chordQuality === 'maj' && degree === 4) { // V7 chord
+            if (chordQuality === 'maj' && (degree === 4 || chordFunction.toUpperCase().includes('V7'))) {
                 chordQuality = '7';
+            } else if (chordQuality === 'm') {
+                chordQuality = 'm7';
             } else {
                 chordQuality += '7';
             }
         } else {
-            chordQuality += extension;
+            // Handle 9, 11, 13 extensions
+            if (chordQuality === 'maj') {
+                chordQuality = 'maj' + extension;
+            } else if (chordQuality === 'm') {
+                chordQuality = 'm' + extension;
+            } else {
+                chordQuality += extension;
+            }
         }
     }
 
@@ -1200,25 +1228,32 @@ function getChordFromFunction(chordFunction, key = 'C') {
         chordAlteration = alteration;
     }
 
+    // Handle parenthesized alterations
+    if (parenthesizedAlteration) {
+        chordAlteration += parenthesizedAlteration.replace(/[()]/g, '');
+    }
+
     // Special cases for secondary dominants
-    if (chordFunction.includes('7') && !isMinorKey && degree !== 4) {
+    if (chordFunction.includes('7') && !isMinorKey && degree !== 4 && !isLowerCase) {
         chordQuality = '7'; // Make it dominant 7
+    }
+
+    // Special handling for diminished sevenths
+    if (chordQuality === 'dim' && extension === '7') {
+        chordQuality = 'dim7';
     }
 
     // Build the final chord symbol
     let chordSymbol = rootNote;
-    if (chordQuality !== 'maj') {
+    
+    // Add the chord quality
+    if (chordQuality !== 'maj' || extension) {
         chordSymbol += chordQuality;
     }
+
+    // Add any alterations
     if (chordAlteration) {
         chordSymbol += chordAlteration;
-    }
-
-    // Handle special cases for diminished and half-diminished
-    if (quality === '°') {
-        chordSymbol = rootNote + 'dim';
-    } else if (quality === 'ø') {
-        chordSymbol = rootNote + 'm7b5';
     }
 
     return chordSymbol;
