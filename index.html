@@ -644,13 +644,17 @@ function debounce(func, wait) {
 const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 const ENHARMONIC_MAP = {
-    'C#': 'Db', 'Db': 'Db',
-    'D#': 'Eb', 'Eb': 'Eb',
-    'F#': 'Gb', 'Gb': 'Gb',
-    'G#': 'Ab', 'Ab': 'Ab',
-    'A#': 'Bb', 'Bb': 'Bb'
+    'Db': 'C#',
+    'Eb': 'D#',
+    'Gb': 'F#',
+    'Ab': 'G#',
+    'Bb': 'A#',
+    'Cb': 'B',
+    'Fb': 'E',
+    'E#': 'F',
+    'B#': 'C'
 };
-
+        
 const SAMPLE_NOTE_MAP = {
     'Gb': 'Fs', 'Eb': 'Ds', 'F#': 'Fs', 'D#': 'Ds'
 };
@@ -982,12 +986,21 @@ async function ensureAudioInitialized() {
 // Music Theory Utilities
 function standardizeNoteName(note) {
     if (!note) return 'C';
+    
+    // Handle minor chord notation
     const isMinor = note.trim().endsWith('m') || note.trim().endsWith('min');
+    
+    // Remove minor indicator and trim
     const baseNote = note.trim().replace(/m$|min$/, '');
+    
+    // Use enharmonic mapping for consistent note naming
     const standardized = ENHARMONIC_MAP[baseNote] || baseNote;
+    
+    // Reapply minor indicator if it was present
     return isMinor ? standardized + 'm' : standardized;
 }
 
+       
 function getNoteIndex(note) {
     const standardizedNote = standardizeNoteName(note);
     return NOTES.indexOf(standardizedNote);
@@ -1035,72 +1048,98 @@ function isMinorKeyName(key) {
     return key && (key.endsWith('m') || key.endsWith('min'));
 }
 
-function getChordFromFunction(key, func) {
-    if (!key || !func) return null;
+function getChordFromFunction(key, chordFunction) {
+    if (!chordFunction) return '';
 
-    const isMinorKey = isMinorKeyName(key);
-    const rootKey = key.replace(/m$|min$/, '');
-    const standardizedKey = standardizeNoteName(rootKey);
-    const keyIndex = NOTES.indexOf(standardizedKey);
-
-    if (keyIndex === -1) {
-        console.error(`Invalid key: ${key}`);
-        return null;
+    // Handle direct chord names (non-Roman numerals)
+    if (/^[A-G]/.test(chordFunction)) {
+        return chordFunction;
     }
 
-    const degrees = isMinorKey ? scaleDegrees.minor : scaleDegrees.major;
-    let degree = degrees[func];
+    // Parse the Roman numeral and quality
+    const regex = /^(b?[ivIV]+)(maj7|maj9|maj13|maj7#11|m7b5|m7|m9|m11|m13|7b9|7#9|7#11|7b13|7#5|7b5|dim7|aug7|7|6|m6|sus4|sus2|add9|dim|aug)?$/;
+    const match = chordFunction.match(regex);
+    if (!match) return '';
 
-    if (degree === undefined) {
-        // Handle secondary dominants like V7/iv
-        if (func.includes('/')) {
-            const [secondary, target] = func.split('/');
-            const targetDegree = degrees[target] ?? degrees[target.toLowerCase()];
-            if (targetDegree !== undefined && secondary.startsWith('V7')) {
-                degree = (targetDegree + 7) % 12;
-            } else {
-                console.error(`Invalid secondary function: ${func}`);
-                return null;
-            }
-        } else {
-            console.error(`Unrecognized chord function: ${func}`);
-            return null;
-        }
+    let [_, roman, quality] = match;
+    const isMinor = roman === roman.toLowerCase();
+    
+    // Convert Roman numeral to scale degree (1-based)
+    const romanToNumber = {
+        'i': 1, 'ii': 2, 'iii': 3, 'iv': 4, 'v': 5, 'vi': 6, 'vii': 7,
+        'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7,
+        'bii': 2, 'biii': 3, 'biv': 4, 'bv': 5, 'bvi': 6, 'bvii': 7,
+        'bII': 2, 'bIII': 3, 'bIV': 4, 'bV': 5, 'bVI': 6, 'bVII': 7
+    };
+
+    const degree = romanToNumber[roman.toLowerCase()];
+    if (!degree) return '';
+
+    // Handle flat chords
+    const isFlat = roman.startsWith('b');
+    
+    // Get the root note based on the key and scale degree
+    const scale = getScaleNotes(key, 'major');
+    let root = scale[degree - 1];
+    
+    // Adjust for flat chords
+    if (isFlat) {
+        root = flattenNote(root);
     }
 
-    const noteIndex = (keyIndex + degree) % 12;
-    const note = NOTES[noteIndex];
+    // Determine the chord quality
+    let chordQuality = '';
+    if (quality) {
+        chordQuality = quality;
+    } else {
+        // Default qualities based on scale degree and case
+        const defaultQualities = {
+            'i': 'm7', 'ii': 'm7', 'iii': 'm7', 'iv': 'm7', 'v': '7', 'vi': 'm7', 'vii': 'm7b5',
+            'I': 'maj7', 'II': 'm7', 'III': 'm7', 'IV': 'maj7', 'V': '7', 'VI': 'm7', 'VII': '7'
+        };
+        chordQuality = defaultQualities[roman.toLowerCase()] || (isMinor ? 'm7' : 'maj7');
+    }
 
-    let quality = '';
-    if (/m7b5/i.test(func)) quality = 'min7b5';
-    else if (/7b9/i.test(func)) quality = '7b9';
-    else if (/maj7/i.test(func)) quality = 'maj7';
-    else if (/min7/i.test(func)) quality = 'min7';
-    else if (/m7/i.test(func)) quality = 'min7';
-    else if (/m$/.test(func) || /^i{1,3}$/.test(func)) quality = 'minor';
-    else if (/7/.test(func)) quality = '7';
-
-    return note + (quality === 'minor' ? 'm' : quality);
+    return root + chordQuality;
 }
 
 
 function parseChord(chord) {
     if (!chord) return ['C', ''];
-    // Updated regex to better handle 7th chords
-    const regex = /^([A-G][b#]?)(m7b5|7b9|maj7|min7|m7|7|m|dim|aug|sus2|sus4|add9|6|9|11|13|°)?$/;
+    
+    // First check if it's a Roman numeral function
+    const functionRegex = /^(b?[ivIV]+)(maj7|maj9|maj13|maj7#11|m7b5|m7|m9|m11|m13|7b9|7#9|7#11|7b13|7#5|7b5|dim7|aug7|7|6|m6|sus4|sus2|add9|dim|aug)?$/;
+    const functionMatch = chord.match(functionRegex);
+    
+    if (functionMatch) {
+        // Convert the function to an actual chord
+        const actualChord = getChordFromFunction(UI.elements.keySelect.value, chord);
+        return parseChord(actualChord); // Recursively parse the actual chord
+    }
+
+    // Regular chord parsing
+    const regex = /^([A-G][b#]?)(maj7|maj9|maj13|maj7#11|m7b5|m7|m9|m11|m13|7b9|7#9|7#11|7b13|7#5|7b5|dim7|aug7|7|6|m6|sus4|sus2|add9|9|11|13|m|dim|aug)?$/;
     const match = chord.match(regex);
+    
     if (!match) {
         console.warn(`Unable to parse chord: ${chord}`);
         return [standardizeNoteName(chord), ''];
     }
+    
     const [_, root, quality] = match;
-    let standardQuality = quality || '';
-    
-    // Explicitly handle dominant 7
-    if (quality === '7') standardQuality = 'dom7';
-    else if (quality === 'min7' || quality === 'm7') standardQuality = 'min7';
-    
-    return [standardizeNoteName(root), standardQuality];
+    return [standardizeNoteName(root), quality || ''];
+}
+
+// Helper function for flat notes
+function flattenNote(note) {
+    const sharpToFlat = {
+        'C#': 'Db',
+        'D#': 'Eb',
+        'F#': 'Gb',
+        'G#': 'Ab',
+        'A#': 'Bb'
+    };
+    return sharpToFlat[note] || note;
 }
 
 function getQualityValue(quality) {
@@ -1119,30 +1158,41 @@ function getQualityValue(quality) {
 }
 function suggestScaleForQuality(quality) {
     const scaleMap = {
-        'major': 'major',          // Basic major chord
-        'minor': 'minor',          // Basic minor chord
-        'dom7': 'mixolydian',      // Dominant 7th chord
+        '': 'major',
+        'maj7': 'major',
+        'maj9': 'major',
+        'maj13': 'major',
+        'maj7#11': 'lydian',
+        'm': 'dorian',
+        'm7': 'dorian',
+        'm9': 'dorian',
+        'm11': 'dorian',
+        'm13': 'dorian',
         '7': 'mixolydian',
-        'maj7': 'major',           // Major 7th chord
-        'min7': 'dorian',          // Minor 7th chord
-        'dim': 'diminishedWH',     // Diminished chord
-        'min7b5': 'locrian',       // Half-diminished chord
-        'aug': 'wholeHalf',        // Augmented chord
+        '9': 'mixolydian',
+        '13': 'mixolydian',
         '7b9': 'bebopPhrygian',
-        '7#11': 'lydian',          // Dominant 7#11 chord
-        '7alt': 'altered',         // Altered dominant chord
-        'maj7#11': 'lydian',       // Major 7#11 chord
-        'min9': 'dorian',          // Minor 9th chord
-        'min11': 'dorian',         // Minor 11th chord
-        'minMaj7': 'melodicMinor', // Minor/Major 7th chord
-        '13': 'mixolydian',        // Dominant 13th chord
-        '7sus4': 'mixolydian',     // Suspended 4th dominant
-        'maj9': 'major',           // Major 9th chord
-        'maj13': 'major',          // Major 13th chord
+        '7#9': 'mixolydian',
+        '7#11': 'lydian',
+        '7b13': 'mixolydian',
+        '7#5': 'wholeHalf',
+        '7b5': 'mixolydian',
+        'dim7': 'diminished',
+        'dim': 'diminished',
+        'm7b5': 'locrian',
+        'aug7': 'wholeHalf',
+        'aug': 'wholeHalf',
+        '6': 'major',
+        'm6': 'melodicMinor',
+        'sus4': 'mixolydian',
+        'sus2': 'mixolydian',
+        'add9': 'major',
+        '7sus4': 'mixolydian',
+        'minMaj7': 'melodicMinor',
+        '7alt': 'altered'
     };
     return scaleMap[quality] || 'major';
 }
-
 // DOM Utilities
 function createKeyOptions(selected = 'C') {
     return NOTES.map(note =>
