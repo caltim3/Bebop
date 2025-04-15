@@ -1172,7 +1172,8 @@ function suggestScaleForQuality(quality) {
         'm9': 'dorian',
         'm11': 'dorian',
         'm13': 'dorian',
-        '7': 'mixolydian',
+        'dom7': 'mixolydian',    // Ensure this mapping exists
+        '7': 'mixolydian',       // Add this explicit mapping
         '9': 'mixolydian',
         '13': 'mixolydian',
         '7b9': 'bebopPhrygian',
@@ -1898,6 +1899,20 @@ function loadProgression(progressionName, overrideKey = null) {
 
         UI.elements.measures.appendChild(measure);
         
+        // Explicitly set the correct scale based on chord quality
+        const scaleSelect = measure.querySelector('.scale-select');
+        if (quality === '7' || quality === 'dom7') {
+            scaleSelect.value = 'mixolydian';
+        } else if (quality === 'min7' || quality === 'm7') {
+            scaleSelect.value = 'dorian';
+        } else if (quality === 'maj7') {
+            scaleSelect.value = 'major';
+        } else if (quality === 'min7b5') {
+            scaleSelect.value = 'locrian';
+        } else if (quality === 'm' || quality === 'minor') {
+            scaleSelect.value = 'minor';
+        }
+        
         // Add drag events
         measure.addEventListener('dragstart', dragStart);
         measure.addEventListener('dragover', dragOver);
@@ -1919,7 +1934,6 @@ function loadProgression(progressionName, overrideKey = null) {
 
     log(`Loaded progression "${progressionName}" in key: ${selectedKey}`);
 }
-
 
 function updateProgressionKey(newKey) {
     const selectedProgression = UI.elements.progressionSelect.value;
