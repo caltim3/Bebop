@@ -216,6 +216,13 @@
             z-index: 1000;
         }
 
+        .fretboards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
         .checkbox-wrapper {
             margin-top: 20px;  /* Add space above the button */
             margin-left: 20px; /* Move button to the left */
@@ -617,6 +624,8 @@
     <div class="app-section" id="fretflow-section">
         <h2>FretFlow</h2>
         <h3>Multiple scale workout</h3>
+        <div class="fretboards-grid">
+            </div>
         <div class="volume-control">
             <span>Fretboard Volume:</span>
             <input type="range" id="fretboard-volume" min="0" max="1" step="0.1" value="0.3" aria-label="Fretboard volume">
@@ -2452,11 +2461,134 @@ async function initializeApp() {
 }
 
 // Start the app
-document.addEventListener('DOMContentLoaded', () => {
-    initializeApp().catch(error => {
-        console.error("Initialization failed:", error);
-        updateLoadingStatus("Initialization failed");
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Chord Progression Section (draggable measures) ---
+    const measures = document.querySelectorAll('#measures .measure');
+    measures.forEach(measure => {
+        measure.draggable = true;
+        measure.addEventListener('dragstart', dragStart);
+        measure.addEventListener('dragover', dragOver);
+        measure.addEventListener('drop', drop);
+        measure.addEventListener('dragend', dragEnd);
     });
+    updateMeasureNumbers();
+
+    // --- FretFlow Section: Four Independent Static Fretboards ---
+    const fretboardsGrid = document.querySelector('.fretboards-grid');
+    for (let i = 1; i <= 4; i++) {
+        const container = createFretboardContainer(i);
+        fretboardsGrid.appendChild(container);
+        const fretboard = container.querySelector('.fretboard');
+        createFretboard(fretboard, TUNINGS.standard);
+        updateFretboardNotes(fretboard, 'C', 'major', TUNINGS.standard);
+
+        // Tuning dropdown
+        container.querySelector('.tuning-select').addEventListener('change', function() {
+            const tuning = TUNINGS[this.value];
+            const key = container.querySelector(`#key-${i}`).value;
+            const scale = container.querySelector(`#scale-${i}`).value;
+            updateFretboardNotes(fretboard, key, scale, tuning);
+        });
+
+        // Key dropdown
+        container.querySelector(`#key-${i}`).addEventListener('change', function() {
+            const tuning = TUNINGS[container.querySelector('.tuning-select').value];
+            const scale = container.querySelector(`#scale-${i}`).value;
+            updateFretboardNotes(fretboard, this.value, scale, tuning);
+        });
+
+        // Scale dropdown
+        container.querySelector(`#scale-${i}`).addEventListener('change', function() {
+            const tuning = TUNINGS[container.querySelector('.tuning-select').value];
+            const key = container.querySelector(`#key-${i}`).value;
+            updateFretboardNotes(fretboard, key, this.value, tuning);
+        });
+    }
+
+    // --- Main Progression Fretboard ---
+    const chordFretboard = document.getElementById('chord-fretboard');
+    createFretboard(chordFretboard, TUNINGS.standard);
+    updateFretboardNotes(chordFretboard, 'C', 'major', TUNINGS.standard);
+
+    // Main progression fretboard tuning dropdown
+    document.getElementById('chord-tuning').addEventListener('change', function() {
+        const measures = document.getElementsByClassName('measure');
+        if (measures.length > 0 && currentMeasure < measures.length) {
+            const currentMeasureElement = measures[currentMeasure];
+            const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+            const scale = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+            if (root && scale) {
+                updateFretboardNotes(chordFretboard, root, scale, TUNINGS[this.value]);
+            }
+        }
+    });
+
+    // --- Metronome Section ---
+    createBeats();
+
+    document.getElementById('start-stop').addEventListener('click', function() {
+        if (!audioContext) initAudioContext();
+        if (isPlaying) {
+            isPlaying = false;
+            this.textContent = 'Start';
+            stopPlayback();
+        } else {
+            isPlaying = true;
+            this.textContent = 'Stop';
+            startPlayback();
+        }
+    });
+
+    document.getElementById('tempo').addEventListener('input', function() {
+        tempo = parseInt(this.value);
+        document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+        if (isPlaying) {
+            stopPlayback();
+            startPlayback();
+        }
+    });
+
+    document.getElementById('time-signature').addEventListener('change', function() {
+        createBeats();
+        if (isPlaying) {
+            stopPlayback();
+            startPlayback();
+        }
+    });
+
+    document.getElementById('tap-tempo').addEventListener('click', function() {
+        const now = Date.now();
+        if (now - lastTapTime > 2000) {
+            tapTimes = [];
+        }
+        tapTimes.push(now);
+        lastTapTime = now;
+
+        if (tapTimes.length > 4) {
+            tapTimes.shift();
+        }
+
+        if (tapTimes.length > 1) {
+            const intervals = [];
+            for (let i = 1; i < tapTimes.length; i++) {
+                intervals.push(tapTimes[i] - tapTimes[i-1]);
+            }
+            const averageInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+            tempo = Math.round(60000 / averageInterval);
+            tempo = Math.min(Math.max(tempo, 40), 220);
+
+            document.getElementById('tempo').value = tempo;
+            document.getElementById('tempo-display').textContent = `${tempo} BPM`;
+
+            if (isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        }
+    });
+
+    // --- Audio Context Initialization on First Click ---
+    document.addEventListener('click', initAudioContext, { once: true });
 });
             </script>
         </body>
