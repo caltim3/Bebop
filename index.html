@@ -2031,13 +2031,6 @@ function initializeFretFlow() {
     log("FretFlow initialized");
 }
 
-        // Add tuning change handler
-        const tuningSelect = container.querySelector(`#fretflow-tuning-${index}`);
-        tuningSelect.addEventListener('change', () => {
-            const newTuning = TUNINGS[tuningSelect.value];
-            createFretboard(fretboard, newTuning);
-            updateFretboardNotes(fretboard, root, suggestedScale, newTuning);
-
             // Reattach note click handlers after updating fretboard
             const updatedNotes = fretboard.getElementsByClassName('note');
             Array.from(updatedNotes).forEach(note => {
@@ -2052,10 +2045,6 @@ function initializeFretFlow() {
                 });
             });
         });
-    });
-
-    log("FretFlow initialized with scales tied to the chord progression");
-}
 
 // Event Listeners
 function addFirstChordListener() {
