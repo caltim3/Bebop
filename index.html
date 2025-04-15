@@ -991,8 +991,8 @@ function getChordFromFunction(key, func) {
 
 function parseChord(chord) {
     if (!chord) return ['C', ''];
-    // Updated regex to handle flats/sharps and more chord types
-    const regex = /^([A-G][b#]?)(m7b5|7b9|maj7|m7|7|m|dim|aug|sus2|sus4|add9|6|9|11|13|°)?$/;
+    // Updated regex to better handle 7th chords
+    const regex = /^([A-G][b#]?)(m7b5|7b9|maj7|min7|m7|7|m|dim|aug|sus2|sus4|add9|6|9|11|13|°)?$/;
     const match = chord.match(regex);
     if (!match) {
         console.warn(`Unable to parse chord: ${chord}`);
@@ -1000,7 +1000,11 @@ function parseChord(chord) {
     }
     const [_, root, quality] = match;
     let standardQuality = quality || '';
-    if (quality === 'min7') standardQuality = 'm7';
+    
+    // Explicitly handle dominant 7
+    if (quality === '7') standardQuality = 'dom7';
+    else if (quality === 'min7' || quality === 'm7') standardQuality = 'min7';
+    
     return [standardizeNoteName(root), standardQuality];
 }
 
@@ -1009,19 +1013,21 @@ function getQualityValue(quality) {
         '': 'major',
         'm': 'minor',
         '7': 'dom7',
+        'dom7': 'dom7',  // Add explicit mapping
         'maj7': 'maj7',
         'm7': 'min7',
+        'min7': 'min7',
         'dim': 'dim',
         'min7b5': 'min7b5'
     };
     return qualityMap[quality] || 'major';
 }
-
 function suggestScaleForQuality(quality) {
     const scaleMap = {
         'major': 'major',          // Basic major chord
         'minor': 'minor',          // Basic minor chord
         'dom7': 'mixolydian',      // Dominant 7th chord
+        '7': 'mixolydian',
         'maj7': 'major',           // Major 7th chord
         'min7': 'dorian',          // Minor 7th chord
         'dim': 'diminishedWH',     // Diminished chord
@@ -1626,16 +1632,18 @@ function loadProgression(progressionName, overrideKey = null) {
     }
 
     const progression = progressions[progressionName];
-
-    // Use passed key, fallback to default
     const selectedKey = overrideKey || progression.defaultKey || "C";
     UI.elements.keySelect.value = selectedKey;
 
-    UI.elements.measures.innerHTML = ''; // clear old measures
+    UI.elements.measures.innerHTML = '';
 
     progression.progression.forEach((chordFunction, index) => {
         const chord = getChordFromFunction(selectedKey, chordFunction);
         const [root, quality] = parseChord(chord);
+        
+        // Get the proper quality value and suggested scale
+        const qualityValue = getQualityValue(quality);
+        const suggestedScale = suggestScaleForQuality(qualityValue);
 
         const measure = document.createElement('div');
         measure.className = 'measure';
@@ -1644,16 +1652,16 @@ function loadProgression(progressionName, overrideKey = null) {
             <span class="measure-number">${index + 1}</span>
             <div class="chord-controls">
                 <select class="root-note">${createKeyOptions(root)}</select>
-                <select class="chord-quality">${createQualityOptions(getQualityValue(quality))}</select>
+                <select class="chord-quality">${createQualityOptions(qualityValue)}</select>
             </div>
             <div class="scale-controls">
                 <select class="second-key">${createKeyOptions(root)}</select>
-                <select class="scale-select">${createScaleOptions(suggestScaleForQuality(quality))}</select>
+                <select class="scale-select">${createScaleOptions(suggestedScale)}</select>
             </div>
         `;
 
         UI.elements.measures.appendChild(measure);
-
+        
         // Add drag events
         measure.addEventListener('dragstart', dragStart);
         measure.addEventListener('dragover', dragOver);
@@ -1664,6 +1672,7 @@ function loadProgression(progressionName, overrideKey = null) {
     updateMeasureNumbers();
     addFirstChordListener();
 
+    // Update the fretboard with the first measure's scale
     const firstMeasure = UI.elements.measures.firstElementChild;
     if (firstMeasure) {
         const scaleRoot = firstMeasure.querySelector('.second-key').value;
