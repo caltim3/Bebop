@@ -1306,43 +1306,60 @@ function getQualityValue(quality) {
 }
 function suggestScaleForQuality(quality) {
     const scaleMap = {
-        '': 'major',
-        'maj7': 'major',
-        'maj9': 'major',
-        'maj13': 'major',
-        'maj7#11': 'lydian',
-        'm': 'dorian',
-        'm7': 'dorian',
-        'm9': 'dorian',
-        'm11': 'dorian',
-        'm13': 'dorian',
-        'dom7': 'mixolydian',    // Ensure this mapping exists
-        '7': 'mixolydian',       // Add this explicit mapping
-        '9': 'mixolydian',
-        '13': 'mixolydian',
-        '7b9': 'bebopPhrygian',
-        '7#9': 'mixolydian',
-        '7#11': 'lydian',
-        '7b13': 'mixolydian',
-        '7#5': 'wholeHalf',
-        '7b5': 'mixolydian',
-        'dim7': 'diminished',
-        'dim': 'diminished',
-        'm7b5': 'locrian',
-        'aug7': 'wholeHalf',
-        'aug': 'wholeHalf',
-        '6': 'major',
-        'm6': 'melodicMinor',
-        'sus4': 'mixolydian',
-        'sus2': 'mixolydian',
-        'add9': 'major',
-        '7sus4': 'mixolydian',
-        'minMaj7': 'melodicMinor',
-        '7alt': 'altered'
-    };
-    return scaleMap[quality] || 'major';
-}
+        // Major family
+        '': 'major',           // Major triad
+        'major': 'major',      // Explicit major
+        'maj7': 'major',       // Major 7th
+        'maj9': 'major',       // Major 9th
+        'maj13': 'major',      // Major 13th
+        'maj7#11': 'lydian',   // Lydian sound
+        '6': 'major',          // Major 6th
+        'add9': 'major',       // Major add9
 
+        // Minor family
+        'm': 'dorian',         // Minor triad (using Dorian for jazz context)
+        'minor': 'dorian',     // Explicit minor
+        'm7': 'dorian',        // Minor 7th
+        'min7': 'dorian',      // Alternative minor 7th notation
+        'm9': 'dorian',        // Minor 9th
+        'm11': 'dorian',       // Minor 11th
+        'm13': 'dorian',       // Minor 13th
+        'm6': 'melodicMinor',  // Minor 6th
+        'minMaj7': 'melodicMinor', // Minor/Major 7th
+
+        // Dominant family
+        '7': 'mixolydian',     // Dominant 7th
+        'dom7': 'bebopDominant',  // Alternative dominant notation
+        '9': 'mixolydian',     // Dominant 9th
+        '13': 'mixolydian',    // Dominant 13th
+        '7sus4': 'mixolydian', // Dominant sus4
+        'sus4': 'mixolydian',  // Sus4 triad
+        'sus2': 'mixolydian',  // Sus2 triad
+
+        // Altered dominants
+        '7b9': 'bebopPhrygian',    // Phrygian dominant
+        '7#9': 'mixolydian',       // Altered dominant
+        '7#11': 'lydian',          // Lydian dominant
+        '7b13': 'mixolydian',      // Mixolydian b13
+        '7#5': 'wholeHalf',        // Altered dominant
+        '7b5': 'mixolydian',       // Mixolydian b5
+        '7alt': 'altered',         // Fully altered dominant
+
+        // Diminished family
+        'dim': 'diminished',       // Diminished triad
+        'dim7': 'diminished',      // Fully diminished 7th
+        'm7b5': 'locrian',         // Half-diminished
+        'ø7': 'locrian',           // Alternative half-diminished notation
+
+        // Augmented family
+        'aug': 'wholeHalf',        // Augmented triad
+        'aug7': 'wholeHalf',       // Augmented dominant
+        '+': 'wholeHalf',          // Alternative augmented notation
+        '+7': 'wholeHalf'          // Alternative augmented dominant
+    };
+    
+    return scaleMap[quality] || 'major';  // Default to major if quality not found
+}
         function getCompatibleScales(chord, quality) {
     const scaleChoices = {
         'major': ['major', 'lydian', 'mixolydian'],
