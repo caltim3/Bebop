@@ -1405,7 +1405,11 @@ function createQualityOptions(selected = 'major') {
         { value: 'dom7', label: '7' },
         { value: 'maj7', label: 'Maj7' },
         { value: 'min7', label: 'Min7' },
-        { value: 'min7b5', label: 'Min7b5 (Half Diminished)' }
+        { value: 'min7b5', label: 'Min7b5 (Half Diminished)' },
+        { value: '6', label: '6' },         // Added 6th chord
+        { value: 'm6', label: 'Min6' },     // Added minor 6th chord
+        { value: 'dim7', label: 'Dim7' },   // Added fully diminished
+        { value: '7#5', label: '7#5' }      // Added 7#5 chord
     ];
     return qualities.map(q =>
         `<option value="${q.value}"${q.value === selected ? ' selected' : ''}>${q.label}</option>`
@@ -1519,7 +1523,11 @@ function getChordNotes(root, quality) {
         dom7: [0, 4, 7, 10],
         maj7: [0, 4, 7, 11],
         min7: [0, 3, 7, 10],
-        min7b5: [0, 3, 6, 10]
+        min7b5: [0, 3, 6, 10],
+        '6': [0, 4, 7, 9],       // Added 6th chord
+        'm6': [0, 3, 7, 9],      // Added minor 6th chord
+        'dim7': [0, 3, 6, 9],    // Added fully diminished
+        '7#5': [0, 4, 8, 10]     // Added 7#5 chord
     }[quality] || [0, 4, 7];
     return intervals.map(interval => NOTES[(rootIndex + interval) % 12]);
 }
