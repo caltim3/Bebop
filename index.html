@@ -1339,8 +1339,8 @@ function createBeats() {
                 // For click and woodblock, only play on quarter notes
                 if (isQuarterNote) {
                     beat.dataset.sound = soundType;
-                    beat.dataset.baseVolume = i === 0 ? '1' : '0.3';
-                    beat.dataset.volume = i === 0 ? '1' : '0.3';
+                    beat.dataset.baseVolume = i === 0 ? '1' : '0.5';
+                    beat.dataset.volume = i === 0 ? '1' : '0.5';
                     beat.style.backgroundColor = i === 0 ? '#1F618D' : '#4CAF50';
                 } else {
                     beat.dataset.sound = 'silent';
