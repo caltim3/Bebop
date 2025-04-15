@@ -1138,7 +1138,6 @@ function getChordFromFunction(key, chordFunction) {
         const keyIndex = notes.indexOf(standardizeNoteName(key));
         if (keyIndex === -1) return null;
         
-        // Handle flattened scale degrees
         let actualDegree = degree - 1;
         if (actualDegree < 0) actualDegree += 7;
         
@@ -1151,8 +1150,8 @@ function getChordFromFunction(key, chordFunction) {
         return chordFunction;
     }
 
-    // Updated regex to handle more variations including flattened chords
-    const functionRegex = /^(b?[ivIV]+)(dim|ø|maj|min|aug|\+)?([679]|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?$/;
+    // Updated regex to handle spaces and more chord qualities
+    const functionRegex = /^(b?[ivIV]+)\s*(dim|ø|maj|min|aug|\+|sus4|add9|6)?\s*([79]|11|13)?\s*([b#]5|[b#]9|[b#]11|[b#]13)?$/i;
     const match = chordFunction.match(functionRegex);
     
     if (!match) {
@@ -1182,7 +1181,7 @@ function getChordFromFunction(key, chordFunction) {
     let root = getNoteFromScaleDegree(degree, key.replace(/m$/, ''), scale);
     if (!root) return null;
 
-    // If flattened, lower the root by a semitone
+    // Handle flattened chords
     if (isFlattened) {
         const notes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
         const rootIndex = notes.indexOf(root);
@@ -1209,13 +1208,10 @@ function getChordFromFunction(key, chordFunction) {
             chordQuality = 'm' + extension;
         } else if (quality === 'aug' || quality === '+') {
             chordQuality = 'aug' + extension;
+        } else if (isUpperCase) {
+            chordQuality = extension; // Dominant seventh
         } else {
-            // Default seventh chord behavior based on numeral case and scale degree
-            if (isUpperCase) {
-                chordQuality = extension; // Dominant seventh
-            } else {
-                chordQuality = 'm' + extension; // Minor seventh
-            }
+            chordQuality = 'm' + extension; // Minor seventh
         }
     } else {
         // Handle triads
@@ -1226,6 +1222,12 @@ function getChordFromFunction(key, chordFunction) {
                 chordQuality = 'm';
             } else if (quality === 'aug' || quality === '+') {
                 chordQuality = 'aug';
+            } else if (quality === 'sus4') {
+                chordQuality = 'sus4';
+            } else if (quality === 'add9') {
+                chordQuality = 'add9';
+            } else if (quality === '6') {
+                chordQuality = '6';
             }
         } else {
             // Default triad behavior
@@ -1238,6 +1240,16 @@ function getChordFromFunction(key, chordFunction) {
     // Handle alterations
     if (alteration) {
         chordQuality += alteration;
+    }
+
+    // Special case for borrowed chords (e.g., bVI in minor keys)
+    if (isMinor && isFlattened && !quality && !extension && !alteration) {
+        // For bVI in A minor, return F (F major)
+        if (romanNumeral === 'VI') {
+            const borrowedRoot = getNoteFromScaleDegree(degree, key.replace(/m$/, ''), MAJOR_SCALE);
+            return borrowedRoot;
+        }
+        // Similarly for other borrowed chords
     }
 
     return root + chordQuality;
