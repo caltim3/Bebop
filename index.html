@@ -1130,6 +1130,101 @@ function getChordFromFunction(chordFunction, key = 'C') {
         return chromaticScale[noteIndex];
     }
 
+    // Enhanced regex to handle all chord types including 6ths
+    const functionRegex = /^(b?[iIvV]+|[iIvV]+)(maj|min|dim|aug|ø|\+)?([67]|9|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?$/;
+    const match = chordFunction.match(functionRegex);
+    
+    if (!match) {
+        console.error("Invalid chord function:", chordFunction);
+        return null;
+    }
+
+    let [_, romanNumeral, quality, extension, alteration] = match;
+    
+    // Determine if we're in a minor key
+    const isMinor = key.toLowerCase().includes('m');
+    
+    // Get the scale degree
+    const degree = romanToNumber(romanNumeral);
+    if (degree === null) return null;
+
+    // Get the root note using your existing helper function
+    const scale = isMinor ? MINOR_SCALE : MAJOR_SCALE;
+    const root = getNoteFromScaleDegree(degree, key, scale);
+    if (!root) return null;
+
+    // Initialize chord quality
+    let chordQuality = '';
+    const isUpperCase = romanNumeral === romanNumeral.toUpperCase();
+    const isFlatted = romanNumeral.startsWith('b');
+
+    // Special handling for diminished and half-diminished chords
+    if (quality === 'dim') {
+        return root + (extension === '7' ? 'dim7' : 'dim');
+    }
+    if (quality === 'ø') {
+        return root + 'm7b5';
+    }
+
+    // Handle sixth chords
+    if (extension === '6') {
+        if (isMinor) {
+            chordQuality = isUpperCase ? '6' : 'm6';
+        } else {
+            chordQuality = isUpperCase ? '6' : 'm6';
+        }
+    } 
+    // Handle seventh chords and extended chords
+    else if (extension) {
+        if (quality) {
+            if (quality === 'maj') {
+                chordQuality = 'maj' + extension;
+            } else if (quality === 'min') {
+                chordQuality = 'm' + extension;
+            } else if (quality === 'aug' || quality === '+') {
+                chordQuality = 'aug' + extension;
+            }
+        } else {
+            if (isMinor) {
+                chordQuality = isUpperCase ? extension : 'm' + extension;
+            } else {
+                if (isUpperCase) {
+                    chordQuality = extension;
+                } else {
+                    chordQuality = 'm' + extension;
+                }
+            }
+        }
+    } 
+    // Handle triads and special qualities
+    else {
+        if (quality) {
+            if (quality === 'maj') {
+                chordQuality = 'maj7';
+            } else if (quality === 'min') {
+                chordQuality = 'm';
+            } else if (quality === 'aug' || quality === '+') {
+                chordQuality = 'aug';
+            }
+        } else {
+            if (isMinor) {
+                chordQuality = isUpperCase ? '' : 'm';
+            } else {
+                chordQuality = isUpperCase ? '' : 'm';
+            }
+        }
+    }
+
+    // Handle alterations
+    if (alteration) {
+        if (extension && ['7', '9', '11', '13'].includes(extension)) {
+            chordQuality = chordQuality + alteration;
+        }
+    }
+
+    return root + chordQuality;
+}
+
     function standardizeNoteName(note) {
         // Convert sharps to flats for consistency
         const sharpToFlat = {
