@@ -1125,13 +1125,12 @@ function parseChord(chord) {
     const functionMatch = chord.match(functionRegex);
     
     if (functionMatch) {
-        // Convert the function to an actual chord
         const actualChord = getChordFromFunction(UI.elements.keySelect.value, chord);
-        return parseChord(actualChord); // Recursively parse the actual chord
+        return parseChord(actualChord);
     }
 
-    // Regular chord parsing
-    const regex = /^([A-G][b#]?)(maj7|maj9|maj13|maj7#11|m7b5|m7|m9|m11|m13|7b9|7#9|7#11|7b13|7#5|7b5|dim7|aug7|7|6|m6|sus4|sus2|add9|9|11|13|m|dim|aug)?$/;
+    // Enhanced regex for more chord types
+    const regex = /^([A-G][b#]?)((maj|min|dim|aug|sus)?(7|9|11|13)?(b5|#5|b9|#9|#11|b13)?)?$/;
     const match = chord.match(regex);
     
     if (!match) {
@@ -1139,8 +1138,9 @@ function parseChord(chord) {
         return [standardizeNoteName(chord), ''];
     }
     
-    const [_, root, quality] = match;
-    return [standardizeNoteName(root), quality || ''];
+    const [_, root, ...qualityParts] = match;
+    const quality = qualityParts.join('');
+    return [standardizeNoteName(root), quality];
 }
 
 // Helper function for flat notes
@@ -1205,6 +1205,55 @@ function suggestScaleForQuality(quality) {
         '7alt': 'altered'
     };
     return scaleMap[quality] || 'major';
+}
+
+        function getCompatibleScales(chord, quality) {
+    const scaleChoices = {
+        'major': ['major', 'lydian', 'mixolydian'],
+        'minor': ['dorian', 'phrygian', 'aeolian'],
+        'dominant': ['mixolydian', 'lydianDominant', 'altered', 'bebopDominant'],
+        'halfDiminished': ['locrian', 'locrian#2'],
+        'diminished': ['diminishedWH', 'diminishedHW'],
+        'altered': ['altered', 'diminishedWH']
+    };
+    
+    // Determine chord category
+    let category = 'major';
+    if (quality.includes('m7b5')) category = 'halfDiminished';
+    else if (quality.includes('dim')) category = 'diminished';
+    else if (quality.includes('m')) category = 'minor';
+    else if (quality.includes('7')) category = 'dominant';
+    else if (quality.includes('alt')) category = 'altered';
+    
+    return scaleChoices[category] || ['major'];
+}
+
+    function updateChordProgression(measure) {
+    const rootSelect = measure.querySelector('.root-note');
+    const qualitySelect = measure.querySelector('.chord-quality');
+    const scaleSelect = measure.querySelector('.scale-select');
+    
+    if (!rootSelect || !qualitySelect || !scaleSelect) return;
+    
+    const root = rootSelect.value;
+    const quality = qualitySelect.value;
+    
+    // Get compatible scales
+    const compatibleScales = getCompatibleScales(root, quality);
+    
+    // Update scale options
+    scaleSelect.innerHTML = compatibleScales
+        .map(scale => `<option value="${scale}">${scale}</option>`)
+        .join('');
+    
+    // Set default scale
+    scaleSelect.value = suggestScaleForQuality(quality);
+    
+    // Update fretboard if this is the current measure
+    if (measure === UI.elements.measures.children[AppState.currentMeasure]) {
+        const tuning = TUNINGS[UI.elements.chordTuning.value];
+        updateFretboardNotes(UI.elements.chordFretboard, root, scaleSelect.value, tuning);
+    }
 }
 // DOM Utilities
 function createKeyOptions(selected = 'C') {
