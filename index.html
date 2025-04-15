@@ -761,38 +761,71 @@ const progressions = {
     "dark_eyes": { defaultKey: "Am", progression: ["im", "iv", "V7", "im", "iv", "V7", "im", "V7/iv", "iv", "V7/III", "III", "im", "iv", "V7", "im", "V7"] },
     "black_orpheus": { defaultKey: "Am", progression: ["im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7", "bIIImaj7", "bVImaj7", "iim7b5", "V7b9", "im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7"] },
     "all_the_things_you_are": { defaultKey: "Ab", progression: ["vi7", "ii7", "V7", "Imaj7", "IVmaj7", "iii7", "VI7", "IImaj7", "ii7", "v7", "I7", "IVmaj7", "Imaj7", "ii7", "V7", "Imaj7", "ii7", "V7", "Imaj7", "ii7", "v7", "I7", "IVmaj7", "Imaj7"] },
-    "all_of_me": { defaultKey: "C", progression: ["Cmaj7", "E7", "A7", "Dm7", "E7", "Am7", "D7", "Dm7", "G7", "Cmaj7", "E7", "A7", "Dm7", "F", "Fm", "Cmaj7", "G7"] },
+    "all_of_me": { defaultKey: "C", progression: ["Imaj7", "III7", "VI7", "ii7", "III7", "vi7", "II7", "ii7", "V7", "Imaj7", "III7", "VI7", "ii7", "IV", "iv", "Imaj7", "V7"] },
     "stella_by_starlight": { defaultKey: "Bb", progression: ["iim7b5", "V7b9", "im7", "IV7", "v7", "I7", "IVmaj7", "bVIImaj7", "iiim7b5", "VI7b9", "iim7", "V7", "im7", "IV7", "IVmaj7", "V7"] },
-    "autumn_leaves": { defaultKey: "Em", progression: ["Am7", "D7", "Gmaj7", "Cmaj7", "F#m7b5", "B7b9", "Em7", "Em7"] },
+    "autumn_leaves": { defaultKey: "Em", progression: ["iv7", "VII7", "bIIImaj7", "bVImaj7", "ii∅7", "V7b9", "i7", "i7"] },
     "summertime": { defaultKey: "Am", progression: ["im", "V7", "im", "V7", "im", "V7", "im", "V7", "iv", "im", "V7", "im", "iv", "im", "V7", "im"] },
-    "girl_from_ipanema": { defaultKey: "F", progression: ["Fmaj7", "G7", "Gm7", "C7", "Fmaj7", "G7", "Gm7", "C7", "Fmaj7", "Gb7", "Bmaj7", "Dm7", "Gm7", "C7", "Fmaj7", "Dm7", "Gm7", "C7"] },
+    "girl_from_ipanema": { defaultKey: "F", progression: ["Imaj7", "II7", "ii7", "V7", "Imaj7", "II7", "ii7", "V7", "Imaj7", "bII7", "IV#maj7", "vi7", "ii7", "V7", "Imaj7", "vi7", "ii7", "V7"] },
     "coltrane_changes": { defaultKey: "C", progression: ["Imaj7", "bIII7", "bVImaj7", "VII7", "IIImaj7", "V7", "Imaj7", "bIII7", "bVImaj7", "VII7", "IIImaj7", "V7"] },
     "bird_blues": { defaultKey: "F", progression: ["I7", "IV7", "I7", "vi7", "ii7", "V7", "IV7", "iv7", "I7", "vi7", "ii7", "V7"] }
 };
         
 const scaleDegrees = {
     major: {
+        // Basic triads (uppercase = major, lowercase = minor)
         'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11,
         'i': 0, 'ii': 2, 'iii': 4, 'iv': 5, 'v': 7, 'vi': 9, 'vii': 11,
+        
+        // Seventh chords
         'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
         'i7': 0, 'ii7': 2, 'iii7': 4, 'iv7': 5, 'v7': 7, 'vi7': 9, 'vii7': 11,
         'Im7': 0, 'IIm7': 2, 'IIIm7': 4, 'IVm7': 5, 'Vm7': 7, 'VIm7': 9, 'VIIm7': 11,
-        'im7': 0, 'iim7': 2, 'iiim7': 4, 'ivm7': 5, 'vm7': 7, 'vim7': 9, 'viim7': 11,
-        'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9,
-        'bIII': 3, 'bVI': 8, 'bVII': 10,
-        'bIIImaj7': 3, 'bVImaj7': 8, 'bVII7': 10
+        'Imaj7': 0, 'IImaj7': 2, 'IIImaj7': 4, 'IVmaj7': 5, 'Vmaj7': 7, 'VImaj7': 9, 'VIImaj7': 11,
+        
+        // Extended and altered chords
+        'I9': 0, 'II9': 2, 'III9': 4, 'IV9': 5, 'V9': 7, 'VI9': 9, 'VII9': 11,
+        'I13': 0, 'II13': 2, 'III13': 4, 'IV13': 5, 'V13': 7, 'VI13': 9, 'VII13': 11,
+        'V7b9': 7, 'V7#9': 7, 'V7b13': 7, 'V7#11': 7,
+        
+        // Diminished and half-diminished
+        'vii°': 11, 'ii°': 2, 'iii°': 4,
+        'vii∅7': 11, 'ii∅7': 2, 'iii∅7': 4,
+        
+        // Flat/borrowed chords
+        'bII': 1, 'bIII': 3, 'bV': 6, 'bVI': 8, 'bVII': 10,
+        'bII7': 1, 'bIII7': 3, 'bV7': 6, 'bVI7': 8, 'bVII7': 10,
+        'bIImaj7': 1, 'bIIImaj7': 3, 'bVmaj7': 6, 'bVImaj7': 8, 'bVIImaj7': 10
     },
     minor: {
+        // Basic triads
         'i': 0, 'ii': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
-        'im': 0, 'iim': 2, 'iiim': 3, 'ivm': 5, 'vm': 7, 'VIm': 8,
+        'i°': 0, 'ii°': 2, 'III+': 3, 'iv°': 5, 'v°': 7, 'VI+': 8, 'vii°': 11,
+        
+        // Seventh chords
         'i7': 0, 'ii7': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
-        'im7': 0, 'iim7': 2, 'IIIm7': 3, 'ivm7': 5, 'vm7': 7, 'VIm7': 8,
-        'iim7b5': 2, 'V7b9': 7,
-        'bIII': 3, 'bVI': 8, 'bVII': 10,
-        'bIIImaj7': 3, 'bVImaj7': 8
+        'im7': 0, 'iim7': 2, 'IIIm7': 3, 'ivm7': 5, 'vm7': 7, 'VIm7': 8, 'VIIm7': 10,
+        'imaj7': 0, 'iimaj7': 2, 'IIImaj7': 3, 'ivmaj7': 5, 'vmaj7': 7, 'VImaj7': 8, 'VIImaj7': 10,
+        
+        // Half-diminished and diminished sevenths
+        'iø7': 0, 'iiø7': 2, 'IIIø7': 3, 'ivø7': 5, 'vø7': 7, 'VIø7': 8, 'VIIø7': 10,
+        'i°7': 0, 'ii°7': 2, 'III°7': 3, 'iv°7': 5, 'v°7': 7, 'VI°7': 8, 'VII°7': 10,
+        'iim7b5': 2, 'iiim7b5': 4, 'vim7b5': 9,
+        
+        // Extended and altered chords
+        'i9': 0, 'ii9': 2, 'III9': 3, 'iv9': 5, 'v9': 7, 'VI9': 8, 'VII9': 10,
+        'i13': 0, 'ii13': 2, 'III13': 3, 'iv13': 5, 'v13': 7, 'VI13': 8, 'VII13': 10,
+        'V7b9': 7, 'V7#9': 7, 'V7b13': 7, 'V7#11': 7,
+        
+        // Borrowed/modal interchange chords
+        'bII': 1, 'bIII': 3, 'bIV': 4, 'bV': 6, 'bVI': 8, 'bVII': 10,
+        'bII7': 1, 'bIII7': 3, 'bIV7': 4, 'bV7': 6, 'bVI7': 8, 'bVII7': 10,
+        'bIImaj7': 1, 'bIIImaj7': 3, 'bIVmaj7': 4, 'bVmaj7': 6, 'bVImaj7': 8, 'bVIImaj7': 10,
+        
+        // Common secondary dominants
+        'V7/III': 7, 'V7/iv': 7, 'V7/v': 7, 'V7/VI': 7, 'V7/VII': 7,
+        'V7/bIII': 7, 'V7/bVI': 7, 'V7/bVII': 7
     }
-};
-
+};   
 // State Management
 const AppState = {
     isPlaying: false,
@@ -1069,62 +1102,110 @@ function isMinorKeyName(key) {
     return key && (key.endsWith('m') || key.endsWith('min'));
 }
 
-function getChordFromFunction(key, func) {
-    if (!key || !func) return null;
-
-    // Determine if the key is minor
-    const isMinorKey = isMinorKeyName(key);
-    const rootKey = key.replace(/m$|min$/, ''); // Remove "m" or "min" from minor keys
-    const standardizedKey = standardizeNoteName(rootKey); // Standardize note name (e.g., "Db" -> "C#")
-    const keyIndex = NOTES.indexOf(standardizedKey);
-
-    if (keyIndex === -1) {
-        console.error(`Invalid key: ${key}`);
-        return null;
+function getChordFromFunction(chordFunction, key = 'C') {
+    // Helper function to get note from scale degree
+    function getNoteFromScaleDegree(degree, key, scale = majorScale) {
+        const keyIndex = noteToMidiNumber(key) % 12;
+        return midiNumberToNote((keyIndex + scale[degree]) % 12);
     }
 
-    // Use the appropriate scale degrees based on the key type (major or minor)
-    const degrees = isMinorKey ? scaleDegrees.minor : scaleDegrees.major;
-    let degree = degrees[func];
+    // Initialize scales
+    const majorScale = [0, 2, 4, 5, 7, 9, 11];
+    const minorScale = [0, 2, 3, 5, 7, 8, 10];
 
-    if (degree === undefined) {
-        // Handle secondary dominants like V7/iv
-        if (func.includes('/')) {
-            const [secondary, target] = func.split('/');
-            const targetDegree = degrees[target] ?? degrees[target.toLowerCase()];
-            if (targetDegree !== undefined && secondary.startsWith('V7')) {
-                degree = (targetDegree + 7) % 12; // Add 7 semitones for the secondary dominant
-            } else {
-                console.error(`Invalid secondary function: ${func}`);
-                return null;
-            }
+    // Determine if we're in a minor key
+    const isMinorKey = key.toLowerCase().includes('m');
+    const actualKey = isMinorKey ? key.replace('m', '') : key;
+    const scale = isMinorKey ? minorScale : majorScale;
+
+    // Handle empty or invalid input
+    if (!chordFunction) return null;
+
+    // Parse the chord function
+    let match = chordFunction.match(/^(b?[ivIV]+)([°ø]|maj|m|M)?([679]|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?$/);
+    if (!match) return null;
+
+    let [_, roman, quality, extension, alteration] = match;
+    
+    // Handle flattened degrees
+    const isFlat = roman.startsWith('b');
+    if (isFlat) roman = roman.substring(1);
+
+    // Convert roman numeral to scale degree
+    const romanToNumber = {
+        'I': 0, 'II': 1, 'III': 2, 'IV': 3, 'V': 4, 'VI': 5, 'VII': 6,
+        'i': 0, 'ii': 1, 'iii': 2, 'iv': 3, 'v': 4, 'vi': 5, 'vii': 6
+    };
+
+    let degree = romanToNumber[roman];
+    if (degree === undefined) return null;
+
+    // Apply flat modification if present
+    if (isFlat) {
+        degree = (degree - 1 + 7) % 7;
+    }
+
+    // Get the root note
+    const rootNote = getNoteFromScaleDegree(degree, actualKey, scale);
+
+    // Determine chord quality
+    let chordQuality = '';
+    let chordExtension = '';
+    let chordAlteration = '';
+
+    // Handle chord qualities
+    if (quality === '°') {
+        chordQuality = 'dim';
+    } else if (quality === 'ø') {
+        chordQuality = 'm7b5';
+    } else if (quality === 'maj' || quality === 'M') {
+        chordQuality = 'maj';
+    } else if (quality === 'm') {
+        chordQuality = 'm';
+    } else {
+        // Default qualities based on scale degree and mode
+        if (isMinorKey) {
+            // Natural minor (Aeolian) default qualities
+            const minorDefaultQualities = ['m', 'dim', 'maj', 'm', 'm', 'maj', 'maj'];
+            chordQuality = minorDefaultQualities[degree];
         } else {
-            console.error(`Unrecognized chord function: ${func}`);
-            return null;
+            // Major scale default qualities
+            const majorDefaultQualities = ['maj', 'm', 'm', 'maj', 'maj', 'm', 'dim'];
+            chordQuality = majorDefaultQualities[degree];
         }
     }
 
-    // Calculate the note index based on the key and degree
-    const noteIndex = (keyIndex + degree) % 12;
-    const note = NOTES[noteIndex];
+    // Handle extensions
+    if (extension) {
+        if (extension === '7') {
+            // Special handling for dominant 7th
+            if (chordQuality === 'maj' && degree === 4) { // V7 chord
+                chordQuality = '7';
+            } else {
+                chordQuality += '7';
+            }
+        } else {
+            chordQuality += extension;
+        }
+    }
 
-    // Determine the chord quality based on the function
-    let quality = '';
-    if (/m7b5/i.test(func)) quality = 'min7b5'; // Minor 7 flat 5
-    else if (/7b9/i.test(func)) quality = '7b9'; // Dominant 7 flat 9
-    else if (/maj7/i.test(func)) quality = 'maj7'; // Major 7
-    else if (/m7|min7/i.test(func)) quality = 'min7'; // Minor 7
-    else if (/7/.test(func)) {
-        // Check if it's a minor seventh or dominant seventh
-        if (/^[a-z]+7/.test(func)) quality = 'min7'; // Lowercase = minor 7
-        else quality = '7'; // Uppercase = dominant 7
-    } else if (/^[a-z]/.test(func)) quality = 'minor'; // Lowercase = minor triad
-    else quality = 'major'; // Default to major triad for uppercase
+    // Handle alterations
+    if (alteration) {
+        chordAlteration = alteration;
+    }
 
-    // Return the full chord (note + quality)
-    return note + (quality ? quality : '');
+    // Build the final chord symbol
+    let chordSymbol = rootNote;
+    if (chordQuality !== 'maj') {
+        chordSymbol += chordQuality;
+    }
+    if (chordAlteration) {
+        chordSymbol += chordAlteration;
+    }
+
+    return chordSymbol;
 }
-function parseChord(chord) {
+        function parseChord(chord) {
     if (!chord) return ['C', ''];
     // Updated regex to better handle 7th chords
     const regex = /^([A-G][b#]?)(m7b5|7b9|maj7|min7|m7|7|m|dim|aug|sus2|sus4|add9|6|9|11|13|°)?$/;
