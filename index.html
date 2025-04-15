@@ -1346,10 +1346,11 @@ function suggestScaleForQuality(quality) {
         '7alt': 'altered',         // Fully altered dominant
 
         // Diminished family
-        'dim': 'diminished',       // Diminished triad
-        'dim7': 'diminished',      // Fully diminished 7th
-        'm7b5': 'locrian',         // Half-diminished
-        'ø7': 'locrian',           // Alternative half-diminished notation
+        'dim7': 'diminishedHW',      // Fully diminished 7th: half-whole
+        'dim': 'diminishedWH',       // Diminished triad: whole-half
+        'm7b5': 'locrian',           // Half-diminished
+        'min7b5': 'locrian',         // Alternative notation
+        'ø7': 'locrian',             // Jazz symbol for half-diminished
 
         // Augmented family
         'aug': 'wholeHalf',        // Augmented triad
@@ -1360,24 +1361,32 @@ function suggestScaleForQuality(quality) {
     
     return scaleMap[quality] || 'major';  // Default to major if quality not found
 }
-        function getCompatibleScales(chord, quality) {
+  function getCompatibleScales(chord, quality) {
     const scaleChoices = {
         'major': ['major', 'lydian', 'mixolydian'],
         'minor': ['dorian', 'phrygian', 'aeolian'],
         'dominant': ['mixolydian', 'lydianDominant', 'altered', 'bebopDominant'],
         'halfDiminished': ['locrian', 'locrian#2'],
-        'diminished': ['diminishedWH', 'diminishedHW'],
-        'altered': ['altered', 'diminishedWH']
+        'diminished': ['diminishedHW', 'diminishedWH'],
+        'altered': ['altered', 'diminishedHW']
     };
-    
+
     // Determine chord category
     let category = 'major';
-    if (quality.includes('m7b5')) category = 'halfDiminished';
-    else if (quality.includes('dim')) category = 'diminished';
-    else if (quality.includes('m')) category = 'minor';
-    else if (quality.includes('7')) category = 'dominant';
-    else if (quality.includes('alt')) category = 'altered';
-    
+    if (quality.includes('m7b5') || quality.includes('ø7') || quality.includes('min7b5')) {
+        category = 'halfDiminished';
+    } else if (quality.includes('dim7')) {
+        category = 'diminished';
+    } else if (quality.includes('dim')) {
+        category = 'diminished';
+    } else if (quality.includes('m')) {
+        category = 'minor';
+    } else if (quality.includes('7')) {
+        category = 'dominant';
+    } else if (quality.includes('alt')) {
+        category = 'altered';
+    }
+
     return scaleChoices[category] || ['major'];
 }
 
