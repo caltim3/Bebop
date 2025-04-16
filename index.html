@@ -1387,7 +1387,54 @@ function getChordFromFunction(key, chordFunction) {
 
 function getChordTones(root, quality) {
     const chromatic = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const semitonesFromIntervals = {
+    const normalizedRoot = ENHARMONIC_MAP[root] || root;
+    const rootIndex = chromatic.indexOf(normalizedRoot);
+    if (rootIndex === -1) return [root];
+
+    // Define interval patterns for each chord quality
+    const intervalPatterns = {
+        // Basic triads
+        '': ['R', 'M3', 'P5'],               // Major triad
+        'maj': ['R', 'M3', 'P5'],            // Major triad
+        'min': ['R', 'm3', 'P5'],            // Minor triad
+        'm': ['R', 'm3', 'P5'],              // Minor triad
+        'dim': ['R', 'm3', 'd5'],            // Diminished triad
+        'aug': ['R', 'M3', 'A5'],            // Augmented triad
+        
+        // Seventh chords
+        '7': ['R', 'M3', 'P5', 'm7'],        // Dominant 7th
+        'maj7': ['R', 'M3', 'P5', 'M7'],     // Major 7th
+        'm7': ['R', 'm3', 'P5', 'm7'],       // Minor 7th
+        'min7': ['R', 'm3', 'P5', 'm7'],     // Minor 7th
+        'dim7': ['R', 'm3', 'd5', 'd7'],     // Diminished 7th
+        'm7b5': ['R', 'm3', 'd5', 'm7'],     // Half-diminished
+        
+        // Sixth chords
+        '6': ['R', 'M3', 'P5', 'M6'],        // Major 6th
+        'm6': ['R', 'm3', 'P5', 'M6'],       // Minor 6th
+        'maj6': ['R', 'M3', 'P5', 'M6'],     // Major 6th
+        'min6': ['R', 'm3', 'P5', 'M6'],     // Minor 6th
+        
+        // Extended chords
+        '9': ['R', 'M3', 'P5', 'm7', '9'],
+        'maj9': ['R', 'M3', 'P5', 'M7', '9'],
+        'm9': ['R', 'm3', 'P5', 'm7', '9'],
+        '11': ['R', 'M3', 'P5', 'm7', '9', '11'],
+        '13': ['R', 'M3', 'P5', 'm7', '9', '13'],
+        
+        // Altered chords
+        '7b9': ['R', 'M3', 'P5', 'm7', 'b9'],
+        '7#9': ['R', 'M3', 'P5', 'm7', '#9'],
+        '7b13': ['R', 'M3', 'P5', 'm7', 'b13'],
+        '7#11': ['R', 'M3', 'P5', 'm7', '#11'],
+        
+        // Suspended chords
+        'sus2': ['R', 'M2', 'P5'],
+        'sus4': ['R', 'P4', 'P5']
+    };
+
+    // Interval semitones mapping
+    const intervalToSemitones = {
         'R': 0,
         'M2': 2,
         'm3': 3,
@@ -1397,6 +1444,7 @@ function getChordTones(root, quality) {
         'P5': 7,
         'A5': 8,
         'M6': 9,
+        'd7': 9,
         'm7': 10,
         'M7': 11,
         'b9': 13,
@@ -1404,67 +1452,26 @@ function getChordTones(root, quality) {
         '#9': 15,
         '11': 17,
         '#11': 18,
+        'b13': 20,
         '13': 21
     };
 
-    // Use the global ENHARMONIC_MAP for root normalization
-    const normalizedRoot = ENHARMONIC_MAP[root] || root;
-    const rootIndex = chromatic.indexOf(normalizedRoot);
-    if (rootIndex === -1) return [root];
+    // Get the intervals for the chord quality
+    const intervals = intervalPatterns[quality] || intervalPatterns[''];
 
-    // Adjust for suffixes like "m7b5", "7b9", etc
-    let core = quality;
-    let exts = [];
-    for (let ext of ['b9', '#9', '9', '11', '#11', '13']) {
-        if (quality.includes(ext)) {
-            exts.push(ext);
-            core = core.replace(ext, '');
-        }
-    }
-
-    // Get base intervals from qualityMap or use switch case fallback
-    let intervals = qualityMap[core];
-    if (!intervals) {
-        // Fallback to switch case for any qualities not in qualityMap
-        switch (core) {
-            case 'maj7':
-                intervals = ['R', 'M3', 'P5', 'M7'];
-                break;
-            case 'm7':
-                intervals = ['R', 'm3', 'P5', 'm7'];
-                break;
-            case '7':
-                intervals = ['R', 'M3', 'P5', 'm7'];
-                break;
-            case 'm7b5':
-                intervals = ['R', 'm3', 'd5', 'm7'];
-                break;
-            case 'dim7':
-                intervals = ['R', 'm3', 'd5', 'A5'];
-                break;
-            default:
-                intervals = ['R', 'M3', 'P5']; // Default to major triad
-        }
-    }
-
-    // Add extensions if any
-    exts.forEach(ext => {
-        if (!intervals.includes(ext)) intervals.push(ext);
-    });
-
-    // Build note list
-    return intervals.map(intvl => {
-        let semis = semitonesFromIntervals[intvl] ?? 0;
-        let noteIndex = (rootIndex + semis) % 12;
+    // Convert intervals to notes
+    return intervals.map(interval => {
+        const semitones = intervalToSemitones[interval];
+        const noteIndex = (rootIndex + semitones) % 12;
         let note = chromatic[noteIndex];
         
-        // Handle enharmonic spelling preferences
+        // Handle enharmonic spelling
         if (Object.values(ENHARMONIC_MAP).includes(note)) {
             if (/b/.test(root)) {
-                // Prefer flat enharmonics if root was flat
+                // Prefer flat spellings if root is flat
                 note = Object.keys(ENHARMONIC_MAP).find(k => ENHARMONIC_MAP[k] === note) || note;
             } else {
-                // Use ENHARMONIC_MAP for output in other cases
+                // Use standard enharmonic mapping
                 note = ENHARMONIC_MAP[note] || note;
             }
         }
