@@ -1463,16 +1463,16 @@ function createScaleOptions(selected = 'major') {
 }
 
 // Audio Playback
-function playNote(noteName, volume = 1.0, duration = 1000) {
+async function playNote(noteName, volume = 1.0, duration = 1000) {
     if (!AudioContextManager.context || !noteName) return;
 
     // Get the fretboard volume control value
     const fretboardVolumeControl = document.getElementById('fretboard-volume');
     const fretboardVolume = parseFloat(fretboardVolumeControl.value);
-    
+
     // Combine the passed volume with the fretboard volume control
     const finalVolume = volume * fretboardVolume;
-    
+
     if (finalVolume <= 0) return;
 
     // Map note name to the closest piano sample
@@ -1491,10 +1491,10 @@ function playNote(noteName, volume = 1.0, duration = 1000) {
 
     const [_, note, octave] = match;
     const mappedNote = noteMapping[note];
-    
+
     // Ensure we're using an octave that has samples
     const adjustedOctave = Math.max(2, Math.min(6, parseInt(octave)));
-    
+
     const sampleName = `${mappedNote}${adjustedOctave}v12`;
     const buffer = AudioContextManager.soundBuffers[sampleName];
 
@@ -1554,7 +1554,7 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
         }
     });
 }
-
+        
 function getChordNotes(root, quality) {
     const rootIndex = NOTES.indexOf(standardizeNoteName(root));
     const intervals = {
@@ -1574,24 +1574,24 @@ function getChordNotes(root, quality) {
 
 async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
-    
+
     // Get the metronome volume slider value and combine it with base volume
     const metronomeVolumeControl = document.getElementById('metronome-volume');
     const metronomeVolume = parseFloat(metronomeVolumeControl.value);
     const combinedVolume = baseVolume * metronomeVolume;
-    
+
     if (combinedVolume <= 0) return;
-    
+
     const soundType = UI.elements.soundType.value;
     const beatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
-    
+
     if (!beatElement) return;
 
     const drumSounds = beatElement.dataset.sound.split(',');
     const baseVolumeValue = parseFloat(beatElement.dataset.baseVolume) || 0;
     const isAccent = baseVolumeValue >= 1 && ['kick', 'snare'].includes(drumSounds[0]);
     const accentBoost = parseFloat(UI.elements.accentIntensity?.value || 1);
-    
+
     // Apply accent boost if applicable
     let adjustedVolume = combinedVolume;
     if (isAccent) {
@@ -1601,7 +1601,7 @@ async function playMetronomeSound(baseVolume) {
     // Process each sound in the drum pattern
     for (let soundKey of drumSounds) {
         soundKey = soundKey.trim();
-        
+
         // Skip if it's a silent beat
         if (soundKey === 'silent') continue;
 
@@ -1618,9 +1618,9 @@ async function playMetronomeSound(baseVolume) {
         // Create and configure audio nodes
         const source = AudioContextManager.context.createBufferSource();
         source.buffer = buffer;
-        
+
         const gainNode = AudioContextManager.context.createGain();
-        
+
         // Adjust volume based on sound type and context
         let finalVolume = adjustedVolume;
         if (soundType === 'drums') {
@@ -1636,7 +1636,7 @@ async function playMetronomeSound(baseVolume) {
                 finalVolume *= 1.1; // Slightly boost snare
             }
         }
-        
+
         // Ensure volume doesn't exceed 1.0
         finalVolume = Math.min(finalVolume, 1.0);
         gainNode.gain.value = finalVolume;
@@ -1796,18 +1796,6 @@ noteElement.addEventListener('click', async () => {
         console.error('Error playing note:', error);
     }
 });
-                noteElement.addEventListener('mouseenter', () => {
-                    noteElement.style.transform = 'translate(-50%, -50%) scale(1.1)';
-                });
-                noteElement.addEventListener('mouseleave', () => {
-                    noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
-                });
-                container.appendChild(noteElement);
-            }
-        }
-    }
-    log(`Fretboard updated with ${rootNote} ${scale} scale`);
-}
 
 function createBeats() {
     const container = document.querySelector('.beats-container');
@@ -1955,12 +1943,12 @@ async function playBeat() {
                 const beatDuration = 60 / AppState.tempo;
                 if (timeSignature === 4) {
                     if (AppState.currentBeat === 0) {
-                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, false);
+                        await playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, false);
                     } else if (AppState.currentBeat === 4) {
-                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, true);
+                        await playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, true);
                     }
                 } else if (AppState.currentBeat === 0) {
-                    playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 4, false);
+                    await playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 4, false);
                 }
             }
         }
@@ -1977,7 +1965,6 @@ async function playBeat() {
     }
     AppState.updateState({ currentBeat: AppState.currentBeat, currentMeasure: AppState.currentMeasure });
 }
-
 async function startPlayback() {
     try {
         await ensureAudioInitialized();
