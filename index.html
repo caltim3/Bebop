@@ -1874,20 +1874,25 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
                 } else {
                     noteElement.style.backgroundColor = '#4CAF50';
                 }
-noteElement.addEventListener('click', async () => {
-    try {
-        await AudioContextManager.ensureAudioContext();
-        const volume = 0.75; // Default volume for note clicks
-        const noteWithOctave = `${currentNote}${4}`; // Use octave 4 as default
-        await playNote(noteWithOctave, volume);
-        noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
-        setTimeout(() => {
-            noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
-        }, 100);
-    } catch (error) {
-        console.error('Error playing note:', error);
+                noteElement.addEventListener('click', async () => {
+                    try {
+                        await AudioContextManager.ensureAudioContext();
+                        const volume = 0.75; // Default volume for note clicks
+                        const noteWithOctave = `${currentNote}${4}`; // Use octave 4 as default
+                        await playNote(noteWithOctave, volume);
+                        noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                        setTimeout(() => {
+                            noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
+                        }, 100);
+                    } catch (error) {
+                        console.error('Error playing note:', error);
+                    }
+                });
+                container.appendChild(noteElement);
+            }
+        }
     }
-});
+}
 
 function createBeats() {
     const container = document.querySelector('.beats-container');
@@ -2423,6 +2428,6 @@ window.addEventListener('beforeunload', () => {
     }
     stopPlayback();
 });
-            </script>
-        </body>
-        </html>
+        </script>
+    </body>
+</html>
