@@ -714,6 +714,81 @@ const PIANO_CONFIG = {
     fileFormat: 'ogg'
 };
 
+// Add these right after your existing NOTES and ENHARMONIC_MAP constants
+const CHORD_DEFINITIONS = {
+    "":        [0, 4, 7],      // Major
+    "m":       [0, 3, 7],      // Minor
+    "6":       [0, 4, 7, 9],   // Major 6th
+    "m6":      [0, 3, 7, 9],   // Minor 6th
+    "7":       [0, 4, 7, 10],  // Dominant 7th
+    "7#5":     [0, 4, 8, 10],  // Dominant 7th augmented 5th
+    "maj7":    [0, 4, 7, 11],  // Major 7th
+    "m7":      [0, 3, 7, 10],  // Minor 7th
+    "dim":     [0, 3, 6],      // Diminished triad
+    "dim7":    [0, 3, 6, 9],   // Diminished 7th
+    "m7b5":    [0, 3, 6, 10],  // Half-diminished
+    "aug":     [0, 4, 8],      // Augmented
+    "aug7":    [0, 4, 8, 10],  // Augmented 7th (same as 7#5)
+};
+
+const CHORD_ALIASES = {
+    // Minor variants
+    "min": "m",
+    "mi": "m",
+    "-": "m",
+    "minor": "m",
+    
+    // Major variants
+    "maj": "",
+    "M": "",
+    "major": "",
+    
+    // Major 7th variants
+    "Δ": "maj7",
+    "maj7": "maj7",
+    "M7": "maj7",
+    
+    // Minor 7th variants
+    "min7": "m7",
+    "-7": "m7",
+    
+    // Major 6th variants
+    "maj6": "6",
+    "M6": "6",
+    
+    // Minor 6th variants
+    "min6": "m6",
+    "-6": "m6",
+    
+    // Dominant 7th variants
+    "7": "7",
+    "dom7": "7",
+    
+    // Augmented variants
+    "aug": "aug",
+    "+": "aug",
+    
+    // Augmented 7th variants
+    "7#5": "7#5",
+    "+7": "aug7",
+    "7aug": "7#5",
+    
+    // Diminished variants
+    "dim": "dim",
+    "o": "dim",
+    "°": "dim",
+    
+    // Diminished 7th variants
+    "dim7": "dim7",
+    "o7": "dim7",
+    "°7": "dim7",
+    
+    // Half-diminished variants
+    "ø": "m7b5",
+    "m7b5": "m7b5",
+    "-7b5": "m7b5"
+};
+        
 const PIANO_NOTES = {
     'A2': 110.00, 'As2': 116.54, 'B2': 123.47,
     'C3': 130.81, 'Cs3': 138.59, 'D3': 146.83, 'Ds3': 155.56, 'E3': 164.81, 'F3': 174.61,
@@ -1497,26 +1572,26 @@ function getChordTones(root, quality) {
     // Define interval patterns for each chord quality
     const intervalPatterns = {
         // Basic triads
-        '': ['R', 'M3', 'P5'],               // Major triad
-        'maj': ['R', 'M3', 'P5'],            // Major triad
-        'min': ['R', 'm3', 'P5'],            // Minor triad
-        'm': ['R', 'm3', 'P5'],              // Minor triad
-        'dim': ['R', 'm3', 'd5'],            // Diminished triad
-        'aug': ['R', 'M3', 'A5'],            // Augmented triad
+        '': ['R', 'M3', 'P5'],          // Major triad
+        'maj': ['R', 'M3', 'P5'],       // Major triad
+        'min': ['R', 'm3', 'P5'],       // Minor triad
+        'm': ['R', 'm3', 'P5'],         // Minor triad
+        'dim': ['R', 'm3', 'd5'],       // Diminished triad
+        'aug': ['R', 'M3', 'A5'],       // Augmented triad
         
         // Seventh chords
-        '7': ['R', 'M3', 'P5', 'm7'],        // Dominant 7th
-        'maj7': ['R', 'M3', 'P5', 'M7'],     // Major 7th
-        'm7': ['R', 'm3', 'P5', 'm7'],       // Minor 7th
-        'min7': ['R', 'm3', 'P5', 'm7'],     // Minor 7th
-        'dim7': ['R', 'm3', 'd5', 'd7'],     // Diminished 7th
-        'm7b5': ['R', 'm3', 'd5', 'm7'],     // Half-diminished
+        '7': ['R', 'M3', 'P5', 'm7'],   // Dominant 7th
+        'maj7': ['R', 'M3', 'P5', 'M7'], // Major 7th
+        'm7': ['R', 'm3', 'P5', 'm7'],   // Minor 7th
+        'min7': ['R', 'm3', 'P5', 'm7'], // Minor 7th
+        'dim7': ['R', 'm3', 'd5', 'd7'], // Diminished 7th
+        'm7b5': ['R', 'm3', 'd5', 'm7'], // Half-diminished
         
         // Sixth chords
-        '6': ['R', 'M3', 'P5', 'M6'],        // Major 6th
-        'm6': ['R', 'm3', 'P5', 'M6'],       // Minor 6th
-        'maj6': ['R', 'M3', 'P5', 'M6'],     // Major 6th
-        'min6': ['R', 'm3', 'P5', 'M6'],     // Minor 6th
+        '6': ['R', 'M3', 'P5', 'M6'],   // Major 6th
+        'm6': ['R', 'm3', 'P5', 'M6'],   // Minor 6th
+        'maj6': ['R', 'M3', 'P5', 'M6'], // Major 6th (alternative notation)
+        'min6': ['R', 'm3', 'P5', 'M6'], // Minor 6th (alternative notation)
         
         // Extended chords
         '9': ['R', 'M3', 'P5', 'm7', '9'],
@@ -1530,6 +1605,7 @@ function getChordTones(root, quality) {
         '7#9': ['R', 'M3', 'P5', 'm7', '#9'],
         '7b13': ['R', 'M3', 'P5', 'm7', 'b13'],
         '7#11': ['R', 'M3', 'P5', 'm7', '#11'],
+        '7#5': ['R', 'M3', 'A5', 'm7'],  // Dominant 7#5
         
         // Suspended chords
         'sus2': ['R', 'M2', 'P5'],
@@ -1585,43 +1661,27 @@ function getChordTones(root, quality) {
 function parseChord(chord) {
     if (!chord) return ['C', ''];
 
-     // Examples matched: C, Cm, Cmin, C6, Cm6, Cmaj6, Cmin6, C7, Cm7, Cmaj7, Cdim, C°
-    const regex = /^([A-Ga-g][b#♭♯]?)(maj7|m7b5|min7b5|m7|min7|maj6|m6|min6|6|m|min|dim7|dim|aug|sus2|sus4|add9|7b9|7#9|7|9|11|13|°)?$/;
-    const match = chord.match(regex);
+    // Remove any spaces and normalize
+    chord = chord.trim().replace(/\s+/g, '');
+    
+    // Match root note and remainder
+    const match = chord.match(/^([A-G][b#]?)(.*)$/i);
+    if (!match) return ['C', ''];
+    
+    const root = match[1].toUpperCase();
+    let quality = match[2].toLowerCase();
 
-    if (!match) {
-        console.warn(`Unable to parse chord: ${chord}`);
-        return [standardizeNoteName(chord), ''];
+    // Look up the quality in our aliases
+    if (CHORD_ALIASES.hasOwnProperty(quality)) {
+        quality = CHORD_ALIASES[quality];
     }
 
-    let [_, root, quality] = match;
-
-    // Standardize root (e.g., 'Db' instead of 'db')
-    root = standardizeNoteName(root);
-
-    // Normalize quality to legacy and new types
-    if (!quality) {
+    // If the quality isn't in our definitions, default to major
+    if (!CHORD_DEFINITIONS.hasOwnProperty(quality)) {
         quality = '';
-    } else if (quality === 'min' || quality === 'm') {
-        quality = 'm';
-    } else if (quality === 'min7' || quality === 'm7') {
-        quality = 'm7';
-    } else if (quality === 'maj7') {
-        quality = 'maj7';
-    } else if (quality === 'dim7') {
-        quality = 'dim7';
-    } else if (quality === 'dim' || quality === '°') {
-        quality = 'dim';
-    } else if (quality === 'min7b5' || quality === 'm7b5') {
-        quality = 'm7b5';
-    } else if (quality === 'maj6' || quality === '6') {
-        quality = 'maj6';
-    } else if (quality === 'min6' || quality === 'm6') {
-        quality = 'm6';
     }
-    // All other qualities (7, 9, 11, 13, aug, sus2, sus4, add9, etc.) are left as-is
 
-    return [root, quality];
+    return [standardizeNoteName(root), quality];
 }
 
     // Handle enharmonic equivalents
@@ -1889,7 +1949,12 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
     const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
     if (chordVolume <= 0) return;
 
-    // Get chord tones
+    // Parse the chord if it's given as a string
+    if (typeof root === 'string' && arguments.length === 1) {
+        [root, quality] = parseChord(root);
+    }
+
+    // Get chord tones using new system
     const chordNotes = getChordTones(root, quality);
     
     // Generate voicing based on whether it's a passing chord
