@@ -674,7 +674,12 @@ const ENHARMONIC_MAP = {
 };
         
 const SAMPLE_NOTE_MAP = {
-    'Gb': 'Fs', 'Eb': 'Ds', 'F#': 'Fs', 'D#': 'Ds'
+    'Gb': 'Fs', 'F#': 'Fs',
+    'Eb': 'Ds', 'D#': 'Ds',
+    'G': 'Fs',  // Map G to Fs and transpose
+    'F': 'Fs',  // Map F to Fs and transpose down
+    'Bb': 'A',  // Map Bb to A and transpose up
+    'B': 'C'    // Map B to C and transpose down
 };
 
 const SAMPLED_NOTES = ['A', 'C', 'Ds', 'Fs'];
@@ -1140,24 +1145,29 @@ function standardizeNoteName(note) {
 }
 
        
-function getNoteIndex(note) {
-    const standardizedNote = standardizeNoteName(note);
-    return NOTES.indexOf(standardizedNote);
-}
-
 function findNearestSampledNote(note, octave) {
     let minDistance = Infinity;
     let nearestNote = null;
     let nearestOctave = octave;
+    
+    // Handle enharmonic equivalents
     const sampleNote = SAMPLE_NOTE_MAP[note] || note;
     const noteIndex = NOTES.indexOf(note);
+    
     for (let sampledNote of SAMPLED_NOTES) {
-        const compareNote = sampledNote === 'Fs' ? 'Gb' : sampledNote === 'Ds' ? 'Eb' : sampledNote;
+        // Handle special cases for F#/Gb and D#/Eb
+        const compareNote = sampledNote === 'Fs' ? 'Gb' : 
+                          sampledNote === 'Ds' ? 'Eb' : 
+                          sampledNote;
+        
         const sampledIndex = NOTES.indexOf(standardizeNoteName(compareNote));
         const distance = Math.abs(noteIndex - sampledIndex);
+        
         if (distance < minDistance) {
             minDistance = distance;
             nearestNote = sampledNote;
+            
+            // Adjust octave for edge cases
             if (noteIndex < sampledIndex && noteIndex < 3 && sampledIndex > 8) {
                 nearestOctave = octave - 1;
             } else if (noteIndex > sampledIndex && noteIndex > 8 && sampledIndex < 3) {
@@ -1165,11 +1175,17 @@ function findNearestSampledNote(note, octave) {
             }
         }
     }
+    
     // Ensure octave stays within A2–C4 range
     nearestOctave = Math.max(2, Math.min(3, nearestOctave));
+    
     return {
         sampleKey: `${nearestNote}${nearestOctave}v12`,
-        semitoneDiff: (noteIndex - NOTES.indexOf(standardizeNoteName(nearestNote === 'Fs' ? 'Gb' : nearestNote === 'Ds' ? 'Eb' : nearestNote)) + 12) % 12
+        semitoneDiff: (noteIndex - NOTES.indexOf(standardizeNoteName(
+            nearestNote === 'Fs' ? 'Gb' : 
+            nearestNote === 'Ds' ? 'Eb' : 
+            nearestNote
+        )) + 12) % 12
     };
 }
 function getScaleNotes(root, scaleName) {
@@ -1313,13 +1329,59 @@ function getChordFromFunction(key, chordFunction) {
     return root + finalQuality;
 }
 
-        function getChordTones(root, quality) {
+function getChordTones(root, quality) {
     const chromatic = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const enharmonicMap = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
     const semitonesFromIntervals = {
         'R': 0, 'm3': 3, 'M3': 4, 'P5': 7, 'd5': 6, 'A5': 8,
         'm7': 10, 'M7': 11, 'b9': 13, '9': 14, '#9': 15, '11': 17, '#11': 18, '13': 21
     };
+
+    // Use the global ENHARMONIC_MAP for root normalization
+    const normalizedRoot = ENHARMONIC_MAP[root] || root;
+    const rootIndex = chromatic.indexOf(normalizedRoot);
+    if (rootIndex === -1) return [root];
+
+    // Determine intervals based on quality
+    let intervals;
+    switch (quality) {
+        case 'maj7':
+            intervals = ['R', 'M3', 'P5', 'M7'];
+            break;
+        case 'm7':
+            intervals = ['R', 'm3', 'P5', 'm7'];
+            break;
+        case '7':
+            intervals = ['R', 'M3', 'P5', 'm7'];
+            break;
+        case 'm7b5':
+            intervals = ['R', 'm3', 'd5', 'm7'];
+            break;
+        case 'dim7':
+            intervals = ['R', 'm3', 'd5', 'A5'];
+            break;
+        case 'm':
+        case 'min':
+            intervals = ['R', 'm3', 'P5'];
+            break;
+        case 'maj':
+            intervals = ['R', 'M3', 'P5'];
+            break;
+        default:
+            intervals = ['R', 'M3', 'P5'];
+    }
+
+    // Build chord tones
+    const tones = intervals.map(interval => {
+        const semitones = semitonesFromIntervals[interval];
+        const noteIndex = (rootIndex + semitones) % 12;
+        let noteName = chromatic[noteIndex];
+        // Use ENHARMONIC_MAP for output if possible
+        noteName = ENHARMONIC_MAP[noteName] || noteName;
+        return noteName;
+    });
+
+    return tones;
+}
 
     const qualityMap = {
         '': ['R', 'M3', 'P5'],
@@ -1415,13 +1477,33 @@ function parseChord(chord) {
     return [root, quality];
 }
 
-// Helper function to standardize note names (e.g., 'db' -> 'Db', 'c#' -> 'C#')
+    // Handle enharmonic equivalents
+    const enharmonicMap = {
+        'C#': 'Db', 'Db': 'Db',
+        'D#': 'Eb', 'Eb': 'Eb',
+        'F#': 'Gb', 'Gb': 'Gb',
+        'G#': 'Ab', 'Ab': 'Ab',
+        'A#': 'Bb', 'Bb': 'Bb'
+    };
+        
 function standardizeNoteName(note) {
-    if (!note) return '';
+    if (!note) return 'C';  // Default to 'C' if no note provided
+
     // Replace unicode accidentals with ASCII
     note = note.replace('♭', 'b').replace('♯', '#');
+
+    // Extract the base note and any modifiers (like 'm' for minor)
+    const isMinor = note.trim().endsWith('m') || note.trim().endsWith('min');
+    const baseNote = note.trim().replace(/m$|min$/, '');
+
     // Capitalize first letter, keep accidental as-is
-    return note.charAt(0).toUpperCase() + note.slice(1);
+    let standardized = baseNote.charAt(0).toUpperCase() + baseNote.slice(1);
+
+    // Use the global ENHARMONIC_MAP if applicable
+    standardized = ENHARMONIC_MAP[standardized] || standardized;
+
+    // Reapply minor modifier if it was present
+    return isMinor ? standardized + 'm' : standardized;
 }
 
 // Helper function for flat notes
