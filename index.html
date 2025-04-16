@@ -1371,16 +1371,13 @@ function getChordTones(root, quality) {
     }
 
     // Build chord tones
-    const tones = intervals.map(interval => {
+    return intervals.map(interval => {
         const semitones = semitonesFromIntervals[interval];
         const noteIndex = (rootIndex + semitones) % 12;
         let noteName = chromatic[noteIndex];
         // Use ENHARMONIC_MAP for output if possible
-        noteName = ENHARMONIC_MAP[noteName] || noteName;
-        return noteName;
+        return ENHARMONIC_MAP[noteName] || noteName;
     });
-
-    return tones;
 }
 
     const qualityMap = {
