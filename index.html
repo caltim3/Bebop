@@ -1782,24 +1782,20 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
                 } else {
                     noteElement.style.backgroundColor = '#4CAF50';
                 }
-                noteElement.addEventListener('click', async () => {
-                    try {
-                        await AudioContextManager.ensureAudioContext();
-                        let volume = parseFloat(currentBeatElement.dataset.baseVolume) || 0;
-                        const isAccent = volume >= 1 && ['kick', 'snare'].includes(currentBeatElement.dataset.sound);
-                        const accentBoost = parseFloat(UI.elements.accentIntensity?.value || 1);
-                        if (isAccent) {
-                            volume = Math.min(volume * accentBoost, 1); // cap at 1.0
-                        }
-                        await playNote(`string${6 - string}`, fret, volume);
-                        noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
-                        setTimeout(() => {
-                            noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
-                        }, 100);
-                    } catch (error) {
-                        console.error('Error playing note:', error);
-                    }
-                });
+noteElement.addEventListener('click', async () => {
+    try {
+        await AudioContextManager.ensureAudioContext();
+        const volume = 0.75; // Default volume for note clicks
+        const noteWithOctave = `${currentNote}${4}`; // Use octave 4 as default
+        await playNote(noteWithOctave, volume);
+        noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
+        setTimeout(() => {
+            noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
+        }, 100);
+    } catch (error) {
+        console.error('Error playing note:', error);
+    }
+});
                 noteElement.addEventListener('mouseenter', () => {
                     noteElement.style.transform = 'translate(-50%, -50%) scale(1.1)';
                 });
@@ -2484,6 +2480,13 @@ function createFretboardContainer(index) {
     return container;
 }
 // Start the app
+try {
+        await initAudioContext();
+        // Rest of your initialization code...
+    } catch (error) {
+        console.error("Error during initialization:", error);
+    }
+        
 document.addEventListener('DOMContentLoaded', function() {
     // --- Chord Progression Section (draggable measures) ---
     const measures = document.querySelectorAll('#measures .measure');
