@@ -2139,8 +2139,38 @@ function loadProgression(progressionName, overrideKey = null) {
         measure.addEventListener('dragover', dragOver);
         measure.addEventListener('drop', drop);
         measure.addEventListener('dragend', dragEnd);
+
+        // Add change event listeners to controls
+        const controls = measure.querySelectorAll('select');
+        controls.forEach(control => {
+            control.addEventListener('change', () => {
+                if (index === AppState.currentMeasure) {
+                    const scaleRoot = measure.querySelector('.second-key').value;
+                    const scaleType = measure.querySelector('.scale-select').value;
+                    const tuning = TUNINGS[UI.elements.chordTuning.value];
+                    updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
+                }
+                updateChordProgression(measure);
+            });
+        });
     });
 
+    // Update measure numbers
+    updateMeasureNumbers();
+
+    // Add first chord listener
+    addFirstChordListener();
+
+    // Update the fretboard with the first measure's scale
+    const firstMeasure = UI.elements.measures.firstElementChild;
+    if (firstMeasure) {
+        const scaleRoot = firstMeasure.querySelector('.second-key').value;
+        const scaleType = firstMeasure.querySelector('.scale-select').value;
+        const tuning = TUNINGS[UI.elements.chordTuning.value];
+        updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
+    }
+} // End of loadProgression function
+                
     function updateMeasureNumbers() {
     Array.from(UI.elements.measures.children).forEach((measure, index) => {
         measure.querySelector('.measure-number').textContent = index + 1;
