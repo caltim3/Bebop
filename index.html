@@ -940,6 +940,20 @@ const scaleDegrees = {
     return scaleMap[quality] || 'major';
 }
 
+    const qualityMap = {
+        '': 'major',
+        'm': 'minor',
+        '7': 'dom7',
+        'dom7': 'dom7',  // Add explicit mapping
+        'maj7': 'maj7',
+        'm7': 'min7',
+        'min7': 'min7',
+        'dim': 'dim',
+        'min7b5': 'min7b5',
+        '6': 'maj6',    // Add major 6th
+        'm6': 'min6',   // Add minor 6th
+        'maj6': 'maj6', // Alternative notation
+        'min6': 'min6'  // Alternative notation
         
 const AppState = {
     isPlaying: false,
@@ -1532,24 +1546,6 @@ function flattenNote(note) {
     return sharpToFlat[note] || note;
 }
 
-function getQualityValue(quality) {
-    const qualityMap = {
-        '': 'major',
-        'm': 'minor',
-        '7': 'dom7',
-        'dom7': 'dom7',  // Add explicit mapping
-        'maj7': 'maj7',
-        'm7': 'min7',
-        'min7': 'min7',
-        'dim': 'dim',
-        'min7b5': 'min7b5',
-        '6': 'maj6',    // Add major 6th
-        'm6': 'min6',   // Add minor 6th
-        'maj6': 'maj6', // Alternative notation
-        'min6': 'min6'  // Alternative notation
-    };
-    return qualityMap[quality] || 'major';
-}
 function suggestScaleForQuality(quality) {
     const scaleMap = {
         // Major family
