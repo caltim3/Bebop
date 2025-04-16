@@ -2223,6 +2223,7 @@ function createFretboard(container, tuning) {
 }
         
 function updateFretboardNotes(container, rootNote, scale, tuning) {
+    // Input validation
     if (!(container instanceof HTMLElement)) {
         console.error('Invalid container element');
         return;
@@ -2239,7 +2240,11 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
         console.error('Invalid tuning');
         return;
     }
+
+    // Clear existing notes
     container.querySelectorAll('.note').forEach(note => note.remove());
+
+    // Handle chord-fretboard specific display
     if (container.id === 'chord-fretboard') {
         const measures = UI.elements.measures.children;
         if (measures.length > 0 && AppState.currentMeasure < measures.length) {
@@ -2248,6 +2253,7 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
             const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
             const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
             const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+
             if (chordRoot && chordQuality && scaleRoot && scaleType) {
                 let displayQuality = chordQuality;
                 switch (chordQuality) {
@@ -2256,6 +2262,8 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
                     case 'min7': displayQuality = 'm7'; break;
                     case 'min7b5': displayQuality = 'm7b5'; break;
                     case 'minor': displayQuality = 'm'; break;
+                    case 'maj6': displayQuality = '6'; break;    // Added major 6 support
+                    case 'min6': displayQuality = 'm6'; break;   // Added minor 6 support
                 }
                 let displayScale = scaleType.charAt(0).toUpperCase() + scaleType.slice(1);
                 displayScale = displayScale.replace(/([A-Z])/g, ' $1').trim();
@@ -2263,6 +2271,8 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
             }
         }
     }
+
+    // Generate scale notes
     const scaleIntervals = SCALES[scale];
     const standardizedRoot = standardizeNoteName(rootNote);
     const rootIndex = NOTES.indexOf(standardizedRoot);
@@ -2270,19 +2280,25 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
         const noteIndex = (rootIndex + interval) % 12;
         return NOTES[noteIndex];
     });
+
+    // Create and position note elements
     for (let string = 0; string < 6; string++) {
         const openNote = tuning[string];
         const openNoteIndex = NOTES.indexOf(openNote);
+        
         for (let fret = 0; fret <= 12; fret++) {
             const noteIndex = (openNoteIndex + fret) % 12;
             const currentNote = NOTES[noteIndex];
+            
             if (scaleNotes.includes(currentNote)) {
                 const noteElement = document.createElement('div');
                 noteElement.className = 'note';
                 noteElement.textContent = currentNote;
+                
                 const fretOffset = fret === 0 ? 0 : ((fret - 0.5) / 12) * 100;
                 noteElement.style.left = `${fretOffset}%`;
                 noteElement.style.top = `${(string / 5) * 100}%`;
+
                 const degree = scaleNotes.indexOf(currentNote);
                 if (currentNote === standardizedRoot) {
                     noteElement.style.backgroundColor = '#BD2031';
@@ -2291,12 +2307,16 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
                 } else {
                     noteElement.style.backgroundColor = '#4CAF50';
                 }
+
+                // Add click event handler for audio playback
                 noteElement.addEventListener('click', async () => {
                     try {
                         await AudioContextManager.ensureAudioContext();
                         const volume = 0.75; // Default volume for note clicks
                         const noteWithOctave = `${currentNote}${4}`; // Use octave 4 as default
                         await playNote(noteWithOctave, volume);
+                        
+                        // Visual feedback animation
                         noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
                         setTimeout(() => {
                             noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
@@ -2305,6 +2325,7 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
                         console.error('Error playing note:', error);
                     }
                 });
+
                 container.appendChild(noteElement);
             }
         }
