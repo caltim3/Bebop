@@ -520,6 +520,7 @@
                     <option value="DADGAD">DADGAD</option>
                     <option value="openE">Open E (EBEG#BE)</option>
                 </select>
+                <button id="drumSetToggleBtn" style="display:none;">Drum Set: Default</button>
             </div>
             <div id="chord-fretboard" class="fretboard"></div>
         </div>
@@ -768,6 +769,23 @@ const DRUM_PATTERNS = {
     '8': { kick: [1, 0, 0, 0, 1, 0, 0, 0], snare: [0, 0, 1, 0, 0, 0, 1, 0], hihat: [1, 1, 1, 1, 1, 1, 1, 1] },
     '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
 };
+        
+    const drumSoundSets = [
+  {
+    name: "Default",
+    snare: "Snare.wav",
+    hihat: "HiHat.wav",
+    kick: "Kick.wav"
+  },
+  {
+    name: "Set 2",
+    snare: "Snare2.wav",
+    hihat: "HiHat2.wav",
+    kick: "Kick2.wav"
+  }
+  // Add more sets here as needed
+];
+        let currentDrumSetIndex = 0;
 
 const progressions = {
     "I V7": { defaultKey: "C", progression: ["I", "V7"] },
@@ -1177,6 +1195,14 @@ function getPitchShiftedNote(note, octave) {
         sampleKey: nearest.sampleKey,
         playbackRate: playbackRate
     };
+}
+
+function onMetronomeInstrumentChange(selectedInstrument) {
+  if (selectedInstrument === "drums") {
+    document.getElementById("drumSetToggleBtn").style.display = "inline-block";
+  } else {
+    document.getElementById("drumSetToggleBtn").style.display = "none";
+  }
 }
 
 function isMinorKeyName(key) {
@@ -1949,6 +1975,49 @@ async function playMetronomeSound(baseVolume) {
         }
     }
 }
+        async function playDrumSample(type) {
+    if (!AudioContextManager.context) return;
+    
+    const set = drumSoundSets[currentDrumSetIndex];
+    let sampleFile;
+    
+    if (type === "snare") sampleFile = set.snare;
+    else if (type === "hihat") sampleFile = set.hihat;
+    else if (type === "kick") sampleFile = set.kick;
+    
+    try {
+        // Try to get the buffer from the already loaded sounds
+        let buffer = AudioContextManager.soundBuffers[type];
+        
+        // If the buffer doesn't exist, try to load it
+        if (!buffer) {
+            const response = await fetch(`./${sampleFile}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const arrayBuffer = await response.arrayBuffer();
+            buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
+            AudioContextManager.soundBuffers[type] = buffer;
+        }
+        
+        const source = AudioContextManager.context.createBufferSource();
+        source.buffer = buffer;
+        
+        const gainNode = AudioContextManager.context.createGain();
+        gainNode.gain.value = parseFloat(UI.elements.metronomeVolume.value);
+        
+        source.connect(gainNode);
+        gainNode.connect(AudioContextManager.context.destination);
+        
+        source.start(0);
+    } catch (error) {
+        console.error(`Failed to play drum sample: ${type}`, error);
+        // Fall back to synthetic drum sound
+        const fallbackBuffer = await AudioContextManager.createDrumSound(type);
+        const source = AudioContextManager.context.createBufferSource();
+        source.buffer = fallbackBuffer;
+        source.connect(AudioContextManager.context.destination);
+        source.start(0);
+    }
+}
  
 function createFretboard(container, tuning) {
     container.innerHTML = '';
@@ -2495,7 +2564,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         UI.init();
         await AudioContextManager.initialize();
-        
+
+        document.getElementById("drumSetToggleBtn").addEventListener("click", function() {
+    currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
+    this.textContent = "Drum Set: " + drumSoundSets[currentDrumSetIndex].name;
         // Create initial fretboard
         createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
         createBeats();
@@ -2509,6 +2581,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
+            function mainLoop() {
+                
         UI.elements.progressionSelect.addEventListener('change', (e) => {
             loadProgression(e.target.value);
         });
