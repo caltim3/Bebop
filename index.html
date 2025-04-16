@@ -1351,26 +1351,6 @@ function getChordTones(root, quality) {
         '13': 21
     };
 
-    const qualityMap = {
-        '': ['R', 'M3', 'P5'],
-        'm': ['R', 'm3', 'P5'],
-        'min': ['R', 'm3', 'P5'],
-        'maj': ['R', 'M3', 'P5'],
-        'm7': ['R', 'm3', 'P5', 'm7'],
-        'maj7': ['R', 'M3', 'P5', 'M7'],
-        '7': ['R', 'M3', 'P5', 'm7'],
-        'dim': ['R', 'm3', 'd5'],
-        'dim7': ['R', 'm3', 'd5', 'M6'],  // dim7 = bb7 = 6
-        'm7b5': ['R', 'm3', 'd5', 'm7'],
-        'aug': ['R', 'M3', 'A5'],
-        'sus2': ['R', 'M2', 'P5'],
-        'sus4': ['R', 'P4', 'P5'],
-        '6': ['R', 'M3', 'P5', 'M6'],     // Major 6th
-        'm6': ['R', 'm3', 'P5', 'M6'],    // Minor 6th
-        'maj6': ['R', 'M3', 'P5', 'M6'],  // Alternative notation
-        'min6': ['R', 'm3', 'P5', 'M6']   // Alternative notation
-    };
-
     // Use the global ENHARMONIC_MAP for root normalization
     const normalizedRoot = ENHARMONIC_MAP[root] || root;
     const rootIndex = chromatic.indexOf(normalizedRoot);
@@ -1472,8 +1452,7 @@ function getChordTones(root, quality) {
 function parseChord(chord) {
     if (!chord) return ['C', ''];
 
-    // Regex to match root and quality, including 6th chords and legacy types
-    // Examples matched: C, Cm, Cmin, C6, Cm6, Cmaj6, Cmin6, C7, Cm7, Cmaj7, Cdim, C°
+     // Examples matched: C, Cm, Cmin, C6, Cm6, Cmaj6, Cmin6, C7, Cm7, Cmaj7, Cdim, C°
     const regex = /^([A-Ga-g][b#♭♯]?)(maj7|m7b5|min7b5|m7|min7|maj6|m6|min6|6|m|min|dim7|dim|aug|sus2|sus4|add9|7b9|7#9|7|9|11|13|°)?$/;
     const match = chord.match(regex);
 
