@@ -1571,7 +1571,53 @@ function getChordNotes(root, quality) {
     }[quality] || [0, 4, 7];
     return intervals.map(interval => NOTES[(rootIndex + interval) % 12]);
 }
+function dragStart(e) {
+    e.target.classList.add('dragging');
+}
 
+function dragOver(e) {
+    e.preventDefault();
+    const draggingElement = document.querySelector('.dragging');
+    const container = UI.elements.measures;
+    const afterElement = getDragAfterElement(container, e.clientY);
+    
+    if (afterElement) {
+        container.insertBefore(draggingElement, afterElement);
+    } else {
+        container.appendChild(draggingElement);
+    }
+}
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.measure:not(.dragging)')];
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function drop(e) {
+    e.preventDefault();
+    updateMeasureNumbers();
+}
+
+function dragEnd(e) {
+    e.target.classList.remove('dragging');
+    updateMeasureNumbers();
+}
+
+function updateProgressionKey(newKey) {
+    const progression = UI.elements.progressionSelect.value;
+    loadProgression(progression, newKey);
+}
+        
 async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
 
