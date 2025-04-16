@@ -779,7 +779,7 @@ const progressions = {
     "minor_2_5_1": { defaultKey: "Am", progression: ["iim7b5", "V7b9", "im7", "im7"] },
     "dark_eyes": { defaultKey: "Dm", progression:  ["V7", "V7", "Im7", "Im7", "V7", "V7", "VI6", "VI6", "ivm6", "ivm6", "Im7", "Im7", "V7", "V7", "Im7", "Im7"] },    
     "ill_see_you_in_my_dreams": { defaultKey: "F", progression: ["IV6", "IV6", "ivm6", "ivm6", "Imaj7", "VII7", "Imaj7", "Imaj7", "VI7", "VI7", "VI7", "VI7", "II7", "II7", "iim7", "V7", "Imaj7"] },
-    "rose_room": {defaultKey: "Ab", progression: ["II7", "V7", "I6", "I7", "IV6", "iv7", "♭VII7", "I6", "VI7", "V7", "V7", "II7", "V7", "I6", "I7", "IV6", "iv7", "♭VII7", "I6", "VI7", "IV7", "V7", "I6", "VI7"] },
+    "rose_room": {defaultKey: "Ab", progression: ["II7", "V7", "I6", "I7", "IV6", "iv7", "bVII7", "I6", "VI7", "V7", "V7", "II7", "V7", "I6", "I7", "IV6", "iv7", "bVII7", "I6", "VI7", "IV7", "V7", "I6", "VI7"]
     "black_orpheus": { defaultKey: "Am", progression: ["im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7", "bIIImaj7", "bVImaj7", "iim7b5", "V7b9", "im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7"] },
     "all_the_things_you_are": { defaultKey: "Ab", progression: ["vi7", "ii7", "V7", "Imaj7", "IVmaj7", "iii7", "VI7", "IImaj7", "ii7", "v7", "I7", "IVmaj7", "Imaj7", "ii7", "V7", "Imaj7", "ii7", "V7", "Imaj7", "ii7", "v7", "I7", "IVmaj7", "Imaj7"] },
     "all_of_me": { defaultKey: "C", progression: ["Imaj7", "III7", "VI7", "ii7", "III7", "vi7", "II7", "ii7", "V7", "Imaj7", "III7", "VI7", "ii7", "IV", "iv", "Imaj7", "V7"] },
@@ -804,6 +804,9 @@ const scaleDegrees = {
         // Basic triads (uppercase = major, lowercase = minor)
         'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11,
         'i': 0, 'ii': 2, 'iii': 4, 'iv': 5, 'v': 7, 'vi': 9, 'vii': 11,
+
+        'I6': 0, 'II6': 2, 'III6': 4, 'IV6': 5, 'V6': 7, 'VI6': 9, 'VII6': 11,
+        'i6': 0, 'ii6': 2, 'iii6': 4, 'iv6': 5, 'v6': 7, 'vi6': 9, 'vii6': 11,
         
         // Seventh chords
         'I7': 0, 'II7': 2, 'III7': 4, 'IV7': 5, 'V7': 7, 'VI7': 9, 'VII7': 11,
@@ -829,6 +832,9 @@ const scaleDegrees = {
         // Basic triads
         'i': 0, 'ii': 2, 'III': 3, 'iv': 5, 'v': 7, 'VI': 8, 'VII': 10,
         'i°': 0, 'ii°': 2, 'III+': 3, 'iv°': 5, 'v°': 7, 'VI+': 8, 'vii°': 11,
+
+        'I6': 0, 'II6': 2, 'III6': 3, 'IV6': 5, 'V6': 7, 'VI6': 8, 'VII6': 10,
+        'i6': 0, 'ii6': 2, 'iii6': 3, 'iv6': 5, 'v6': 7, 'vi6': 8, 'vii6': 10,
         
         // Seventh chords
         'i7': 0, 'ii7': 2, 'III7': 3, 'iv7': 5, 'v7': 7, 'VI7': 8, 'VII7': 10,
@@ -1285,7 +1291,11 @@ function getChordFromFunction(key, chordFunction) {
         'm7b5': ['R', 'm3', 'd5', 'm7'],
         'aug': ['R', 'M3', 'A5'],
         'sus2': ['R', 'M2', 'P5'],
-        'sus4': ['R', 'P4', 'P5']
+        'sus4': ['R', 'P4', 'P5'],
+        '6': ['R', 'M3', 'P5', 'M6'],     // Major 6th
+        'm6': ['R', 'm3', 'P5', 'M6'],    // Minor 6th
+        'maj6': ['R', 'M3', 'P5', 'M6'],  // Alternative notation
+        'min6': ['R', 'm3', 'P5', 'M6']   // Alternative notation
     };
 
     // Adjust for suffixes like "m7b5", "7b9", etc
@@ -1321,23 +1331,56 @@ function getChordFromFunction(key, chordFunction) {
     });
 }
 
-        function parseChord(chord) {
+function parseChord(chord) {
     if (!chord) return ['C', ''];
-    // Updated regex to better handle 7th chords
-    const regex = /^([A-G][b#]?)(m7b5|7b9|maj7|min7|m7|7|m|dim|aug|sus2|sus4|add9|6|9|11|13|°)?$/;
+
+    // Regex to match root and quality, including 6th chords and legacy types
+    // Examples matched: C, Cm, Cmin, C6, Cm6, Cmaj6, Cmin6, C7, Cm7, Cmaj7, Cdim, C°
+    const regex = /^([A-Ga-g][b#♭♯]?)(maj7|m7b5|min7b5|m7|min7|maj6|m6|min6|6|m|min|dim7|dim|aug|sus2|sus4|add9|7b9|7#9|7|9|11|13|°)?$/;
     const match = chord.match(regex);
+
     if (!match) {
         console.warn(`Unable to parse chord: ${chord}`);
         return [standardizeNoteName(chord), ''];
     }
-    const [_, root, quality] = match;
-    let standardQuality = quality || '';
-    
-    // Explicitly handle dominant 7
-    if (quality === '7') standardQuality = 'dom7';
-    else if (quality === 'min7' || quality === 'm7') standardQuality = 'min7';
-    
-    return [standardizeNoteName(root), standardQuality];
+
+    let [_, root, quality] = match;
+
+    // Standardize root (e.g., 'Db' instead of 'db')
+    root = standardizeNoteName(root);
+
+    // Normalize quality to legacy and new types
+    if (!quality) {
+        quality = '';
+    } else if (quality === 'min' || quality === 'm') {
+        quality = 'm';
+    } else if (quality === 'min7' || quality === 'm7') {
+        quality = 'm7';
+    } else if (quality === 'maj7') {
+        quality = 'maj7';
+    } else if (quality === 'dim7') {
+        quality = 'dim7';
+    } else if (quality === 'dim' || quality === '°') {
+        quality = 'dim';
+    } else if (quality === 'min7b5' || quality === 'm7b5') {
+        quality = 'm7b5';
+    } else if (quality === 'maj6' || quality === '6') {
+        quality = 'maj6';
+    } else if (quality === 'min6' || quality === 'm6') {
+        quality = 'm6';
+    }
+    // All other qualities (7, 9, 11, 13, aug, sus2, sus4, add9, etc.) are left as-is
+
+    return [root, quality];
+}
+
+// Helper function to standardize note names (e.g., 'db' -> 'Db', 'c#' -> 'C#')
+function standardizeNoteName(note) {
+    if (!note) return '';
+    // Replace unicode accidentals with ASCII
+    note = note.replace('♭', 'b').replace('♯', '#');
+    // Capitalize first letter, keep accidental as-is
+    return note.charAt(0).toUpperCase() + note.slice(1);
 }
 
 // Helper function for flat notes
@@ -1362,7 +1405,11 @@ function getQualityValue(quality) {
         'm7': 'min7',
         'min7': 'min7',
         'dim': 'dim',
-        'min7b5': 'min7b5'
+        'min7b5': 'min7b5',
+        '6': 'maj6',    // Add major 6th
+        'm6': 'min6',   // Add minor 6th
+        'maj6': 'maj6', // Alternative notation
+        'min6': 'min6'  // Alternative notation
     };
     return qualityMap[quality] || 'major';
 }
@@ -1377,6 +1424,9 @@ function suggestScaleForQuality(quality) {
         'maj7#11': 'lydian',   // Lydian sound
         '6': 'major',          // Major 6th
         'add9': 'major',       // Major add9
+        '6': 'major',       // Major 6th
+        'maj6': 'major',    // Alternative notation
+       
 
         // Minor family
         'm': 'dorian',         // Minor triad (using Dorian for jazz context)
@@ -1386,7 +1436,8 @@ function suggestScaleForQuality(quality) {
         'm9': 'dorian',        // Minor 9th
         'm11': 'dorian',       // Minor 11th
         'm13': 'dorian',       // Minor 13th
-        'm6': 'melodicMinor',  // Minor 6th
+        'm6': 'dorian',     // Minor 6th
+        'min6': 'dorian'    // Alternative notation
         'minMaj7': 'melodicMinor', // Minor/Major 7th
 
         // Dominant family
@@ -1496,6 +1547,8 @@ function createQualityOptions(selected = 'major') {
         { value: 'min7b5', label: 'Min7b5 (Half Diminished)' },
         { value: '6', label: '6' },         // Added 6th chord
         { value: 'm6', label: 'Min6' },     // Added minor 6th chord
+        { value: 'maj6', label: '6' },        // Add major 6th
+        { value: 'min6', label: 'm6' },       // Add minor 6th
         { value: 'dim7', label: 'Dim7' },   // Added fully diminished
         { value: '7#5', label: '7#5' }      // Added 7#5 chord
     ];
