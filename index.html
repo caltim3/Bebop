@@ -2579,27 +2579,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         UI.init();
         await AudioContextManager.initialize();
 
-        document.getElementById("drumSetToggleBtn").addEventListener("click", function() {
-            currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
-            this.textContent = "Drum Set: " + drumSoundSets[currentDrumSetIndex].name;
-        // Create initial fretboard
+        // Set up drum set toggle button
+        const drumSetToggleBtn = document.getElementById('drumSetToggleBtn');
+        if (drumSetToggleBtn) {
+            drumSetToggleBtn.addEventListener('click', toggleDrumSet);
+        }
+
+        // Add event listener for sound type changes
+        const soundTypeSelect = document.getElementById('sound-type');
+        if (soundTypeSelect) {
+            soundTypeSelect.addEventListener('change', function(e) {
+                onMetronomeInstrumentChange(e.target.value);
+            });
+        }
+
+        // Create initial fretboard and beats
         createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
         createBeats();
 
-        const drumSetToggleBtn = document.getElementById('drumSetToggleBtn');
-    if (drumSetToggleBtn) {
-        drumSetToggleBtn.addEventListener('click', toggleDrumSet);
-    }
-
-    // Add event listener for sound type changes
-    const soundTypeSelect = document.getElementById('sound-type');
-    if (soundTypeSelect) {
-        soundTypeSelect.addEventListener('change', function(e) {
-            onMetronomeInstrumentChange(e.target.value);
-        });
-    }
-});
-        
         // Set up event listeners
         UI.elements.startStopButton.addEventListener('click', () => {
             if (AppState.isPlaying) {
@@ -2609,101 +2606,103 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-            function mainLoop() {
-                
-        UI.elements.progressionSelect.addEventListener('change', (e) => {
-            loadProgression(e.target.value);
-        });
+        function mainLoop() {
+            UI.elements.progressionSelect.addEventListener('change', (e) => {
+                loadProgression(e.target.value);
+            });
 
-        UI.elements.keySelect.addEventListener('change', (e) => {
-            updateProgressionKey(e.target.value);
-        });
+            UI.elements.keySelect.addEventListener('change', (e) => {
+                updateProgressionKey(e.target.value);
+            });
 
-        UI.elements.timeSignature.addEventListener('change', () => {
-            createBeats();
-            if (AppState.isPlaying) {
-                stopPlayback();
-                startPlayback();
-            }
-        });
+            UI.elements.timeSignature.addEventListener('change', () => {
+                createBeats();
+                if (AppState.isPlaying) {
+                    stopPlayback();
+                    startPlayback();
+                }
+            });
 
-        UI.elements.soundType.addEventListener('change', () => {
-            createBeats();
-        });
+            UI.elements.soundType.addEventListener('change', () => {
+                createBeats();
+            });
 
-        UI.elements.tempo.addEventListener('input', (e) => {
-            AppState.tempo = parseInt(e.target.value);
-            UI.elements.tempoDisplay.textContent = `${AppState.tempo} BPM`;
-            if (AppState.isPlaying) {
-                stopPlayback();
-                startPlayback();
-            }
-        });
+            UI.elements.tempo.addEventListener('input', (e) => {
+                AppState.tempo = parseInt(e.target.value);
+                UI.elements.tempoDisplay.textContent = `${AppState.tempo} BPM`;
+                if (AppState.isPlaying) {
+                    stopPlayback();
+                    startPlayback();
+                }
+            });
 
-        UI.elements.chordsEnabled.addEventListener('click', function() {
-            this.classList.toggle('active');
-        });
+            UI.elements.chordsEnabled.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
 
-        // Dark mode toggle functionality
-        UI.elements.darkModeToggle.addEventListener('click', function() {
-            this.classList.remove('active', 'active-2', 'active-3');
-            if (!document.body.classList.contains('dark-mode')) {
-                toggleDarkMode('dark-mode');
-                this.classList.add('active');
-            } else if (document.body.classList.contains('dark-mode')) {
-                toggleDarkMode('dark-mode-2');
-                this.classList.add('active-2');
-            } else if (document.body.classList.contains('dark-mode-2')) {
-                toggleDarkMode('dark-mode-3');
-                this.classList.add('active-3');
-            } else {
-                toggleDarkMode(null);
-            }
-        });
+            // Dark mode toggle functionality
+            UI.elements.darkModeToggle.addEventListener('click', function() {
+                this.classList.remove('active', 'active-2', 'active-3');
+                if (!document.body.classList.contains('dark-mode')) {
+                    toggleDarkMode('dark-mode');
+                    this.classList.add('active');
+                } else if (document.body.classList.contains('dark-mode')) {
+                    toggleDarkMode('dark-mode-2');
+                    this.classList.add('active-2');
+                } else if (document.body.classList.contains('dark-mode-2')) {
+                    toggleDarkMode('dark-mode-3');
+                    this.classList.add('active-3');
+                } else {
+                    toggleDarkMode(null);
+                }
+            });
 
-        // Tap tempo functionality
-        UI.elements.tapTempo.addEventListener('click', handleTapTempo);
-        setInterval(clearTapTempoAfterDelay, 2000);
+            // Tap tempo functionality
+            UI.elements.tapTempo.addEventListener('click', handleTapTempo);
+            setInterval(clearTapTempoAfterDelay, 2000);
 
-        // Volume control listeners
-        UI.elements.metronomeVolume.addEventListener('input', () => {
-            if (AppState.isPlaying) {
-                playMetronomeSound(1);
-            }
-        });
+            // Volume control listeners
+            UI.elements.metronomeVolume.addEventListener('input', () => {
+                if (AppState.isPlaying) {
+                    playMetronomeSound(1);
+                }
+            });
 
-        UI.elements.chordVolume.addEventListener('input', () => {
-            if (AppState.isPlaying) {
+            UI.elements.chordVolume.addEventListener('input', () => {
+                if (AppState.isPlaying) {
+                    const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
+                    if (currentMeasure) {
+                        const root = currentMeasure.querySelector('.root-note').value;
+                        const quality = currentMeasure.querySelector('.chord-quality').value;
+                        playChord(root, quality);
+                    }
+                }
+            });
+
+            // Tuning change listener
+            UI.elements.chordTuning.addEventListener('change', () => {
+                const tuning = TUNINGS[UI.elements.chordTuning.value];
+                createFretboard(UI.elements.chordFretboard, tuning);
                 const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
                 if (currentMeasure) {
-                    const root = currentMeasure.querySelector('.root-note').value;
-                    const quality = currentMeasure.querySelector('.chord-quality').value;
-                    playChord(root, quality);
+                    const scaleRoot = currentMeasure.querySelector('.second-key').value;
+                    const scaleType = currentMeasure.querySelector('.scale-select').value;
+                    updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
                 }
-            }
-        });
+            });
 
-        // Tuning change listener
-        UI.elements.chordTuning.addEventListener('change', () => {
-            const tuning = TUNINGS[UI.elements.chordTuning.value];
-            createFretboard(UI.elements.chordFretboard, tuning);
-            const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
-            if (currentMeasure) {
-                const scaleRoot = currentMeasure.querySelector('.second-key').value;
-                const scaleType = currentMeasure.querySelector('.scale-select').value;
-                updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
-            }
-        });
+            // Load initial progression
+            loadProgression('I V7');
 
-        // Load initial progression
-        loadProgression('I V7');
+            // Enable audio context on first user interaction
+            document.addEventListener('click', async () => {
+                if (AudioContextManager.context.state === 'suspended') {
+                    await AudioContextManager.context.resume();
+                }
+            }, { once: true });
+        }
 
-        // Enable audio context on first user interaction
-        document.addEventListener('click', async () => {
-            if (AudioContextManager.context.state === 'suspended') {
-                await AudioContextManager.context.resume();
-            }
-        }, { once: true });
+        mainLoop();
 
     } catch (error) {
         console.error('Initialization error:', error);
