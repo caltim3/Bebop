@@ -940,20 +940,61 @@ const scaleDegrees = {
     return scaleMap[quality] || 'major';
 }
 
-    const qualityMap = {
-        '': 'major',
-        'm': 'minor',
-        '7': 'dom7',
-        'dom7': 'dom7',  // Add explicit mapping
-        'maj7': 'maj7',
-        'm7': 'min7',
-        'min7': 'min7',
-        'dim': 'dim',
-        'min7b5': 'min7b5',
-        '6': 'maj6',    // Add major 6th
-        'm6': 'min6',   // Add minor 6th
-        'maj6': 'maj6', // Alternative notation
-        'min6': 'min6'  // Alternative notation
+const qualityMap = {
+    // Basic triads
+    '': 'maj',          // Empty quality defaults to major
+    'M': 'maj',
+    'maj': 'maj',
+    'major': 'maj',
+    
+    // Minor variations
+    'm': 'min',
+    '-': 'min',
+    'min': 'min',
+    'minor': 'min',
+    
+    // Diminished variations
+    'dim': 'dim',
+    '°': 'dim7',
+    'dim7': 'dim7',
+    'diminished': 'dim',
+    
+    // Augmented variations
+    'aug': 'aug',
+    '+': 'aug',
+    'augmented': 'aug',
+    
+    // Seventh chords
+    '7': 'dom7',
+    'dom7': 'dom7',
+    'maj7': 'maj7',
+    'M7': 'maj7',
+    'm7': 'min7',
+    '-7': 'min7',
+    'min7': 'min7',
+    
+    // Half-diminished variations
+    'ø': 'm7b5',
+    'm7b5': 'm7b5',
+    'half-dim': 'm7b5',
+    
+    // Sixth chords
+    '6': 'maj6',
+    'maj6': 'maj6',
+    'm6': 'min6',
+    'min6': 'min6',
+    
+    // Extended chords
+    '9': '9',
+    'maj9': 'maj9',
+    'm9': 'min9',
+    'min9': 'min9',
+    '11': '11',
+    '13': '13',
+    
+    // Suspended chords
+    'sus2': 'sus2',
+    'sus4': 'sus4'
 };
             
 const AppState = {
@@ -2534,55 +2575,52 @@ async function startPlayback() {
 }
 
 function getQualityValue(chord) {
-    // Extract the quality from the chord
-    const root = chord.match(/^[A-G][#b]?/)[0];
-    let quality = chord.substring(root.length);
-    
-    // If no quality is specified, assume major
-    if (!quality) return 'maj';
-    
-    // Standard quality mappings
-    const qualityMappings = {
-        'm': 'min',
-        '-': 'min',
-        'min': 'min',
-        'maj': 'maj',
-        'dim': 'dim',
-        'ø': 'm7b5',
-        'aug': 'aug',
-        '+': 'aug',
-        '°': 'dim7',
-        'dim7': 'dim7',
-        'm7b5': 'm7b5',
-        'half-dim': 'm7b5',
-        '7': '7',
-        'maj7': 'maj7',
-        'M7': 'maj7',
-        'm7': 'min7',
-        '-7': 'min7',
-        'min7': 'min7',
-        '6': '6',
-        'm6': 'min6',
-        'min6': 'min6',
-        '9': '9',
-        'maj9': 'maj9',
-        'm9': 'min9',
-        'min9': 'min9',
-        '11': '11',
-        '13': '13'
-    };
+    if (!chord) return null;
 
-    // Handle common variations
-    for (const [key, value] of Object.entries(qualityMappings)) {
-        if (quality.startsWith(key)) {
-            // Return the standardized quality plus any remaining extensions
-            const remaining = quality.substring(key.length);
-            return value + remaining;
-        }
+    // If chord is an object with a 'quality' property
+    if (typeof chord === 'object' && chord.quality) {
+        const q = chord.quality.toLowerCase();
+        return qualityMap.hasOwnProperty(q) ? qualityMap[q] : q;
     }
 
-    // If no match found, return the original quality
-    return quality || 'maj';
+    // If chord is a string, try to extract the quality part
+    if (typeof chord === 'string') {
+        // Example: "Cmaj7", "Am", "G7", "F#dim", "Bb-7"
+        // Extract the quality part (everything after the root note)
+        const match = chord.match(/^[A-G][b#]?([^\d]*)?(\d*.*)?$/i);
+        if (match) {
+            // Try to match the longest possible quality string
+            let q = '';
+            if (match[2]) {
+                q = (match[1] || '') + match[2];
+            } else if (match[1]) {
+                q = match[1];
+            }
+            q = q.toLowerCase().replace(/\s+/g, '');
+            if (qualityMap.hasOwnProperty(q)) {
+                return qualityMap[q];
+            }
+            // Try to match just the first part (e.g., "m" in "m7")
+            if (match[1]) {
+                const q1 = match[1].toLowerCase().replace(/\s+/g, '');
+                if (qualityMap.hasOwnProperty(q1)) {
+                    return qualityMap[q1];
+                }
+            }
+            // Try to match just the second part (e.g., "7" in "m7")
+            if (match[2]) {
+                const q2 = match[2].toLowerCase().replace(/\s+/g, '');
+                if (qualityMap.hasOwnProperty(q2)) {
+                    return qualityMap[q2];
+                }
+            }
+        }
+        // If no match, return null or the original string
+        return null;
+    }
+
+    // If chord is not recognized, return null
+    return null;
 }
         
 function stopPlayback() {
