@@ -1665,12 +1665,10 @@ function createQualityOptions(selected = 'major') {
         { value: 'maj7', label: 'Maj7' },
         { value: 'min7', label: 'Min7' },
         { value: 'min7b5', label: 'Min7b5 (Half Diminished)' },
-        { value: '6', label: '6' },         // Added 6th chord
-        { value: 'm6', label: 'Min6' },     // Added minor 6th chord
-        { value: 'maj6', label: '6' },        // Add major 6th
-        { value: 'min6', label: 'm6' },       // Add minor 6th
-        { value: 'dim7', label: 'Dim7' },   // Added fully diminished
-        { value: '7#5', label: '7#5' }      // Added 7#5 chord
+        { value: 'maj6', label: '6' },    // Major 6th
+        { value: 'min6', label: 'm6' },   // Minor 6th
+        { value: 'dim7', label: 'Dim7' },
+        { value: '7#5', label: '7#5' }
     ];
     return qualities.map(q =>
         `<option value="${q.value}"${q.value === selected ? ' selected' : ''}>${q.label}</option>`
@@ -2256,14 +2254,14 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
 
             if (chordRoot && chordQuality && scaleRoot && scaleType) {
                 let displayQuality = chordQuality;
-                switch (chordQuality) {
-                    case 'dom7': displayQuality = '7'; break;
-                    case 'maj7': displayQuality = 'Maj7'; break;
-                    case 'min7': displayQuality = 'm7'; break;
-                    case 'min7b5': displayQuality = 'm7b5'; break;
-                    case 'minor': displayQuality = 'm'; break;
-                    case 'maj6': displayQuality = '6'; break;    // Added major 6 support
-                    case 'min6': displayQuality = 'm6'; break;   // Added minor 6 support
+            switch (chordQuality) {
+                case 'dom7': displayQuality = '7'; break;
+                case 'maj7': displayQuality = 'Maj7'; break;
+                case 'min7': displayQuality = 'm7'; break;
+                case 'min7b5': displayQuality = 'm7b5'; break;
+                case 'minor': displayQuality = 'm'; break;
+                case 'maj6': displayQuality = '6'; break;    // Added major 6th
+                case 'min6': displayQuality = 'm6'; break;   // Added minor 6th
                 }
                 let displayScale = scaleType.charAt(0).toUpperCase() + scaleType.slice(1);
                 displayScale = displayScale.replace(/([A-Z])/g, ' $1').trim();
