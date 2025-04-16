@@ -498,6 +498,26 @@
             color: #ffe8d6;
             border: 1px solid #6b705c;
         }
+
+        .audio-status {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    z-index: 1000;
+}
+
+.audio-status.enabled {
+    background: #4CAF50;
+    color: white;
+}
+
+.audio-status.disabled {
+    background: #f44336;
+    color: white;
+}
         
     </style>
 </head>
@@ -1056,22 +1076,32 @@ const AudioContextManager = {
     reverbNode: null,
     samplesLoaded: false,
     currentChordGain: null,
+
     async initialize() {
         if (!this.context) {
-            this.context = new (window.AudioContext || window.webkitAudioContext)();
-            await this.loadSounds();
-            await this.loadPianoSamples();
-            await this.setupReverb();
+            try {
+                this.context = new (window.AudioContext || window.webkitAudioContext)();
+                await this.loadSounds();
+                await this.loadPianoSamples();
+                await this.setupReverb();
+            } catch (error) {
+                console.error('Audio initialization failed:', error);
+                throw error;
+            }
         }
+        
         if (this.context.state === 'suspended') {
             await this.context.resume();
         }
+        
         AppState.updateState({ audioInitialized: true });
         return this.context;
     },
+
     async ensureAudioContext() {
         return await this.initialize();
     },
+
     async loadSounds() {
         const soundFiles = {
             'click': 'Click.wav',
@@ -1080,6 +1110,7 @@ const AudioContextManager = {
             'snare': 'Snare.wav',
             'woodblock': 'woodblock.wav'
         };
+
         for (let [type, filename] of Object.entries(soundFiles)) {
             try {
                 const response = await fetch(`./${filename}`);
@@ -1095,17 +1126,23 @@ const AudioContextManager = {
         }
         updateLoadingStatus("Drum sounds loaded");
     },
+
     async createDrumSound(type) {
         const sampleRate = this.context.sampleRate;
         const duration = type === 'hihat' ? 0.05 : 0.2;
         const buffer = this.context.createBuffer(1, sampleRate * duration, sampleRate);
         const data = buffer.getChannelData(0);
+
         switch (type) {
             case 'click':
-                for (let i = 0; i < data.length; i++) data[i] = Math.sin(i * 0.05) * Math.exp(-i * 0.01);
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = Math.sin(i * 0.05) * Math.exp(-i * 0.01);
+                }
                 break;
             case 'hihat':
-                for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.01));
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.01));
+                }
                 break;
             case 'kick':
                 for (let i = 0; i < data.length; i++) {
@@ -1128,11 +1165,13 @@ const AudioContextManager = {
         }
         return buffer;
     },
+
     async loadPianoSamples() {
         log('Starting piano sample loading...');
         if (!this.context) {
             await this.initialize();
         }
+
         for (let note of SAMPLED_NOTES) {
             for (let octave of PIANO_CONFIG.octaves[note]) {
                 const sampleName = `${note}${octave}v12`;
@@ -1151,21 +1190,26 @@ const AudioContextManager = {
         this.samplesLoaded = true;
         updateLoadingStatus("Piano samples loaded");
     },
+
     createSyntheticSample(note, octave) {
         const buffer = this.context.createBuffer(1, this.context.sampleRate, this.context.sampleRate);
         const data = buffer.getChannelData(0);
         const frequency = PIANO_NOTES[`${note}${octave}`] || 440;
+        
         for (let i = 0; i < data.length; i++) {
-            data[i] = Math.sin(2 * Math.PI * frequency * i / this.context.sampleRate) * Math.exp(-i / this.context.sampleRate);
+            data[i] = Math.sin(2 * Math.PI * frequency * i / this.context.sampleRate) * 
+                     Math.exp(-i / this.context.sampleRate);
         }
         return buffer;
     },
+
     async setupReverb() {
         if (!this.reverbNode) {
             this.reverbNode = this.context.createConvolver();
             const sampleRate = this.context.sampleRate;
             const length = sampleRate * 2.5;
             const impulse = this.context.createBuffer(2, length, sampleRate);
+            
             for (let channel = 0; channel < 2; channel++) {
                 const channelData = impulse.getChannelData(channel);
                 for (let i = 0; i < length; i++) {
@@ -1177,6 +1221,65 @@ const AudioContextManager = {
         }
     }
 };
+// New helper functions for audio initialization
+async function ensureAudioContext() {
+    if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
+        try {
+            await AudioContextManager.initialize();
+            if (AudioContextManager.context.state === 'suspended') {
+                await AudioContextManager.context.resume();
+            }
+        } catch (error) {
+            console.error('Audio initialization failed:', error);
+            alert('Please click anywhere on the page to enable audio playback');
+            throw error;
+        }
+    }
+}
+
+function showAudioPrompt() {
+    const prompt = document.createElement('div');
+    prompt.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        z-index: 1000;
+    `;
+    prompt.innerHTML = 'Click anywhere to enable audio';
+    document.body.appendChild(prompt);
+    
+    document.addEventListener('click', () => {
+        prompt.remove();
+    }, { once: true });
+}
+
+function updateAudioStatus() {
+    const existingStatus = document.querySelector('.audio-status');
+    if (existingStatus) {
+        existingStatus.remove();
+    }
+
+    const status = document.createElement('div');
+    status.className = 'audio-status';
+    document.body.appendChild(status);
+    
+    function updateStatus() {
+        const isEnabled = AudioContextManager.context && AudioContextManager.context.state === 'running';
+        status.className = `audio-status ${isEnabled ? 'enabled' : 'disabled'}`;
+        status.textContent = isEnabled ? 'Audio Enabled' : 'Audio Disabled';
+    }
+    
+    setInterval(updateStatus, 1000);
+    updateStatus();
+}
+        
+        
 async function ensureAudioInitialized() {
     if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
         try {
@@ -2978,6 +3081,22 @@ window.addEventListener('beforeunload', () => {
     }
     stopPlayback();
 });
+
+        // Initialize audio context on first user interaction
+document.addEventListener('click', async function initAudio() {
+    try {
+        await AudioContextManager.initialize();
+        document.removeEventListener('click', initAudio);
+    } catch (error) {
+        console.error('Failed to initialize audio:', error);
+    }
+}, { once: true });
+
+// Show initial audio prompt and status
+if (!AudioContextManager.context) {
+    showAudioPrompt();
+    updateAudioStatus();
+}
         </script>
     </body>
 </html>
