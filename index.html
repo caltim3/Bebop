@@ -854,6 +854,52 @@ const scaleDegrees = {
     }
 };   
 // State Management
+    function suggestScaleForQuality(quality) {
+    const scaleMap = {
+        // Major family
+        '': 'major',
+        'major': 'major',
+        'maj7': 'major',
+        'maj9': 'major',
+        'maj13': 'major',
+        'add9': 'major',
+
+        // Minor family
+        'm': 'minor',
+        'min': 'minor',
+        'm7': 'minor',
+        'min7': 'minor',
+        'm9': 'minor',
+        'min9': 'minor',
+        'm13': 'minor',
+
+        // Dominant family
+        '7': 'mixolydian',
+        'dom7': 'mixolydian',
+        '9': 'mixolydian',
+        '13': 'mixolydian',
+        '7b9': 'altered',
+        '7#9': 'altered',
+        '7b13': 'altered',
+        '7#11': 'lydianDominant',
+
+        // Diminished
+        'dim': 'diminishedHW',
+        'dim7': 'diminishedHW',
+        'm7b5': 'diminishedWH',
+
+        // Suspended
+        'sus2': 'major',
+        'sus4': 'major',
+
+        // Augmented
+        'aug': 'wholeHalf'
+    };
+
+    return scaleMap[quality] || 'major';
+}
+
+        
 const AppState = {
     isPlaying: false,
     currentBeat: 0,
