@@ -520,7 +520,6 @@
                     <option value="DADGAD">DADGAD</option>
                     <option value="openE">Open E (EBEG#BE)</option>
                 </select>
-                <button id="drumSetToggleBtn" style="display:none;">Drum Set: Default</button>
             </div>
             <div id="chord-fretboard" class="fretboard"></div>
         </div>
@@ -544,6 +543,7 @@
                 <option value="woodblock">Woodblock</option>
                 <option value="drums">Drums</option>
             </select>
+             <button id="drumSetToggleBtn" style="display:none;">Drum Set: Default</button>
             <div class="volume-control">
                 <span>Metronome Volume:</span>
                 <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" aria-label="Metronome volume">
@@ -1919,11 +1919,36 @@ async function playMetronomeSound(baseVolume) {
         // Skip if it's a silent beat
         if (soundKey === 'silent') continue;
 
+        // Get the current drum set if using drums
+        const currentSet = drumSoundSets[currentDrumSetIndex];
+
         // Determine which sound buffer to use
         let buffer;
         if (soundType === 'drums' && soundKey !== 'default') {
-            buffer = AudioContextManager.soundBuffers[soundKey];
+            // Map drum sounds to current set's samples
+            let sampleFile;
+            switch(soundKey) {
+                case 'kick': sampleFile = currentSet.kick; break;
+                case 'snare': sampleFile = currentSet.snare; break;
+                case 'hihat': sampleFile = currentSet.hihat; break;
+                default: sampleFile = null;
+            }
+
+            if (sampleFile) {
+                try {
+                    // Try to load the current set's sample
+                    const response = await fetch(`./${sampleFile}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const arrayBuffer = await response.arrayBuffer();
+                    buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
+                } catch (error) {
+                    console.error(`Failed to load drum sample: ${sampleFile}`, error);
+                    // Fall back to default drum sounds if loading fails
+                    buffer = AudioContextManager.soundBuffers[soundKey];
+                }
+            }
         } else {
+            // Use click or woodblock sounds
             buffer = AudioContextManager.soundBuffers[soundType] || AudioContextManager.soundBuffers['click'];
         }
 
@@ -1975,48 +2000,48 @@ async function playMetronomeSound(baseVolume) {
         }
     }
 }
-        async function playDrumSample(type) {
-    if (!AudioContextManager.context) return;
-    
-    const set = drumSoundSets[currentDrumSetIndex];
-    let sampleFile;
-    
-    if (type === "snare") sampleFile = set.snare;
-    else if (type === "hihat") sampleFile = set.hihat;
-    else if (type === "kick") sampleFile = set.kick;
-    
-    try {
-        // Try to get the buffer from the already loaded sounds
-        let buffer = AudioContextManager.soundBuffers[type];
+    async function playDrumSample(type) {
+        if (!AudioContextManager.context) return;
         
-        // If the buffer doesn't exist, try to load it
-        if (!buffer) {
-            const response = await fetch(`./${sampleFile}`);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const arrayBuffer = await response.arrayBuffer();
-            buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
-            AudioContextManager.soundBuffers[type] = buffer;
+        const set = drumSoundSets[currentDrumSetIndex];
+        let sampleFile;
+        
+        if (type === "snare") sampleFile = set.snare;
+        else if (type === "hihat") sampleFile = set.hihat;
+        else if (type === "kick") sampleFile = set.kick;
+        
+        try {
+            // Try to get the buffer from the already loaded sounds
+            let buffer = AudioContextManager.soundBuffers[type];
+            
+            // If the buffer doesn't exist, try to load it
+            if (!buffer) {
+                const response = await fetch(`./${sampleFile}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const arrayBuffer = await response.arrayBuffer();
+                buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
+                AudioContextManager.soundBuffers[type] = buffer;
+            }
+            
+            const source = AudioContextManager.context.createBufferSource();
+            source.buffer = buffer;
+            
+            const gainNode = AudioContextManager.context.createGain();
+            gainNode.gain.value = parseFloat(UI.elements.metronomeVolume.value);
+            
+            source.connect(gainNode);
+            gainNode.connect(AudioContextManager.context.destination);
+            
+            source.start(0);
+        } catch (error) {
+            console.error(`Failed to play drum sample: ${type}`, error);
+            // Fall back to synthetic drum sound
+            const fallbackBuffer = await AudioContextManager.createDrumSound(type);
+            const source = AudioContextManager.context.createBufferSource();
+            source.buffer = fallbackBuffer;
+            source.connect(AudioContextManager.context.destination);
+            source.start(0);
         }
-        
-        const source = AudioContextManager.context.createBufferSource();
-        source.buffer = buffer;
-        
-        const gainNode = AudioContextManager.context.createGain();
-        gainNode.gain.value = parseFloat(UI.elements.metronomeVolume.value);
-        
-        source.connect(gainNode);
-        gainNode.connect(AudioContextManager.context.destination);
-        
-        source.start(0);
-    } catch (error) {
-        console.error(`Failed to play drum sample: ${type}`, error);
-        // Fall back to synthetic drum sound
-        const fallbackBuffer = await AudioContextManager.createDrumSound(type);
-        const source = AudioContextManager.context.createBufferSource();
-        source.buffer = fallbackBuffer;
-        source.connect(AudioContextManager.context.destination);
-        source.start(0);
-    }
 }
  
 function createFretboard(container, tuning) {
