@@ -2492,7 +2492,21 @@ function loadProgression(progressionName, overrideKey = null) {
         measure.querySelector('.measure-number').textContent = index + 1;
     });
 }
-
+        
+function toggleDrumSet() {
+    const btn = document.getElementById('drumSetToggleBtn');
+    currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
+    const currentSet = drumSoundSets[currentDrumSetIndex];
+    btn.textContent = `Drum Set: ${currentSet.name}`;
+    
+    // Reload the drum sounds for the new set
+    AudioContextManager.loadSounds().then(() => {
+        console.log(`Switched to drum set: ${currentSet.name}`);
+    }).catch(error => {
+        console.error('Error loading new drum set:', error);
+    });
+}
+        
 function addFirstChordListener() {
     const firstMeasure = UI.elements.measures.firstElementChild;
     if (firstMeasure) {
@@ -2566,12 +2580,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         await AudioContextManager.initialize();
 
         document.getElementById("drumSetToggleBtn").addEventListener("click", function() {
-    currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
-    this.textContent = "Drum Set: " + drumSoundSets[currentDrumSetIndex].name;
+            currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
+            this.textContent = "Drum Set: " + drumSoundSets[currentDrumSetIndex].name;
         // Create initial fretboard
         createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
         createBeats();
 
+        const drumSetToggleBtn = document.getElementById('drumSetToggleBtn');
+    if (drumSetToggleBtn) {
+        drumSetToggleBtn.addEventListener('click', toggleDrumSet);
+    }
+
+    // Add event listener for sound type changes
+    const soundTypeSelect = document.getElementById('sound-type');
+    if (soundTypeSelect) {
+        soundTypeSelect.addEventListener('change', function(e) {
+            onMetronomeInstrumentChange(e.target.value);
+        });
+    }
+});
+        
         // Set up event listeners
         UI.elements.startStopButton.addEventListener('click', () => {
             if (AppState.isPlaying) {
