@@ -1294,7 +1294,7 @@ function isMinorKeyName(key) {
 function getChordFromFunction(key, chordFunction) {
     if (!key || !chordFunction) return null;
 
-    // Handle direct chord names
+    // Handle direct chord names (e.g., "Bb7")
     if (/^[A-G]/.test(chordFunction)) {
         return chordFunction;
     }
@@ -1303,17 +1303,17 @@ function getChordFromFunction(key, chordFunction) {
     const isMinorKey = key.toLowerCase().includes('m');
     const actualKey = isMinorKey ? key.replace(/m$|min$/, '') : key;
 
-    // Initialize scales with complete interval patterns
+    // Scales for degree calculation
     const majorScale = [0, 2, 4, 5, 7, 9, 11];
     const minorScale = [0, 2, 3, 5, 7, 8, 10];
     const scale = isMinorKey ? minorScale : majorScale;
 
-    // Enhanced regex pattern to catch all chord variations
-    const functionPattern = /^(b?[ivIV]+)(maj7|maj9|maj13|m7b5|m7|7b9|7#9|7b13|7#11|7|dim7|dim|aug|sus4|sus2|6|9|13|\+7)?$/;
+    // Regex for Roman numeral chords (with extensions)
+    const functionPattern = /^(b?[ivIV]+)(maj7|maj9|maj13|m7b5|m7|min7|7b9|7#9|7b13|7#11|7|dim7|dim|aug|sus4|sus2|6|9|13|\+7)?$/;
     const match = chordFunction.match(functionPattern);
 
     if (!match) {
-        // Handle secondary dominants
+        // Handle secondary dominants (e.g., V7/ii)
         const secondaryPattern = /^V7?\/([\w]+)$/;
         const secondaryMatch = chordFunction.match(secondaryPattern);
         if (secondaryMatch) {
@@ -1328,56 +1328,61 @@ function getChordFromFunction(key, chordFunction) {
         return null;
     }
 
-    const [_, roman, quality = ''] = match;
-    const isMinor = roman === roman.toLowerCase();
+    let [_, roman, quality = ''] = match;
+    const isMinorRoman = roman === roman.toLowerCase();
 
-    // Convert Roman numeral to scale degree (1-based)
+    // Map Roman numerals to scale degrees
     const romanToNumber = {
         'i': 1, 'ii': 2, 'iii': 3, 'iv': 4, 'v': 5, 'vi': 6, 'vii': 7,
         'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7
     };
 
     // Handle flat chords (e.g., bIII, bVI)
-    let degree = romanToNumber[roman.toLowerCase()];
+    let degree = romanToNumber[roman.replace(/^b/, '').toLowerCase()];
     const isFlat = roman.startsWith('b');
-    if (isFlat) {
-        degree = romanToNumber[roman.slice(1).toLowerCase()];
-    }
-
     if (!degree) return null;
 
-    // Calculate root note
+    // Calculate root note index
     let rootIndex = NOTES.indexOf(standardizeNoteName(actualKey));
     if (rootIndex === -1) return null;
-
     rootIndex = (rootIndex + scale[degree - 1]) % 12;
     if (isFlat) {
         rootIndex = (rootIndex - 1 + 12) % 12;
     }
-
     const root = NOTES[rootIndex];
 
-    // Determine chord quality based on scale degree and context
+    // Determine chord quality
     let finalQuality = quality;
     if (!quality) {
         if (isMinorKey) {
             // Minor key default qualities
-            const minorDefaultQualities = {
+            const minorDefaults = {
                 'i': 'm7', 'ii': 'm7b5', 'III': 'maj7', 'iv': 'm7',
                 'v': 'm7', 'VI': 'maj7', 'VII': '7', 'V': '7'
             };
-            finalQuality = minorDefaultQualities[roman] || (isMinor ? 'm7' : '7');
+            finalQuality = minorDefaults[roman] || (isMinorRoman ? 'm7' : '7');
         } else {
             // Major key default qualities
-            const majorDefaultQualities = {
+            const majorDefaults = {
                 'I': 'maj7', 'ii': 'm7', 'iii': 'm7', 'IV': 'maj7',
-                'V': '7', 'vi': 'm7', 'vii': 'm7b5'
+                'V': '7', 'vi': 'm7', 'vii': 'm7b5',
+                // Add support for uppercase II7, III7, etc. as dom7
+                'II': '7', 'III': '7', 'VI': '7', 'VII': '7'
             };
-            finalQuality = majorDefaultQualities[roman] || (isMinor ? 'm7' : '7');
+            // If uppercase and no quality, treat II, III, VI, VII as dom7 if "7" is present in chordFunction
+            if (roman === roman.toUpperCase() && chordFunction.match(/7$/)) {
+                finalQuality = '7';
+            } else {
+                finalQuality = majorDefaults[roman] || (isMinorRoman ? 'm7' : '7');
+            }
         }
     } else {
-        // Force m7 quality for lowercase numerals when only '7' is specified
-        if (isMinor && quality === '7' && ['ii', 'iii', 'vi'].includes(roman.toLowerCase())) {
+        // If uppercase Roman and quality is "7", treat as dom7
+        if (!isMinorKey && roman === roman.toUpperCase() && quality === '7') {
+            finalQuality = '7';
+        }
+        // For lowercase numerals with "7", treat as min7
+        if (isMinorRoman && quality === '7' && ['ii', 'iii', 'vi'].includes(roman.toLowerCase())) {
             finalQuality = 'm7';
         }
     }
