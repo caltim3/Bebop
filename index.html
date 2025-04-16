@@ -2533,6 +2533,58 @@ async function startPlayback() {
     }
 }
 
+function getQualityValue(chord) {
+    // Extract the quality from the chord
+    const root = chord.match(/^[A-G][#b]?/)[0];
+    let quality = chord.substring(root.length);
+    
+    // If no quality is specified, assume major
+    if (!quality) return 'maj';
+    
+    // Standard quality mappings
+    const qualityMappings = {
+        'm': 'min',
+        '-': 'min',
+        'min': 'min',
+        'maj': 'maj',
+        'dim': 'dim',
+        'ø': 'm7b5',
+        'aug': 'aug',
+        '+': 'aug',
+        '°': 'dim7',
+        'dim7': 'dim7',
+        'm7b5': 'm7b5',
+        'half-dim': 'm7b5',
+        '7': '7',
+        'maj7': 'maj7',
+        'M7': 'maj7',
+        'm7': 'min7',
+        '-7': 'min7',
+        'min7': 'min7',
+        '6': '6',
+        'm6': 'min6',
+        'min6': 'min6',
+        '9': '9',
+        'maj9': 'maj9',
+        'm9': 'min9',
+        'min9': 'min9',
+        '11': '11',
+        '13': '13'
+    };
+
+    // Handle common variations
+    for (const [key, value] of Object.entries(qualityMappings)) {
+        if (quality.startsWith(key)) {
+            // Return the standardized quality plus any remaining extensions
+            const remaining = quality.substring(key.length);
+            return value + remaining;
+        }
+    }
+
+    // If no match found, return the original quality
+    return quality || 'maj';
+}
+        
 function stopPlayback() {
     clearInterval(AppState.intervalId);
     AppState.intervalId = null;
