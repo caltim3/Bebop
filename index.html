@@ -1210,6 +1210,13 @@ async function loadSample(context, url) {
   
   return bestMatch;
 }    
+      const AudioContextManager = {
+          context: null,
+          pianoSampleBuffers: {},
+          drumSampleBuffers: {},
+          reverbNode: null,
+          currentChordGain: null,
+          
         async createDrumSound(type) {
             const sampleRate = this.context.sampleRate;
             const duration = type === 'hihat' ? 0.05 : 0.2;
