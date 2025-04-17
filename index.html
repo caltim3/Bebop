@@ -1393,105 +1393,108 @@
     }
     
     function getChordFromFunction(key, chordFunction) {
-        if (!key || !chordFunction) return null;
-    
-        // Handle direct chord names
-        if (/^[A-G]/.test(chordFunction)) {
-            return chordFunction;
-        }
-            if (!intervalPatterns[quality]) {
-            console.warn(`Unsupported quality: ${quality}. Defaulting to 'maj'`);
-            quality = 'maj';
-          }
-          
-          return `${root}${quality}`;
-        }
-        // Determine if we're in a minor key
-        const isMinorKey = key.toLowerCase().includes('m');
-        const actualKey = isMinorKey ? key.replace(/m$|min$/, '') : key;
-    
-        // Initialize scales with complete interval patterns
-        const majorScale = [0, 2, 4, 5, 7, 9, 11];
-        const minorScale = [0, 2, 3, 5, 7, 8, 10];
-        const scale = isMinorKey ? minorScale : majorScale;
-    
-        // Enhanced regex pattern to catch all chord variations
-        const functionPattern = /^(b?[ivIV]+)(maj7|maj9|maj13|m7b5|m7|7b9|7#9|7b13|7#11|7|dim7|dim|aug|sus4|sus2|6|9|13|\+7)?$/;
-        const match = chordFunction.match(functionPattern);
-    
-        if (!match) {
-            // Handle secondary dominants
-            const secondaryPattern = /^V7?\/([\w]+)$/;
-            const secondaryMatch = chordFunction.match(secondaryPattern);
-            if (secondaryMatch) {
-                const targetDegree = secondaryMatch[1];
-                const targetRoot = getChordFromFunction(key, targetDegree);
-                if (!targetRoot) return null;
-                const targetIndex = NOTES.indexOf(standardizeNoteName(targetRoot));
-                if (targetIndex === -1) return null;
-                const dominantIndex = (targetIndex + 7) % 12;
-                return NOTES[dominantIndex] + '7';
-            }
-            return null;
-        }
-    
-        const [_, roman, quality = ''] = match;
-        const isMinor = roman === roman.toLowerCase();
-    
-        // Convert Roman numeral to scale degree (1-based)
-        const romanToNumber = {
-            'i': 1, 'ii': 2, 'iii': 3, 'iv': 4, 'v': 5, 'vi': 6, 'vii': 7,
-            'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7
-        };
-    
-        // Handle flat chords (e.g., bIII, bVI)
-        let degree = romanToNumber[roman.toLowerCase()];
-        const isFlat = roman.startsWith('b');
-        if (isFlat) {
-            degree = romanToNumber[roman.slice(1).toLowerCase()];
-        }
-    
-        if (!degree) return null;
-    
-        // Calculate root note
-        let rootIndex = NOTES.indexOf(standardizeNoteName(actualKey));
-        if (rootIndex === -1) return null;
-    
-        rootIndex = (rootIndex + scale[degree - 1]) % 12;
-        if (isFlat) {
-            rootIndex = (rootIndex - 1 + 12) % 12;
-        }
-    
-        const root = NOTES[rootIndex];
-    
-        // Determine chord quality based on scale degree and context
-        let finalQuality = quality;
-        if (!quality) {
-            if (isMinorKey) {
-                // Minor key default qualities
-                const minorDefaultQualities = {
-                    'i': 'm7', 'ii': 'm7b5', 'III': 'maj7', 'iv': 'm7',
-                    'v': 'm7', 'VI': 'maj7', 'VII': '7', 'V': '7'
-                };
-                finalQuality = minorDefaultQualities[roman] || (isMinor ? 'm7' : '7');
-            } else {
-                // Major key default qualities
-                const majorDefaultQualities = {
-                    'I': 'maj7', 'ii': 'm7', 'iii': 'm7', 'IV': 'maj7',
-                    'V': '7', 'vi': 'm7', 'vii': 'm7b5'
-                };
-                finalQuality = majorDefaultQualities[roman] || (isMinor ? 'm7' : '7');
-            }
-        } else {
-            // Force m7 quality for lowercase numerals when only '7' is specified
-            if (isMinor && quality === '7' && ['ii', 'iii', 'vi'].includes(roman.toLowerCase())) {
-                finalQuality = 'm7';
-            }
-        }
-    
-        return root + finalQuality;
+    if (!key || !chordFunction) return null;
+
+    // Handle direct chord names (e.g., "Cmaj7")
+    if (/^[A-G]/.test(chordFunction)) {
+        return chordFunction;
     }
-    
+
+    // Initialize variables
+    let root, quality = '';
+    let isFlat = false;
+
+    // Determine if we're in a minor key
+    const isMinorKey = key.toLowerCase().includes('m');
+    const actualKey = isMinorKey ? key.replace(/m$|min$/, '') : key;
+
+    // Initialize scales with complete interval patterns
+    const majorScale = [0, 2, 4, 5, 7, 9, 11];
+    const minorScale = [0, 2, 3, 5, 7, 8, 10];
+    const scale = isMinorKey ? minorScale : majorScale;
+
+    // Enhanced regex pattern to catch all chord variations
+    const functionPattern = /^(b?[ivIV]+)(maj7|maj9|maj13|m7b5|m7|7b9|7#9|7b13|7#11|7|dim7|dim|aug|sus4|sus2|6|9|13|\+7)?$/;
+    const match = chordFunction.match(functionPattern);
+
+    if (!match) {
+        // Handle secondary dominants (e.g., "V7/III")
+        const secondaryPattern = /^V7?\/([\w]+)$/;
+        const secondaryMatch = chordFunction.match(secondaryPattern);
+        if (secondaryMatch) {
+            const targetDegree = secondaryMatch[1];
+            const targetRoot = getChordFromFunction(key, targetDegree);
+            if (!targetRoot) return null;
+            const targetIndex = NOTES.indexOf(standardizeNoteName(targetRoot));
+            if (targetIndex === -1) return null;
+            const dominantIndex = (targetIndex + 7) % 12;
+            return NOTES[dominantIndex] + '7';
+        }
+        return null;
+    }
+
+    const [_, roman, qualityPart = ''] = match;
+    quality = qualityPart;
+    const isMinor = roman === roman.toLowerCase();
+
+    // Handle flat/sharp in Roman numeral (e.g., "bII7")
+    isFlat = roman.startsWith('b');
+    if (isFlat) {
+        roman = roman.slice(1);
+    }
+
+    // Convert Roman numeral to scale degree (1-based)
+    const romanToNumber = {
+        'i': 1, 'ii': 2, 'iii': 3, 'iv': 4, 'v': 5, 'vi': 6, 'vii': 7,
+        'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7
+    };
+    const degree = romanToNumber[roman.toLowerCase()];
+    if (!degree) return null;
+
+    // Calculate root note
+    const keyIndex = NOTES.indexOf(standardizeNoteName(actualKey));
+    if (keyIndex === -1) return null;
+
+    let rootIndex = (keyIndex + scale[degree - 1]) % 12;
+    if (isFlat) {
+        rootIndex = (rootIndex - 1 + 12) % 12;
+    }
+    root = NOTES[rootIndex];
+
+    // Validate quality against intervalPatterns
+    if (!intervalPatterns[quality]) {
+        console.warn(`Unsupported quality: ${quality}. Defaulting to 'maj'`);
+        quality = 'maj';
+    }
+
+    // Determine final quality (override if needed)
+    let finalQuality = quality;
+    if (!finalQuality) {
+        if (isMinorKey) {
+            // Minor key default qualities
+            const minorDefaults = {
+                'i': 'm7', 'ii': 'm7b5', 'III': 'maj7', 'iv': 'm7',
+                'v': 'm7', 'VI': 'maj7', 'VII': '7', 'V': '7'
+            };
+            finalQuality = minorDefaults[roman] || (isMinor ? 'm7' : '7');
+        } else {
+            // Major key default qualities
+            const majorDefaults = {
+                'I': 'maj7', 'ii': 'm7', 'iii': 'm7', 'IV': 'maj7',
+                'V': '7', 'vi': 'm7', 'vii': 'm7b5'
+            };
+            finalQuality = majorDefaults[roman] || (isMinor ? 'm7' : '7');
+        }
+    } else {
+        // Force m7 for lowercase numerals with '7' in minor keys
+        if (isMinorKey && finalQuality === '7' && ['ii', 'iii', 'vi'].includes(roman.toLowerCase())) {
+            finalQuality = 'm7';
+        }
+    }
+
+    return root + finalQuality;
+}
+            
     function getChordTones(root, quality) {
         const chromatic = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         const normalizedRoot = ENHARMONIC_MAP[root] || root;
