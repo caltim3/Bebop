@@ -1216,7 +1216,48 @@ async function loadSample(context, url) {
           drumSampleBuffers: {},
           reverbNode: null,
           currentChordGain: null,
-          
+
+// Add this initialize method
+  async initialize() {
+    try {
+      this.context = new (window.AudioContext || window.webkitAudioContext)();
+      this.reverbNode = this.createReverb();
+      
+      // Load drum samples
+      this.drumSampleBuffers = {
+        click: await this.createDrumSound('click'),
+        hihat: await this.createDrumSound('hihat'),
+        kick: await this.createDrumSound('kick'),
+        snare: await this.createDrumSound('snare'),
+        woodblock: await this.createDrumSound('woodblock')
+      };
+      
+      // Load piano samples (if needed)
+      // this.pianoSampleBuffers = await this.loadPianoSamples();
+      
+      console.log('AudioContextManager initialized');
+      return true;
+    } catch (error) {
+      console.error('AudioContextManager initialization failed:', error);
+      return false;
+    }
+  },
+         createReverb() {
+            const duration = 2;
+            const sampleRate = this.context.sampleRate;
+            const buffer = this.context.createBuffer(2, sampleRate * duration, sampleRate);
+            for (let channel = 0; channel < 2; channel++) {
+              const channelData = buffer.getChannelData(channel);
+              for (let i = 0; i < channelData.length; i++) {
+                channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / (sampleRate * duration), 3);
+              }
+            }
+            const reverbNode = this.context.createConvolver();
+            reverbNode.buffer = buffer;
+            return reverbNode;
+          }
+        };
+            
         async createDrumSound(type) {
             const sampleRate = this.context.sampleRate;
             const duration = type === 'hihat' ? 0.05 : 0.2;
@@ -2932,38 +2973,43 @@ async function loadSample(context, url) {
     }
     
     // Initialize the application
-    document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            UI.init();
-            await AudioContextManager.initialize();
-    
-            // Set up drum set toggle button
-            const drumSetToggleBtn = document.getElementById('drumSetToggleBtn');
-            if (drumSetToggleBtn) {
-                drumSetToggleBtn.addEventListener('click', toggleDrumSet);
-            }
-    
-            // Add event listener for sound type changes
-            const soundTypeSelect = document.getElementById('sound-type');
-            if (soundTypeSelect) {
-                soundTypeSelect.addEventListener('change', function(e) {
-                    onMetronomeInstrumentChange(e.target.value);
-                });
-            }
-    
-            // Create initial fretboard and beats
-            createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
-            createBeats();
-    
-            // Set up event listeners
-            UI.elements.startStopButton.addEventListener('click', () => {
-                if (AppState.isPlaying) {
-                    stopPlayback();
-                } else {
-                    startPlayback();
-                }
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // 1. Initialize UI first
+        UI.init();
+
+        // 2. Initialize audio system (critical step)
+        await AudioContextManager.initialize(); // Ensure this method exists in your AudioContextManager
+
+        // 3. Setup UI elements
+        // Set up drum set toggle button
+        const drumSetToggleBtn = document.getElementById('drumSetToggleBtn');
+        if (drumSetToggleBtn) {
+            drumSetToggleBtn.addEventListener('click', toggleDrumSet);
+        }
+
+        // Add event listener for sound type changes
+        const soundTypeSelect = document.getElementById('sound-type');
+        if (soundTypeSelect) {
+            soundTypeSelect.addEventListener('change', function(e) {
+                onMetronomeInstrumentChange(e.target.value);
             });
-    
+        }
+
+        // 4. Initialize core components
+        createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
+        createBeats();
+
+        // 5. Additional setup (if needed)
+        loadProgressions();
+        setupEventListeners();
+        
+        console.log('App initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
+        alert('Error initializing audio. Please refresh the page.');
+    }
+});
             async function ensureAudioInitialized() {
         try {
             if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
