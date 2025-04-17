@@ -3041,7 +3041,104 @@ async function playNote(noteName, volume = 1.0, duration = 1000) {
             tapTimes = [];
         }
     }
-    
+    // Add this function before the DOMContentLoaded event listener
+function setupEventListeners() {
+    // Add UI event listeners
+    UI.elements.progressionSelect.addEventListener('change', (e) => {
+        loadProgression(e.target.value);
+    });
+
+    UI.elements.keySelect.addEventListener('change', (e) => {
+        updateProgressionKey(e.target.value);
+    });
+
+    UI.elements.timeSignature.addEventListener('change', () => {
+        createBeats();
+        if (AppState.isPlaying) {
+            stopPlayback();
+            startPlayback();
+        }
+    });
+
+    UI.elements.soundType.addEventListener('change', () => {
+        createBeats();
+    });
+
+    UI.elements.tempo.addEventListener('input', (e) => {
+        AppState.tempo = parseInt(e.target.value);
+        UI.elements.tempoDisplay.textContent = `${AppState.tempo} BPM`;
+        if (AppState.isPlaying) {
+            stopPlayback();
+            startPlayback();
+        }
+    });
+
+    UI.elements.chordsEnabled.addEventListener('click', function() {
+        this.classList.toggle('active');
+    });
+
+    // Dark mode toggle functionality
+    UI.elements.darkModeToggle.addEventListener('click', function() {
+        this.classList.remove('active', 'active-2', 'active-3');
+        if (!document.body.classList.contains('dark-mode') && 
+            !document.body.classList.contains('dark-mode-2') && 
+            !document.body.classList.contains('dark-mode-3')) {
+            toggleDarkMode('dark-mode');
+            this.classList.add('active');
+        } else if (document.body.classList.contains('dark-mode')) {
+            toggleDarkMode('dark-mode-2');
+            this.classList.add('active-2');
+        } else if (document.body.classList.contains('dark-mode-2')) {
+            toggleDarkMode('dark-mode-3');
+            this.classList.add('active-3');
+        } else {
+            toggleDarkMode(null);
+        }
+    });
+
+    // Tap tempo functionality
+    UI.elements.tapTempo.addEventListener('click', handleTapTempo);
+    setInterval(clearTapTempoAfterDelay, 2000);
+
+    // Volume control listeners
+    UI.elements.metronomeVolume.addEventListener('input', () => {
+        if (AppState.isPlaying) {
+            playMetronomeSound(1);
+        }
+    });
+
+    UI.elements.chordVolume.addEventListener('input', () => {
+        if (AppState.isPlaying) {
+            const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
+            if (currentMeasure) {
+                const root = currentMeasure.querySelector('.root-note').value;
+                const quality = currentMeasure.querySelector('.chord-quality').value;
+                playChord(root, quality);
+            }
+        }
+    });
+
+    // Tuning change listener
+    UI.elements.chordTuning.addEventListener('change', () => {
+        const tuning = TUNINGS[UI.elements.chordTuning.value];
+        createFretboard(UI.elements.chordFretboard, tuning);
+        const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
+        if (currentMeasure) {
+            const scaleRoot = currentMeasure.querySelector('.second-key').value;
+            const scaleType = currentMeasure.querySelector('.scale-select').value;
+            updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
+        }
+    });
+
+    // Add start/stop button listener if it's not already defined elsewhere
+    UI.elements.startStopButton.addEventListener('click', () => {
+        if (AppState.isPlaying) {
+            stopPlayback();
+        } else {
+            startPlayback();
+        }
+    });
+}
     // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
     try {
