@@ -1630,7 +1630,7 @@ function playChord(chord, duration = 1, beatNumber = 0) {
     // Start with a higher base octave (3 instead of 2)
     const baseOctave = 3;
     
-    // Convert note names to note names with octaves
+    // Convert note indices to note names with octaves
     const noteNames = chordNotes.map(noteIndex => {
         // Get the note name from the NOTES array using modulo 12
         const noteName = NOTES[noteIndex % 12];
@@ -1640,10 +1640,10 @@ function playChord(chord, duration = 1, beatNumber = 0) {
     });
     
     // Special handling for drop voicings - lower the first note by an octave
-    if (Math.random() < 0.3) { // 30% chance of drop voicing
-        const parts = noteNames[0].split(/(\d+)/);
-        const noteName = parts[0];
-        const octave = parseInt(parts[1]) - 1;
+    if (Math.random() < 0.3 && noteNames.length > 0) { // 30% chance of drop voicing
+        const firstNote = noteNames[0];
+        const noteName = firstNote.replace(/\d+/, '');
+        const octave = parseInt(firstNote.match(/\d+/)[0]) - 1;
         noteNames[0] = noteName + octave;
     }
     
