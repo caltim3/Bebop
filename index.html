@@ -2985,7 +2985,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         createBeats();
 
         // 6. Load progressions and set up other event listeners
-        loadProgressions();
+        loadProgression('I V7');
         setupEventListeners();
 
         // 7. Start the main loop (should be non-blocking)
@@ -3122,17 +3122,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
                     }
                 });
-    
-                // Load initial progression
-                loadProgression('I V7');
-    
-                // Enable audio context on first user interaction
-                document.addEventListener('click', async () => {
-                    if (AudioContextManager.context.state === 'suspended') {
-                        await AudioContextManager.context.resume();
-                    }
-                }, { once: true });
-            }
+
+
     
     // Error handling for audio loading
     window.addEventListener('error', function(e) {
