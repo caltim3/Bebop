@@ -2960,20 +2960,19 @@ async function loadSample(context, url) {
     // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // 1. Initialize UI first
+        // 1. Initialize UI
         UI.init();
 
-        // 2. Initialize audio system (critical step)
-        await AudioContextManager.initialize(); // Ensure this method exists in your AudioContextManager
+        // 2. Initialize audio system
+        await AudioContextManager.initialize();
 
-        // 3. Setup UI elements
-        // Set up drum set toggle button
+        // 3. Set up drum set toggle button
         const drumSetToggleBtn = document.getElementById('drumSetToggleBtn');
         if (drumSetToggleBtn) {
             drumSetToggleBtn.addEventListener('click', toggleDrumSet);
         }
 
-        // Add event listener for sound type changes
+        // 4. Add event listener for sound type changes
         const soundTypeSelect = document.getElementById('sound-type');
         if (soundTypeSelect) {
             soundTypeSelect.addEventListener('change', function(e) {
@@ -2981,20 +2980,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        // 4. Initialize core components
+        // 5. Create initial fretboard and beats
         createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
         createBeats();
 
-        // 5. Additional setup (if needed)
+        // 6. Load progressions and set up other event listeners
         loadProgressions();
         setupEventListeners();
-        
+
+        // 7. Start the main loop (should be non-blocking)
+        if (typeof mainLoop === 'function') {
+            mainLoop();
+        } else {
+            console.warn('mainLoop function is not defined.');
+        }
+
         console.log('App initialized successfully');
     } catch (error) {
-        console.error('Failed to initialize app:', error);
-        alert('Error initializing audio. Please refresh the page.');
+        console.error('Initialization error:', error);
+        alert('Error initializing application. Please check the console for details.');
     }
 });
+            
             async function ensureAudioInitialized() {
         try {
             if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
@@ -3126,14 +3133,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }, { once: true });
             }
-    
-            mainLoop();
-    
-        } catch (error) {
-            console.error('Initialization error:', error);
-            alert('Error initializing application. Please check the console for details.');
-        }
-    });
     
     // Error handling for audio loading
     window.addEventListener('error', function(e) {
