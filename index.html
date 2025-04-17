@@ -723,25 +723,46 @@
     // Musical Constants
     
     // At the beginning of your initialization code, add default volume settings
-    const DEFAULT_SETTINGS = {
-        masterVolume: 0.75,
-        metronomeVolume: 0.5,
-        pianoVolume: 0.75,
-        drumVolume: 0.6
-    };
-    
-    // Initialize volume settings
-    let volume = {
-        master: localStorage.getItem('masterVolume') ? parseFloat(localStorage.getItem('masterVolume')) : DEFAULT_SETTINGS.masterVolume,
-        metronome: localStorage.getItem('metronomeVolume') ? parseFloat(localStorage.getItem('metronomeVolume')) : DEFAULT_SETTINGS.metronomeVolume,
-        piano: localStorage.getItem('pianoVolume') ? parseFloat(localStorage.getItem('pianoVolume')) : DEFAULT_SETTINGS.pianoVolume,
-        drums: localStorage.getItem('drumVolume') ? parseFloat(localStorage.getItem('drumVolume')) : DEFAULT_SETTINGS.drumVolume
-    };
-    
+const DEFAULT_SETTINGS = Object.freeze({
+    master: 0.75,
+    metronome: 0.5,
+    piano: 0.75,
+    drums: 0.6
+});
+        
+        let volume = {
+            master: localStorage.getItem('master') ? parseFloat(localStorage.getItem('master')) : DEFAULT_SETTINGS.master,
+            metronome: localStorage.getItem('metronome') ? parseFloat(localStorage.getItem('metronome')) : DEFAULT_SETTINGS.metronome,
+            piano: localStorage.getItem('piano') ? parseFloat(localStorage.getItem('piano')) : DEFAULT_SETTINGS.piano,
+            drums: localStorage.getItem('drums') ? parseFloat(localStorage.getItem('drums')) : DEFAULT_SETTINGS.drums
+        };
+        function saveVolumeSettings() {
+            localStorage.setItem('master', volume.master);
+            localStorage.setItem('metronome', volume.metronome);
+            localStorage.setItem('piano', volume.piano);
+            localStorage.setItem('drums', volume.drums);
+        }
+            
             function validateVolume(vol) {
         return Math.max(0, Math.min(1, parseFloat(vol) || 0));
     }
-            
+            function getLocalStorageItem(key, defaultValue) {
+    try {
+        const value = localStorage.getItem(key);
+        return value !== null ? parseFloat(value) : defaultValue;
+    } catch (error) {
+        console.warn('Failed to read from localStorage:', error);
+        return defaultValue;
+    }
+}
+
+// Usage:
+let volume = {
+    master: getLocalStorageItem('master', DEFAULT_SETTINGS.master),
+    metronome: getLocalStorageItem('metronome', DEFAULT_SETTINGS.metronome),
+    piano: getLocalStorageItem('piano', DEFAULT_SETTINGS.piano),
+    drums: getLocalStorageItem('drums', DEFAULT_SETTINGS.drums)
+};
     const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
     
     const ENHARMONIC_MAP = {
@@ -3129,8 +3150,10 @@ function updateLoadingStatus(message) {
     }
     indicator.textContent = message;
     
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
+    // Auto-hide after 3 seconds (add this if needed)
+    clearTimeout(indicator.timeout);
+    indicator.style.opacity = '1';
+    indicator.timeout = setTimeout(() => {
         indicator.style.opacity = '0';
         setTimeout(() => {
             if (indicator && indicator.parentNode) {
