@@ -1477,7 +1477,7 @@ playBuffer: function(buffer, soundKey, soundType, adjustedVolume, drumSounds) {
 }
 
      
-createSyntheticSample(note, octave) {
+createSyntheticSample: function(note, octave) {  // Also change to function() syntax
     const duration = 2.0; // 2-second buffer for piano samples
     const sampleRate = this.context.sampleRate;
     const bufferLength = sampleRate * duration;
