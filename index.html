@@ -1568,8 +1568,6 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
     if (chordVolume <= 0) return;
     
     // Determine voicing type based on whether it's a passing chord
-    // For first chord in measure, use close voicing
-    // For second chord in measure (passing chord), use drop2 voicing
     const voicingType = isPassingChord ? 'drop2' : 'close';
     
     const chordNotes = getChordNotes(root, quality, voicingType);
@@ -1583,30 +1581,31 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
     AudioContextManager.currentChordGain.gain.setValueAtTime(chordVolume, startTime);
     AudioContextManager.currentChordGain.connect(AudioContextManager.context.destination);
     
-    // Assign octaves to ensure notes are within C2-A4 range
-    const baseOctave = 2; // Start at C2
-    let previousNoteIndex = -1;
+    // Start with a higher base octave (3 instead of 2)
+    const baseOctave = 3;
     
-    chordNotes.forEach((note, index) => {
-        const noteIndex = NOTES.indexOf(note);
-        
-        // Calculate octave to keep within C2-A4 range
-        // If the current note is lower in the scale than the previous note,
-        // it likely belongs to the next octave
+    // Sort notes to ensure proper voicing
+    const sortedNotes = [...chordNotes].sort((a, b) => {
+        return NOTES.indexOf(a) - NOTES.indexOf(b);
+    });
+    
+    // Assign octaves to ensure notes are within C2-A4 range
+    sortedNotes.forEach((note, index) => {
+        // Calculate appropriate octave based on position in chord
         let octave = baseOctave;
-        if (previousNoteIndex !== -1 && noteIndex <= previousNoteIndex) {
-            octave += 1;
+        
+        // For drop voicings, adjust the octave of the first note
+        if (voicingType !== 'close' && index === 0) {
+            octave = baseOctave - 1;
         }
         
-        // Ensure we don't exceed A4 (A in octave 4)
-        if (octave > 4 || (octave === 4 && noteIndex > NOTES.indexOf('A'))) {
-            octave = 4;
-            if (noteIndex > NOTES.indexOf('A')) {
-                octave = 3;
-            }
-        }
+        // Ensure octave stays within C2-A4 range
+        octave = Math.max(2, Math.min(4, octave));
         
-        previousNoteIndex = noteIndex;
+        // Special handling for high notes (above A)
+        if (octave === 4 && NOTES.indexOf(note) > NOTES.indexOf('A')) {
+            octave = 3;
+        }
         
         const { sampleKey, playbackRate } = getPitchShiftedNote(note, octave);
         const buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
