@@ -1339,119 +1339,124 @@ async ensureAudioContext() {
   }
 },
     
-    playMetronomeSound: async function(baseVolume) {
-        if (!AudioContextManager.context) return;
-        
-        // Get the metronome volume slider value and combine it with base volume
-        const metronomeVolumeControl = document.getElementById('metronome-volume');
-        const metronomeVolume = parseFloat(metronomeVolumeControl.value);
-        const combinedVolume = baseVolume * metronomeVolume;
-        
-        if (combinedVolume <= 0) return;
-        
-        const soundType = UI.elements.soundType.value;
-        const beatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
-        
-        if (!beatElement) return;
-        
-        const drumSounds = beatElement.dataset.sound.split(',');
-        const baseVolumeValue = parseFloat(beatElement.dataset.baseVolume) || 0;
-        const isAccent = baseVolumeValue >= 1 && ['kick', 'snare'].includes(drumSounds[0]);
-        const accentBoost = parseFloat(UI.elements.accentIntensity?.value || 1);
-        
-        // Apply accent boost if applicable
-        let adjustedVolume = combinedVolume;
-        if (isAccent) {
-            adjustedVolume = Math.min(combinedVolume * accentBoost, 1); // cap at 1.0
+   playMetronomeSound: function(baseVolume) {  // Remove async here
+    if (!AudioContextManager.context) return;
+    
+    // Get the metronome volume slider value and combine it with base volume
+    const metronomeVolumeControl = document.getElementById('metronome-volume');
+    const metronomeVolume = parseFloat(metronomeVolumeControl.value);
+    const combinedVolume = baseVolume * metronomeVolume;
+    
+    if (combinedVolume <= 0) return;
+    
+    const soundType = UI.elements.soundType.value;
+    const beatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
+    
+    if (!beatElement) return;
+    
+    const drumSounds = beatElement.dataset.sound.split(',');
+    const baseVolumeValue = parseFloat(beatElement.dataset.baseVolume) || 0;
+    const isAccent = baseVolumeValue >= 1 && ['kick', 'snare'].includes(drumSounds[0]);
+    const accentBoost = parseFloat(UI.elements.accentIntensity?.value || 1);
+    
+    // Apply accent boost if applicable
+    let adjustedVolume = combinedVolume;
+    if (isAccent) {
+        adjustedVolume = Math.min(combinedVolume * accentBoost, 1); // cap at 1.0
+    }
+    
+    // Process each sound in the drum pattern
+    for (let soundKey of drumSounds) {
+        this.playSingleDrumSound(soundKey, soundType, adjustedVolume, drumSounds);
+    }
+},
+
+// Add a helper method to handle the async part
+playSingleDrumSound: async function(soundKey, soundType, adjustedVolume, drumSounds) {
+    soundKey = soundKey.trim();
+    
+    // Skip if it's a silent beat
+    if (soundKey === 'silent') return;
+    
+    // Get the current drum set if using drums
+    const currentSet = drumSoundSets[currentDrumSetIndex];
+    
+    // Determine which sound buffer to use
+    let buffer;
+    if (soundType === 'drums' && soundKey !== 'default') {
+        // Map drum sounds to current set's samples
+        let sampleFile;
+        switch(soundKey) {
+            case 'kick': sampleFile = currentSet.kick; break;
+            case 'snare': sampleFile = currentSet.snare; break;
+            case 'hihat': sampleFile = currentSet.hihat; break;
+            default: sampleFile = null;
         }
         
-        // Process each sound in the drum pattern
-        for (let soundKey of drumSounds) {
-            soundKey = soundKey.trim();
-            
-            // Skip if it's a silent beat
-            if (soundKey === 'silent') continue;
-            
-            // Get the current drum set if using drums
-            const currentSet = drumSoundSets[currentDrumSetIndex];
-            
-            // Determine which sound buffer to use
-            let buffer;
-            if (soundType === 'drums' && soundKey !== 'default') {
-                // Map drum sounds to current set's samples
-                let sampleFile;
-                switch(soundKey) {
-                    case 'kick': sampleFile = currentSet.kick; break;
-                    case 'snare': sampleFile = currentSet.snare; break;
-                    case 'hihat': sampleFile = currentSet.hihat; break;
-                    default: sampleFile = null;
-                }
-                
-                if (sampleFile) {
-                    try {
-                        // Try to load the current set's sample
-                        const response = await fetch(`./${sampleFile}`);
-                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                        const arrayBuffer = await response.arrayBuffer();
-                        buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
-                    } catch (error) {
-                        console.error(`Failed to load drum sample: ${sampleFile}`, error);
-                        // Fall back to default drum sounds if loading fails
-                        buffer = AudioContextManager.drumSampleBuffers[soundKey];
-                    }
-                }
-            } else {
-                // Use click or woodblock sounds
-                buffer = AudioContextManager.drumSampleBuffers[soundType] || AudioContextManager.drumSampleBuffers['click'];
-            }
-            
-            if (!buffer) continue;
-            
-            // Create and configure audio nodes
-            const source = AudioContextManager.context.createBufferSource();
-            source.buffer = buffer;
-            
-            const gainNode = AudioContextManager.context.createGain();
-            
-            // Adjust volume based on sound type and context
-            let finalVolume = adjustedVolume;
-            if (soundType === 'drums') {
-                // Reduce hi-hat volume when playing with other sounds
-                if (soundKey === 'hihat' && drumSounds.length > 1) {
-                    finalVolume *= 0.5;
-                }
-                // Adjust kick and snare volumes
-                else if (soundKey === 'kick') {
-                    finalVolume *= 1.2; // Slightly boost kick
-                }
-                else if (soundKey === 'snare') {
-                    finalVolume *= 1.1; // Slightly boost snare
-                }
-            }
-            
-            // Ensure volume doesn't exceed 1.0
-            finalVolume = Math.min(finalVolume, 1.0);
-            gainNode.gain.value = finalVolume;
-            
-            // Connect the audio nodes
-            source.connect(gainNode);
-            gainNode.connect(AudioContextManager.context.destination);
-            
-            // Add slight reverb for drums
-            if (soundType === 'drums' && AudioContextManager.reverbNode) {
-                const reverbGain = AudioContextManager.context.createGain();
-                reverbGain.gain.value = 0.1; // Subtle reverb
-                source.connect(reverbGain);
-                reverbGain.connect(AudioContextManager.reverbNode);
-            }
-            
-            // Start the sound
+        if (sampleFile) {
             try {
-                source.start(0);
+                // Try to load the current set's sample
+                const response = await fetch(`./${sampleFile}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const arrayBuffer = await response.arrayBuffer();
+                buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
             } catch (error) {
-                console.error('Error playing metronome sound:', error);
+                console.error(`Failed to load drum sample: ${sampleFile}`, error);
+                // Fall back to default drum sounds if loading fails
+                buffer = AudioContextManager.drumSampleBuffers[soundKey];
+            }
+        }
+    } else {
+        // Use click or woodblock sounds
+        buffer = AudioContextManager.drumSampleBuffers[soundType] || AudioContextManager.drumSampleBuffers['click'];
+    }
+    
+    if (!buffer) return;
+    
+    // Create and configure audio nodes
+    const source = AudioContextManager.context.createBufferSource();
+    source.buffer = buffer;
+    
+    const gainNode = AudioContextManager.context.createGain();
+    
+    // Adjust volume based on sound type and context
+    let finalVolume = adjustedVolume;
+    if (soundType === 'drums') {
+        // Reduce hi-hat volume when playing with other sounds
+        if (soundKey === 'hihat' && drumSounds.length > 1) {
+            finalVolume *= 0.5;
+        }
+        // Adjust kick and snare volumes
+        else if (soundKey === 'kick') {
+            finalVolume *= 1.2; // Slightly boost kick
+        }
+        else if (soundKey === 'snare') {
+            finalVolume *= 1.1; // Slightly boost snare
         }
     }
+    
+    // Ensure volume doesn't exceed 1.0
+    finalVolume = Math.min(finalVolume, 1.0);
+    gainNode.gain.value = finalVolume;
+    
+    // Connect the audio nodes
+    source.connect(gainNode);
+    gainNode.connect(AudioContextManager.context.destination);
+    
+    // Add slight reverb for drums
+    if (soundType === 'drums' && AudioContextManager.reverbNode) {
+        const reverbGain = AudioContextManager.context.createGain();
+        reverbGain.gain.value = 0.1; // Subtle reverb
+        source.connect(reverbGain);
+        reverbGain.connect(AudioContextManager.reverbNode);
+    }
+    
+    // Start the sound
+    try {
+        source.start(0);
+    } catch (error) {
+        console.error('Error playing metronome sound:', error);
+    }  // Fixed missing closing brace
 }
     
         async createDrumSound(type) {
