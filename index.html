@@ -544,6 +544,7 @@
             <span id="tempo-display">120 BPM</span>
             <button id="tap-tempo" aria-label="Tap tempo">Tap Tempo</button>
             <button id="start-stop" aria-label="Start or stop metronome">Start</button>
+            <button id="drumSetToggleBtn" aria-label="Toggle drum set">Snap Drums</button>
         </div>
         <div class="beats-container"></div>
     </div>
@@ -854,6 +855,47 @@ const scaleDegrees = {
         'V7/bIII': 7, 'V7/bVI': 7, 'V7/bVII': 7
     }
 };   
+
+        const drumSoundSets = [
+    {
+        name: "Default",
+        snare: "Snare.wav",
+        hihat: "HiHat.wav",
+        kick: "Kick.wav"
+    },
+    {
+        name: "Set 2",
+        snare: "Snare2.wav",
+        hihat: "HiHat2.wav",
+        kick: "Kick2.wav"
+    },
+    {
+        name: "Jazz Set",
+        kick: 'jazzkick.wav',
+        snare: 'jazzsnare.wav',
+        hihat: 'jazzhat.wav'
+    }
+];
+
+let currentDrumSetIndex = 0;
+
+        function toggleDrumSet() {
+    const button = document.getElementById('drumSetToggleBtn');
+    currentDrumSetIndex = (currentDrumSetIndex + 1) % 3;
+    
+    // Update button text based on current set
+    switch(currentDrumSetIndex) {
+        case 0:
+            button.textContent = 'Snap Drums';
+            break;
+        case 1:
+            button.textContent = 'Underground Drums';
+            break;
+        case 2:
+            button.textContent = 'Jazz Set';
+            break;
+    }
+}
 // State Management
 const AppState = {
     isPlaying: false,
@@ -1561,63 +1603,63 @@ function playNote(noteName, volume = 1.0, duration = 1000) {
 }
 
 
-async function playChord(root, quality, startTime = AudioContextManager.context.currentTime, duration = 1, isPassingChord = false) {
-    if (!document.getElementById('chordsEnabled').classList.contains('active')) return;
-    await AudioContextManager.ensureAudioContext();
-    const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
-    if (chordVolume <= 0) return;
+function playChord(chord, duration = 1, beatNumber = 0) {
+    const notes = getChordNotes(chord);
+    if (!notes || notes.length === 0) return;
     
-    // Determine voicing type based on whether it's a passing chord
-    const voicingType = isPassingChord ? 'drop2' : 'close';
+    // Determine if we should use random inversion (on beat 3)
+    const useRandomInversion = beatNumber === 4; // Beat 4 is the third beat (beats are 2,3,4,5)
+    let inversion = 0;
     
-    const chordNotes = getChordNotes(root, quality, voicingType);
-    
-    if (AudioContextManager.currentChordGain) {
-        AudioContextManager.currentChordGain.gain.setValueAtTime(AudioContextManager.currentChordGain.gain.value, startTime);
-        AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.05);
+    if (useRandomInversion) {
+        // Random inversion between 0-2 (root, first, second)
+        inversion = Math.floor(Math.random() * 3);
     }
     
-    AudioContextManager.currentChordGain = AudioContextManager.context.createGain();
-    AudioContextManager.currentChordGain.gain.setValueAtTime(chordVolume, startTime);
-    AudioContextManager.currentChordGain.connect(AudioContextManager.context.destination);
+    // Apply inversion if needed
+    let chordNotes = [...notes];
+    for (let i = 0; i < inversion; i++) {
+        // Move the first note up an octave and place it at the end
+        const firstNote = chordNotes.shift();
+        chordNotes.push(firstNote + 12); // Up one octave
+    }
+    
+    // Sort notes for better voicing
+    chordNotes.sort((a, b) => a - b);
     
     // Start with a higher base octave (3 instead of 2)
     const baseOctave = 3;
     
-    // Sort notes to ensure proper voicing
-    const sortedNotes = [...chordNotes].sort((a, b) => {
-        return NOTES.indexOf(a) - NOTES.indexOf(b);
+    // Convert MIDI note numbers to note names with octaves
+    const noteNames = chordNotes.map(noteNum => {
+        const noteName = MIDI_NOTES[noteNum % 12];
+        const octave = baseOctave + Math.floor(noteNum / 12);
+        return noteName + octave;
     });
     
-    // Assign octaves to ensure notes are within C2-A4 range
-    sortedNotes.forEach((note, index) => {
-        // Calculate appropriate octave based on position in chord
-        let octave = baseOctave;
+    // Special handling for drop voicings - lower the first note by an octave
+    if (Math.random() < 0.3) { // 30% chance of drop voicing
+        const parts = noteNames[0].split(/(\d+)/);
+        const noteName = parts[0];
+        const octave = parseInt(parts[1]) - 1;
+        noteNames[0] = noteName + octave;
+    }
+    
+    // Ensure all notes are within C2-A4 range
+    const finalNotes = noteNames.map(note => {
+        const noteName = note.replace(/\d+/, '');
+        let octave = parseInt(note.match(/\d+/)[0]);
         
-        // For drop voicings, adjust the octave of the first note
-        if (voicingType !== 'close' && index === 0) {
-            octave = baseOctave - 1;
-        }
+        // Ensure octave is between 2 and 4
+        if (octave < 2) octave = 2;
+        if (octave > 4 || (octave === 4 && noteName > 'A')) octave = 4;
         
-        // Ensure octave stays within C2-A4 range
-        octave = Math.max(2, Math.min(4, octave));
-        
-        // Special handling for high notes (above A)
-        if (octave === 4 && NOTES.indexOf(note) > NOTES.indexOf('A')) {
-            octave = 3;
-        }
-        
-        const { sampleKey, playbackRate } = getPitchShiftedNote(note, octave);
-        const buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
-        
-        if (buffer) {
-            const source = AudioContextManager.context.createBufferSource();
-            source.buffer = buffer;
-            source.playbackRate.value = playbackRate;
-            source.connect(AudioContextManager.currentChordGain);
-            source.start(startTime);
-            source.stop(startTime + duration);
-        }
+        return noteName + octave;
+    });
+    
+    // Play each note in the chord
+    finalNotes.forEach(note => {
+        playNote(note, duration);
     });
 }
 
@@ -1711,11 +1753,36 @@ async function playMetronomeSound(baseVolume) {
         // Skip if it's a silent beat
         if (soundKey === 'silent') continue;
 
+        // Get the current drum set if using drums
+        const currentSet = drumSoundSets[currentDrumSetIndex];
+
         // Determine which sound buffer to use
         let buffer;
         if (soundType === 'drums' && soundKey !== 'default') {
-            buffer = AudioContextManager.soundBuffers[soundKey];
+            // Map drum sounds to current set's samples
+            let sampleFile;
+            switch(soundKey) {
+                case 'kick': sampleFile = currentSet.kick; break;
+                case 'snare': sampleFile = currentSet.snare; break;
+                case 'hihat': sampleFile = currentSet.hihat; break;
+                default: sampleFile = null;
+            }
+
+            if (sampleFile) {
+                try {
+                    // Try to load the current set's sample
+                    const response = await fetch(`./${sampleFile}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const arrayBuffer = await response.arrayBuffer();
+                    buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
+                } catch (error) {
+                    console.error(`Failed to load drum sample: ${sampleFile}`, error);
+                    // Fall back to default drum sounds if loading fails
+                    buffer = AudioContextManager.soundBuffers[soundKey];
+                }
+            }
         } else {
+            // Use click or woodblock sounds
             buffer = AudioContextManager.soundBuffers[soundType] || AudioContextManager.soundBuffers['click'];
         }
 
@@ -2065,12 +2132,13 @@ async function playBeat() {
                 const beatDuration = 60 / AppState.tempo;
                 if (timeSignature === 4) {
                     if (AppState.currentBeat === 0) {
-                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, false);
+                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, false, AppState.currentBeat);
                     } else if (AppState.currentBeat === 4) {
-                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, true);
+                        // Third beat in 4/4 time (beat 4 when counting eighth notes)
+                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, false, AppState.currentBeat);
                     }
                 } else if (AppState.currentBeat === 0) {
-                    playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 4, false);
+                    playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 4, false, AppState.currentBeat);
                 }
             }
         }
