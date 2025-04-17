@@ -1339,7 +1339,7 @@ const AudioContextManager = {
     }
   },
     
-    async function playMetronomeSound(baseVolume) {
+    function playMetronomeSound(baseVolume) {
         if (!AudioContextManager.context) return;
         
         // Get the metronome volume slider value and combine it with base volume
