@@ -1603,8 +1603,15 @@ function playNote(noteName, volume = 1.0, duration = 1000) {
 }
 
 
-function playChord(chord, duration = 1, beatNumber = 0) {
-    const notes = getChordNotes(chord);
+function playChord(root, quality, duration = 1, beatNumber = 0) {
+    // If a single string parameter is passed (legacy behavior), parse it
+    if (typeof root === 'string' && arguments.length === 1) {
+        const [parsedRoot, parsedQuality] = parseChord(root);
+        root = parsedRoot;
+        quality = parsedQuality;
+    }
+    
+    const notes = getChordNotes(root, quality);
     if (!notes || notes.length === 0) return;
     
     // Determine if we should use random inversion (on beat 3)
