@@ -610,7 +610,7 @@
         <button onclick="addMeasure()" aria-label="Add measure">Add Measure</button>
         <button onclick="removeMeasure()" aria-label="Remove measure">Remove Measure</button>
         <div class="checkbox-wrapper">
-            <<button id="chordsEnabled" class="toggle-button active">Chords Enabled</button>
+            <button id="chordsEnabled" class="toggle-button active">Chords Enabled</button>
         </div>
         <div class="volume-control">
             <label for="chord-volume">Chord Volume:</label>
@@ -1666,9 +1666,10 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
         return noteName + octave;
     });
     
-    // Play each note in the chord
+    // Play each note in the chord - FIX: Convert note name to frequency
     finalNotes.forEach(note => {
-        playNote(note, duration);
+        const freq = noteToFrequency(note);
+        playNote(freq, duration);
     });
 }
 
@@ -1967,6 +1968,12 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
                 noteElement.addEventListener('click', async () => {
                     try {
                         await AudioContextManager.ensureAudioContext();
+                        
+                        // Fix for orphaned code: Get the current beat element
+                        const currentBeatElement = document.querySelector('.beat.current') || 
+                                                  document.querySelector('[data-beat]') || 
+                                                  { dataset: { baseVolume: '0.7', sound: '' } }; // Default fallback
+                        
                         let volume = parseFloat(currentBeatElement.dataset.baseVolume) || 0;
                         const isAccent = volume >= 1 && ['kick', 'snare'].includes(currentBeatElement.dataset.sound);
                         const accentBoost = parseFloat(UI.elements.accentIntensity?.value || 1);
