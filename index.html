@@ -2824,7 +2824,6 @@ async function playNote(noteName, volume = 1.0, duration = 1000) {
             const tuning = TUNINGS[UI.elements.chordTuning.value];
             updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
         }
-    } // End of loadProgression function
                     
         function updateMeasureNumbers() {
         Array.from(UI.elements.measures.children).forEach((measure, index) => {
