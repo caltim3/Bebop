@@ -1141,53 +1141,75 @@
         }
     };
     
-    // Audio Management
-    const AudioContextManager = {
-        context: null,
-        soundBuffers: {},
-        pianoSampleBuffers: {},
-        reverbNode: null,
-        samplesLoaded: false,
-        currentChordGain: null,
-        async initialize() {
-            if (!this.context) {
-                this.context = new (window.AudioContext || window.webkitAudioContext)();
-                await this.loadSounds();
-                await this.loadPianoSamples();
-                await this.setupReverb();
-            }
-            if (this.context.state === 'suspended') {
-                await this.context.resume();
-            }
-            AppState.updateState({ audioInitialized: true });
-            return this.context;
-        },
-        async ensureAudioContext() {
-            return await this.initialize();
-        },
-        async loadSounds() {
-            const soundFiles = {
-                'click': 'Click.wav',
-                'hihat': 'HiHat.wav',
-                'kick': 'Kick.wav',
-                'snare': 'Snare.wav',
-                'woodblock': 'woodblock.wav'
-            };
-            for (let [type, filename] of Object.entries(soundFiles)) {
-                try {
-                    const response = await fetch(`./${filename}`);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const arrayBuffer = await response.arrayBuffer();
-                    this.soundBuffers[type] = await this.context.decodeAudioData(arrayBuffer);
-                    log(`Loaded ${type} sound from ${filename}`);
-                } catch (error) {
-                    console.error(`Failed to load ${filename}:`, error);
-                    this.soundBuffers[type] = await this.createDrumSound(type);
-                    log(`Using fallback synthetic sound for ${type}`);
-                }
-            }
-            updateLoadingStatus("Drum sounds loaded");
-        },
+    async function initializeAudio() {
+  try {
+    // Create AudioContext
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const context = new AudioContext();
+    
+    // Load drum samples
+    const drumSamples = {
+      click: await loadSample(context, 'Click.wav'),
+      hihat: await loadSample(context, 'HiHat.wav'),
+      kick: await loadSample(context, 'Kick.wav'),
+      snare: await loadSample(context, 'Snare.wav'),
+      woodblock: await loadSample(context, 'woodblock.wav')
+    };
+
+    // Load piano samples (expanded range)
+    const pianoSamples = {};
+    const pianoNotes = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab'];
+    
+    for (let octave = 2; octave <= 6; octave++) {
+      for (const note of pianoNotes) {
+        const sampleName = `${note}${octave}v12`;
+        try {
+          pianoSamples[sampleName] = await loadSample(context, `${sampleName}.wav`);
+        } catch (e) {
+          console.warn(`Missing piano sample: ${sampleName}`);
+        }
+      }
+    }
+
+    return { context, drumSamples, pianoSamples };
+  } catch (error) {
+    console.error('Audio initialization failed:', error);
+    throw error;
+  }
+}
+
+async function loadSample(context, url) {
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+  return context.decodeAudioData(arrayBuffer);
+}
+        function getNearestSample(pianoSamples, targetNote) {
+  // Implement semitone-based nearest neighbor search
+  const noteOrder = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  const [note, octave] = targetNote.match(/([A-G][b#]?)(\d)/).slice(1);
+  
+  // Check exact match first
+  const exactKey = `${note}${octave}v12`;
+  if (pianoSamples[exactKey]) return exactKey;
+
+  // Find nearest available sample
+  let minDistance = Infinity;
+  let bestMatch = null;
+  
+  for (const [sampleName] of Object.entries(pianoSamples)) {
+    const [sampleNote, sampleOctave] = sampleName.match(/([A-G][b#]?)(\d)/).slice(1);
+    const noteDiff = (noteOrder.indexOf(note) - noteOrder.indexOf(sampleNote) + 12) % 12;
+    const octaveDiff = parseInt(octave) - parseInt(sampleOctave);
+    const totalDistance = Math.abs(noteDiff) + Math.abs(octaveDiff * 12);
+    
+    if (totalDistance < minDistance) {
+      minDistance = totalDistance;
+      bestMatch = sampleName;
+    }
+  }
+  
+  return bestMatch;
+}    
         async createDrumSound(type) {
             const sampleRate = this.context.sampleRate;
             const duration = type === 'hihat' ? 0.05 : 0.2;
