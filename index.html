@@ -146,10 +146,6 @@
             background-color: #e9ecef;
             padding: 15px;
             border-radius: 4px;
-            transition: opacity 0.2s ease;
-        }
-        .measure.dragging {
-            opacity: 0.5;
         }
         .measure.active {
             background-color: #c3e6cb;
@@ -1290,33 +1286,89 @@ const AudioContextManager = {
   reverbNode: null,
   currentChordGain: null,
 
-  // --- METHODS --- //
-  async initialize() { // Using shorthand method syntax consistently
+  // --- MAIN INITIALIZATION --- //
+  async initialize() {
     try {
       this.context = new (window.AudioContext || window.webkitAudioContext)();
-      await this.setupReverb();
-
-      // Load drum samples
-      this.drumSampleBuffers = {
-        // Assuming createDrumSound is defined elsewhere or needs implementation
-        // For now, using placeholder logic or assuming they are loaded/created correctly
-        click: await this.loadOrCreateDrumSample('click'),
-        hihat: await this.loadOrCreateDrumSample('hihat'),
-        kick: await this.loadOrCreateDrumSample('kick'),
-        snare: await this.loadOrCreateDrumSample('snare'),
-        woodblock: await this.loadOrCreateDrumSample('woodblock')
-      };
-
-      // Load piano samples (if needed)
-      // this.pianoSampleBuffers = await this.loadPianoSamples(); // Assuming this method exists
-
-      console.log('AudioContextManager initialized');
+      await this.setupRvereqrb();
+      await this.preloadSamples(); // Preload all samples during initialization
+      console.log('AudioContextManager initialized with samples');
       return true;
     } catch (error) {
-      console.error('AudioContextManager initialization failed:', error);
-      return false;
+      console.error('Audio initialization failed:', error);
+      throw error;
     }
   },
+
+  // --- SAMPLE PRELOADING --- //
+  async preloadSamples() {
+    try {
+      // Load piano samples (A2-C6)
+      const pianoNotes = ['A', 'C', 'Ds', 'Fs'];
+      for (const note of pianoNotes) {
+        for (let octave = 2; octave <= 6; octave++) {
+          const sampleKey = `${note}${octave}v12`;
+          const buffer = await loadSample(this.context, `${sampleKey}.wav`);
+          this.pianoSampleBuffers[sampleKey] = buffer;
+        }
+      }
+
+      // Load all drum samples from drumSoundSets
+      for (const set of drumSoundSets) {
+        const types = ['kick', 'snare', 'hihat'];
+        for (const type of types) {
+          const sampleFile = set[type];
+          const buffer = await loadSample(this.context, sampleFile);
+          this.drumSampleBuffers[`${set.name}_${type}`] = buffer;
+        }
+      }
+      
+      console.log("All samples preloaded successfully");
+    } catch (error) {
+      console.error("Sample preloading failed:", error);
+      throw error;
+    }
+  },
+
+  // --- CONTEXT MANAGEMENT --- //
+  async ensureAudioContext() {
+    try {
+      if (!this.context || this.context.state === 'closed') {
+        await this.initialize();
+      }
+      if (this.context.state === 'suspended') {
+        await this.context.resume();
+      }
+      return true;
+    } catch (error) {
+      console.error('Audio context activation failed:', error);
+      throw error;
+    }
+  },
+
+  // --- SOUND PLAYBACK --- //
+  async playMetronomeSound(type, volume = 1.0) {
+    await this.ensureAudioContext();
+    const bufferKey = `${drumSoundSets[currentDrumSetIndex].name}_${type}`;
+    const buffer = this.drumSampleBuffers[bufferKey];
+    
+    if (!buffer) {
+      console.warn(`Missing ${type} sample in current drum set`);
+      return;
+    }
+
+    const source = this.context.createBufferSource();
+    const gainNode = this.context.createGain();
+    
+    source.buffer = buffer;
+    gainNode.gain.value = volume * parseFloat(UI.elements.metronomeVolume.value);
+    
+    source.connect(gainNode);
+    gainNode.connect(this.context.destination);
+    
+    source.start(0);
+  }
+};
 
   // Placeholder for loading/creating drum samples - replace with your actual logic
   async loadOrCreateDrumSample(type) {
@@ -2819,14 +2871,11 @@ async function playNote(noteName, volume = 1.0, duration = 1000) {
     // Chord Progression Management
 function loadProgression(progressionName, key = 'C') {
   // Check if progressionName exists in PROGRESSIONS
-  if (!PROGRESSIONS[progressionName]) {
-    console.error(`Invalid progression name: ${progressionName}`);
-    // Use a default progression instead
-    progressionName = 'I V7';
-  }
-  
-  // Get the progression data
-  const progression = PROGRESSIONS[progressionName];
+    if (!progressions[progressionName]) {
+        progressionName = 'I V7';
+    } 
+    
+const progression = progressions[progressionName];
   
   // Handle key selection
   const selectedKey = key || progression.defaultKey || "C";
@@ -2844,7 +2893,7 @@ function loadProgression(progressionName, key = 'C') {
   
   // Create measures for each chord in the progression
   // Check if progression.chords exists, otherwise fall back to progression.progression for legacy support
-  const chordProgression = progression.chords || progression.progression;
+  const chordProgression = progression?.chords || progression?.progression || [];
   
   if (!chordProgression || !Array.isArray(chordProgression)) {
     console.error("Invalid progression format:", progression);
@@ -2861,7 +2910,6 @@ function loadProgression(progressionName, key = 'C') {
     
     const measure = document.createElement('div');
     measure.className = 'measure';
-    measure.draggable = true;
     measure.innerHTML = `
       <span class="measure-number">${index + 1}</span>
       <div class="chord-controls">
@@ -2875,10 +2923,6 @@ function loadProgression(progressionName, key = 'C') {
     `;
     
     UI.elements.measures.appendChild(measure);
-    
-    // Add drag event listeners
-    measure.addEventListener('dragstart', dragStart);
-    measure.addEventListener('dragend', dragEnd);
     
     // Explicitly set the correct scale based on chord quality
     const scaleSelect = measure.querySelector('.scale-select');
