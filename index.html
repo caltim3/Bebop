@@ -1367,9 +1367,114 @@ async ensureAudioContext() {
     
     // Process each sound in the drum pattern
     for (let soundKey of drumSounds) {
-        this.playSingleDrumSound(soundKey, soundType, adjustedVolume, drumSounds);
+        soundKey = soundKey.trim();
+        
+        // Skip if it's a silent beat
+        if (soundKey === 'silent') continue;
+        
+        // Get the current drum set if using drums
+        const currentSet = drumSoundSets[currentDrumSetIndex];
+        
+        // Determine which sound buffer to use
+        let buffer;
+        if (soundType === 'drums' && soundKey !== 'default') {
+            // Map drum sounds to current set's samples
+            let sampleFile;
+            switch(soundKey) {
+                case 'kick': sampleFile = currentSet.kick; break;
+                case 'snare': sampleFile = currentSet.snare; break;
+                case 'hihat': sampleFile = currentSet.hihat; break;
+                default: sampleFile = null;
+            }
+            
+            if (sampleFile) {
+                // Use pre-loaded buffer if available, otherwise load it
+                if (AudioContextManager.drumSampleBuffers[soundKey]) {
+                    buffer = AudioContextManager.drumSampleBuffers[soundKey];
+                } else {
+                    // Use a non-async approach for loading
+                    fetch(`./${sampleFile}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                            return response.arrayBuffer();
+                        })
+                        .then(arrayBuffer => AudioContextManager.context.decodeAudioData(arrayBuffer))
+                        .then(decodedBuffer => {
+                            // Store for future use
+                            AudioContextManager.drumSampleBuffers[soundKey] = decodedBuffer;
+                            // Play the sound once loaded
+                            this.playBuffer(decodedBuffer, soundKey, soundType, adjustedVolume, drumSounds);
+                        })
+                        .catch(error => {
+                            console.error(`Failed to load drum sample: ${sampleFile}`, error);
+                            // Fall back to default drum sounds if loading fails
+                            if (AudioContextManager.drumSampleBuffers[soundKey]) {
+                                this.playBuffer(AudioContextManager.drumSampleBuffers[soundKey], 
+                                               soundKey, soundType, adjustedVolume, drumSounds);
+                            }
+                        });
+                    continue; // Skip to next sound, this one will play when loaded
+                }
+            }
+        } else {
+            // Use click or woodblock sounds
+            buffer = AudioContextManager.drumSampleBuffers[soundType] || AudioContextManager.drumSampleBuffers['click'];
+        }
+        
+        if (!buffer) continue;
+        
+        // Play the buffer directly
+        this.playBuffer(buffer, soundKey, soundType, adjustedVolume, drumSounds);
     }
 },
+
+// Helper method to play a buffer
+playBuffer: function(buffer, soundKey, soundType, adjustedVolume, drumSounds) {
+    // Create and configure audio nodes
+    const source = AudioContextManager.context.createBufferSource();
+    source.buffer = buffer;
+    
+    const gainNode = AudioContextManager.context.createGain();
+    
+    // Adjust volume based on sound type and context
+    let finalVolume = adjustedVolume;
+    if (soundType === 'drums') {
+        // Reduce hi-hat volume when playing with other sounds
+        if (soundKey === 'hihat' && drumSounds.length > 1) {
+            finalVolume *= 0.5;
+        }
+        // Adjust kick and snare volumes
+        else if (soundKey === 'kick') {
+            finalVolume *= 1.2; // Slightly boost kick
+        }
+        else if (soundKey === 'snare') {
+            finalVolume *= 1.1; // Slightly boost snare
+        }
+    }
+    
+    // Ensure volume doesn't exceed 1.0
+    finalVolume = Math.min(finalVolume, 1.0);
+    gainNode.gain.value = finalVolume;
+    
+    // Connect the audio nodes
+    source.connect(gainNode);
+    gainNode.connect(AudioContextManager.context.destination);
+    
+    // Add slight reverb for drums
+    if (soundType === 'drums' && AudioContextManager.reverbNode) {
+        const reverbGain = AudioContextManager.context.createGain();
+        reverbGain.gain.value = 0.1; // Subtle reverb
+        source.connect(reverbGain);
+        reverbGain.connect(AudioContextManager.reverbNode);
+    }
+    
+    // Start the sound
+    try {
+        source.start(0);
+    } catch (error) {
+        console.error('Error playing metronome sound:', error);
+    }
+}
 
 // Add a helper method to handle the async part
 playSingleDrumSound: async function(soundKey, soundType, adjustedVolume, drumSounds) {
@@ -1459,114 +1564,54 @@ playSingleDrumSound: async function(soundKey, soundType, adjustedVolume, drumSou
     }  // Fixed missing closing brace
 }
     
-        async createDrumSound(type) {
-            const sampleRate = this.context.sampleRate;
-            const duration = type === 'hihat' ? 0.05 : 0.2;
-            const buffer = this.context.createBuffer(1, sampleRate * duration, sampleRate);
-            const data = buffer.getChannelData(0);
-            switch (type) {
-                case 'click':
-                    for (let i = 0; i < data.length; i++) data[i] = Math.sin(i * 0.05) * Math.exp(-i * 0.01);
-                    break;
-                case 'hihat':
-                    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.01));
-                    break;
-                case 'kick':
-                    for (let i = 0; i < data.length; i++) {
-                        const t = i / sampleRate;
-                        data[i] = Math.sin(2 * Math.PI * 100 * t) * Math.exp(-t * 10) * 2;
-                    }
-                    break;
-                case 'snare':
-                    for (let i = 0; i < data.length; i++) {
-                        const t = i / sampleRate;
-                        data[i] = ((Math.random() * 2 - 1) + Math.sin(2 * Math.PI * 200 * t)) * Math.exp(-t * 10) * 2;
-                    }
-                    break;
-                case 'woodblock':
-                    for (let i = 0; i < data.length; i++) {
-                        const t = i / sampleRate;
-                        data[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 20);
-                    }
-                    break;
-            }
-            return buffer;
-        },
-        async loadPianoSamples() {
-        log('Starting piano sample loading...');
-        if (!this.context) {
-            await this.initialize();
-        }
-        this.pianoSampleBuffers = {}; // Reset buffer storage
+      
+createSyntheticSample(note, octave) {
+    const duration = 2.0; // 2-second buffer for piano samples
+    const sampleRate = this.context.sampleRate;
+    const bufferLength = sampleRate * duration;
+    const buffer = this.context.createBuffer(1, bufferLength, sampleRate);
+    const data = buffer.getChannelData(0);
+    const frequency = PIANO_NOTES[`${note}${octave}`] || 440; // Fallback to A4 if undefined
 
-        for (const note of SAMPLED_NOTES) {
-            const octaves = PIANO_CONFIG.octaves[note] || [];
-            for (const octave of octaves) {
-                const sampleName = `${note}${octave}v12`;
-                try {
-                    const response = await fetch(`./${sampleName}.${PIANO_CONFIG.fileFormat}`);
-                    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-                    const arrayBuffer = await response.arrayBuffer();
-                    const buffer = await this.context.decodeAudioData(arrayBuffer);
-                    this.pianoSampleBuffers[sampleName] = buffer;
-                    log(`Loaded ${sampleName}`);
-                } catch (error) {
-                    console.warn(`Failed to load ${sampleName}, creating synthetic fallback`, error);
-                    this.pianoSampleBuffers[sampleName] = this.createSyntheticSample(note, octave);
-                }
-            }
-        }
-        this.samplesLoaded = true;
-        updateLoadingStatus("Piano samples loaded");
-    },
-
-    createSyntheticSample(note, octave) {
-        const duration = 2.0; // 2-second buffer for piano samples
-        const sampleRate = this.context.sampleRate;
-        const bufferLength = sampleRate * duration;
-        const buffer = this.context.createBuffer(1, bufferLength, sampleRate);
-        const data = buffer.getChannelData(0);
-        const frequency = PIANO_NOTES[`${note}${octave}`] || 440; // Fallback to A4 if undefined
-
-        for (let i = 0; i < bufferLength; i++) {
-            const t = i / sampleRate;
-            data[i] = Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 0.5); // Decay envelope
-        }
-        return buffer;
-    },
-
-    async setupReverb() {
-        if (!this.reverbNode) {
-            this.reverbNode = this.context.createConvolver();
-            const impulseLength = this.context.sampleRate * 2.5; // 2.5-second impulse
-            const impulse = this.context.createBuffer(2, impulseLength, this.context.sampleRate);
-
-            for (let channel = 0; channel < 2; channel++) {
-                const channelData = impulse.getChannelData(channel);
-                for (let i = 0; i < impulseLength; i++) {
-                    channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / impulseLength, 2);
-                }
-            }
-            this.reverbNode.buffer = impulse;
-            this.reverbNode.connect(this.context.destination); // Connect to output
-        }
+    for (let i = 0; i < bufferLength; i++) {
+      const t = i / sampleRate;
+      data[i] = Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 0.5); // Decay envelope
     }
+    return buffer;
+  },
+
+  async setupReverb() {
+    if (!this.reverbNode) {
+      this.reverbNode = this.context.createConvolver();
+      const impulseLength = this.context.sampleRate * 2.5; // 2.5-second impulse
+      const impulse = this.context.createBuffer(2, impulseLength, this.context.sampleRate);
+
+      for (let channel = 0; channel < 2; channel++) {
+        const channelData = impulse.getChannelData(channel);
+        for (let i = 0; i < impulseLength; i++) {
+          channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / impulseLength, 2);
+        }
+      }
+      this.reverbNode.buffer = impulse;
+      this.reverbNode.connect(this.context.destination); // Connect to output
+    }
+  }
 };
             
-    async function ensureAudioInitialized() {
-        if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
-            try {
-                await AudioContextManager.initialize();
-                if (AudioContextManager.context.state === 'suspended') {
-                    await AudioContextManager.context.resume();
-                }
-            } catch (error) {
-                console.error('Audio initialization failed:', error);
-                alert('Please click anywhere on the page to enable audio playback');
-                throw error;
-            }
-        }
+async function ensureAudioInitialized() {
+  if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
+    try {
+      await AudioContextManager.initialize();
+      if (AudioContextManager.context.state === 'suspended') {
+        await AudioContextManager.context.resume();
+      }
+    } catch (error) {
+      console.error('Audio initialization failed:', error);
+      alert('Please click anywhere on the page to enable audio playback');
+      throw error;
     }
+  }
+}
     // Music Theory Utilities
     function standardizeNoteName(note) {
         if (!note) return 'C';
