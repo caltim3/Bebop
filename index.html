@@ -1956,17 +1956,18 @@ const AudioContextManager = {
     }
     
     // Audio Playback
-    async function playNote(noteName, volume = 1.0, duration = 1000) {
-          if (!audioContext || !noteName) return;
-        
-          const [sampleNote, octave, transposition] = getSampledNote(noteName);
-          const sampleKey = `${sampleNote}${octave}v12`;
-          const buffer = pianoSamples[sampleKey];
-        
-          if (!buffer) {
-            console.warn(`No sample found for note: ${noteName}`);
-            return;
-          }
+async function playNote(noteName, volume = 1.0, duration = 1000) {
+  if (!audioContext || !noteName) return;
+
+  // First buffer (from pianoSamples)
+  const [sampleNote, octave, transposition] = getSampledNote(noteName);
+  const sampleKey = `${sampleNote}${octave}v12`;
+  const pianoBuffer = pianoSamples[sampleKey]; // Renamed to "pianoBuffer"
+
+  if (!pianoBuffer) {
+    console.warn(`No sample found for note: ${noteName}`);
+    return;
+  }
     // Fetch fretboardVolume **once**
     const fretboardVolumeControl = document.getElementById('fretboard-volume');
     if (!fretboardVolumeControl) {
@@ -1987,25 +1988,21 @@ const AudioContextManager = {
         };
     
         // Extract the note and octave
-       const match = noteName.match(/([A-G][#b]?)(\d)/);
+        const match = noteName.match(/([A-G][#b]?)(\d)/);
           if (!match) return;
-        
-          const [_, note, matchOctave] = match; // ✅ Renamed to "matchOctave"
-        
+          const [_, note, matchOctave] = match;
           const mappedNote = noteMapping[note];
-        
-          // Use "matchOctave" instead of "octave"
           const adjustedOctave = Math.max(2, Math.min(6, parseInt(matchOctave)));
           const sampleName = `${mappedNote}${adjustedOctave}v12`;
-          const buffer = AudioContextManager.soundBuffers[sampleName];
+          const soundBuffer = AudioContextManager.soundBuffers[sampleName]; // Renamed to "soundBuffer"
         
-          if (!buffer) {
+          if (!soundBuffer) {
             console.warn(`No sample found for note: ${sampleName}`);
             return;
           }
     
-        const source = AudioContextManager.context.createBufferSource();
-        source.buffer = buffer;
+        const source = audioContext.createBufferSource();
+          source.buffer = soundBuffer;
     
         const gainNode = AudioContextManager.context.createGain();
         gainNode.gain.value = finalVolume;
