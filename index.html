@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bebop Blueprint</title>
-<!-- Enhanced version with bug fixes and improvements -->
     <link rel="icon" type="image/png" href="es335icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -493,7 +492,13 @@
             border: 1px solid #6b705c;
         }
         
-    </style>
+    
+    #drumSetToggleBtn {
+        position: relative;
+        margin-left: 10px;
+        flex-shrink: 0;
+    }
+</style>
 </head>
 <body>
     <div class="app-section" id="chord-fretboard-section">
@@ -1029,11 +1034,48 @@ const AudioContextManager = {
         }
         return buffer;
     },
+    
     async loadPianoSamples() {
         log('Starting piano sample loading...');
         if (!this.context) {
             await this.initialize();
         }
+
+        // Create fallback samples for all needed notes
+        for (let note of SAMPLED_NOTES) {
+            for (let octave of PIANO_CONFIG.octaves[note]) {
+                const sampleName = `${note}${octave}v12`;
+                try {
+                    // First try to load from the current directory
+                    let response = await fetch(`./${sampleName}.${PIANO_CONFIG.fileFormat}`);
+
+                    // If that fails, try without the directory prefix
+                    if (!response.ok) {
+                        response = await fetch(`${sampleName}.${PIANO_CONFIG.fileFormat}`);
+                    }
+
+                    // If that fails, try with a samples directory
+                    if (!response.ok) {
+                        response = await fetch(`./samples/${sampleName}.${PIANO_CONFIG.fileFormat}`);
+                    }
+
+                    if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
+
+                    const arrayBuffer = await response.arrayBuffer();
+                    this.pianoSampleBuffers[sampleName] = await this.context.decodeAudioData(arrayBuffer);
+                    log(`Loaded piano sample: ${sampleName}`);
+                } catch (error) {
+                    console.warn(`Could not load ${sampleName}, using fallback`, error);
+                    this.pianoSampleBuffers[sampleName] = this.createSyntheticSample(note, octave);
+                    log(`Created synthetic sample for: ${sampleName}`);
+                }
+            }
+        }
+
+        this.samplesLoaded = true;
+        updateLoadingStatus("Piano samples loaded");
+    }
+
         for (let note of SAMPLED_NOTES) {
             for (let octave of PIANO_CONFIG.octaves[note]) {
                 const sampleName = `${note}${octave}v12`;
@@ -1061,17 +1103,33 @@ const AudioContextManager = {
         }
         return buffer;
     },
+    
     async setupReverb() {
         if (!this.reverbNode) {
             this.reverbNode = this.context.createConvolver();
             const sampleRate = this.context.sampleRate;
-            const length = sampleRate * 2.5;
+            const length = sampleRate * 1.5; // Reduced from 2.5 to 1.5 seconds
             const impulse = this.context.createBuffer(2, length, sampleRate);
+
             for (let channel = 0; channel < 2; channel++) {
                 const channelData = impulse.getChannelData(channel);
                 for (let i = 0; i < length; i++) {
-                    channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+                    // Faster decay for less reverb
+                    channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3);
                 }
+            }
+
+            this.reverbNode.buffer = impulse;
+
+            // Create a gain node to control reverb amount
+            this.reverbGain = this.context.createGain();
+            this.reverbGain.gain.value = 0.2; // Lower reverb level
+
+            this.reverbNode.connect(this.reverbGain);
+            this.reverbGain.connect(this.context.destination);
+        }
+    }
+
             }
             this.reverbNode.buffer = impulse;
             this.reverbNode.connect(this.context.destination);
@@ -1540,27 +1598,130 @@ function createScaleOptions(selected = 'major') {
 }
 
 // Audio Playback
-function playNote(noteName, volume = 1.0, duration = 1000) {
-    if (!AudioContextManager.context || !noteName) return;
+
+function noteToFrequency(note) {
+    // Parse the note name and octave
+    const match = note.match(/([A-G][b#]?)(\d+)/);
+    if (!match) return 440; // Default to A4 if invalid format
+
+    const [_, noteName, octave] = match;
+    const noteIndex = NOTES.indexOf(standardizeNoteName(noteName));
+    if (noteIndex === -1) return 440; // Default if note not found
+
+    // A4 is 440Hz, and each octave doubles the frequency
+    // Each semitone is the 12th root of 2 (about 1.059463) times the previous
+    const A4 = 440;
+    const A4_INDEX = NOTES.indexOf('A');
+    const A4_OCTAVE = 4;
+
+    // Calculate semitones from A4
+    const semitonesFromA4 = (parseInt(octave) - A4_OCTAVE) * 12 + (noteIndex - A4_INDEX);
+
+    // Calculate frequency using the formula: f = 440 * 2^(n/12)
+    return A4 * Math.pow(2, semitonesFromA4 / 12);
+}
+
+function playNote(note, volume = 1.0, duration = 1000) {
+    if (!AudioContextManager.context) return;
+
+    // Handle string and fret parameters (legacy support)
+    if (typeof note === 'string' && note.startsWith('string') && arguments.length >= 2 && typeof arguments[1] === 'number') {
+        const stringNum = parseInt(note.replace('string', ''));
+        const fret = arguments[1];
+        const stringIndex = 6 - stringNum; // Convert to 0-based index
+
+        if (stringIndex >= 0 && stringIndex < 6) {
+            const tuning = TUNINGS[UI.elements.chordTuning.value] || TUNINGS.standard;
+            const openNote = tuning[stringIndex];
+            const noteAtFret = getNoteAtFret(openNote, fret);
+            // Default to octave 3 for middle strings, adjust for bass/treble
+            const octave = stringIndex >= 3 ? 2 : (stringIndex <= 1 ? 4 : 3);
+            note = noteAtFret + octave;
+        }
+    }
 
     // Get the fretboard volume control value
     const fretboardVolumeControl = document.getElementById('fretboard-volume');
     const fretboardVolume = parseFloat(fretboardVolumeControl.value);
-    
+
     // Combine the passed volume with the fretboard volume control
     const finalVolume = volume * fretboardVolume;
-    
+
     if (finalVolume <= 0) return;
 
-    // Map note name to the closest piano sample
-    const noteMapping = {
-        'C': 'C', 'C#': 'Ds', 'Db': 'Ds',
-        'D': 'Ds', 'D#': 'Ds', 'Eb': 'Ds',
-        'E': 'Ds', 'F': 'Fs', 'F#': 'Fs',
-        'Gb': 'Fs', 'G': 'Fs', 'G#': 'A',
-        'Ab': 'A', 'A': 'A', 'A#': 'C',
-        'Bb': 'A', 'B': 'C'
-    };
+    // Check if note is a frequency value
+    if (typeof note === 'number') {
+        playToneAtFrequency(note, finalVolume, duration);
+        return;
+    }
+
+    // Extract the note and octave
+    const match = note.match(/([A-G][#b]?)(\d)/);
+    if (!match) {
+        console.warn(`Invalid note format: ${note}`);
+        return;
+    }
+
+    const [_, noteName, octave] = match;
+
+    // Find the nearest sampled note
+    const { sampleKey, playbackRate } = getPitchShiftedNote(noteName, parseInt(octave));
+    const buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
+
+    if (!buffer) {
+        console.warn(`No sample found for note: ${sampleKey}`);
+        // Fallback to synthesized tone
+        const freq = noteToFrequency(note);
+        playToneAtFrequency(freq, finalVolume, duration);
+        return;
+    }
+
+    const source = AudioContextManager.context.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.value = playbackRate;
+
+    const gainNode = AudioContextManager.context.createGain();
+    gainNode.gain.value = finalVolume;
+
+    source.connect(gainNode);
+    gainNode.connect(AudioContextManager.context.destination);
+
+    try {
+        source.start(0);
+        setTimeout(() => {
+            try {
+                source.stop();
+            } catch (error) {
+                // Ignore errors from already stopped sources
+            }
+        }, duration);
+    } catch (error) {
+        console.error('Error playing note:', error);
+    }
+}
+
+// Helper function to play a synthesized tone at a specific frequency
+function playToneAtFrequency(frequency, volume = 1.0, duration = 1000) {
+    if (!AudioContextManager.context) return;
+
+    const oscillator = AudioContextManager.context.createOscillator();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = frequency;
+
+    const gainNode = AudioContextManager.context.createGain();
+    gainNode.gain.value = volume;
+
+    oscillator.connect(gainNode);
+    gainNode.connect(AudioContextManager.context.destination);
+
+    oscillator.start();
+    setTimeout(() => {
+        oscillator.stop();
+        oscillator.disconnect();
+        gainNode.disconnect();
+    }, duration);
+}
+;
 
     // Extract the note and octave
     const match = noteName.match(/([A-G][#b]?)(\d)/);
@@ -2227,10 +2388,45 @@ async function startPlayback() {
     }
 }
 
+
 function stopPlayback() {
     clearInterval(AppState.intervalId);
     AppState.intervalId = null;
     AppState.updateState({ isPlaying: false, currentBeat: 0, currentMeasure: 0 });
+
+    // Clear all active states
+    const beats = document.querySelectorAll('.beat');
+    beats.forEach(beat => beat.classList.remove('active'));
+
+    const measures = UI.elements.measures.children;
+    Array.from(measures).forEach(measure => measure.classList.remove('active'));
+
+    // Stop any playing audio
+    if (AudioContextManager.context) {
+        // Create a new gain node to fade out all sounds
+        const masterGain = AudioContextManager.context.createGain();
+        masterGain.gain.setValueAtTime(1, AudioContextManager.context.currentTime);
+        masterGain.gain.exponentialRampToValueAtTime(0.001, AudioContextManager.context.currentTime + 0.1);
+
+        // Disconnect and reconnect through the fade-out gain
+        const destination = AudioContextManager.context.destination;
+        AudioContextManager.context.destination.disconnect();
+        masterGain.connect(destination);
+
+        // After fade-out, restore normal connections
+        setTimeout(() => {
+            masterGain.disconnect();
+            if (AudioContextManager.currentChordGain) {
+                AudioContextManager.currentChordGain.gain.value = 0;
+                AudioContextManager.currentChordGain = null;
+            }
+        }, 150);
+    }
+
+    UI.elements.startStopButton.textContent = 'Start';
+    log("Playback stopped");
+}
+);
     const beats = document.querySelectorAll('.beat');
     beats.forEach(beat => beat.classList.remove('active'));
     const measures = UI.elements.measures.children;
@@ -2673,364 +2869,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLoadingStatus("Initialization failed");
     });
 });
-            
-// Convert note name to frequency
-function noteToFrequency(note) {
-    if (!note) return 440; // Default to A4 if no note provided
-
-    // Parse the note name and octave
-    const match = note.match(/([A-G][b#]?)(\d+)/);
-    if (!match) {
-        console.warn(`Invalid note format: ${note}`);
-        return 440;
-    }
-
-    const [_, noteName, octave] = match;
-    const noteIndex = NOTES.indexOf(standardizeNoteName(noteName));
-
-    if (noteIndex === -1) {
-        console.warn(`Unknown note: ${noteName}`);
-        return 440;
-    }
-
-    // A4 is 440Hz, and each octave doubles the frequency
-    // Each semitone is the 12th root of 2 (approx 1.059463) times the previous semitone
-    const A4 = 440;
-    const A4_INDEX = NOTES.indexOf('A');
-    const A4_OCTAVE = 4;
-
-    // Calculate semitones from A4
-    const semitones = (parseInt(octave) - A4_OCTAVE) * 12 + (noteIndex - A4_INDEX);
-
-    // Calculate frequency using the formula: f = 440 * 2^(n/12)
-    return A4 * Math.pow(2, semitones / 12);
-}
-
-
-// Play a note on the fretboard
-function playNote(stringOrNote, fret, volume = 1.0, duration = 1000) {
-    if (!AudioContextManager.context) return;
-
-    // Get the fretboard volume control value
-    const fretboardVolumeControl = document.getElementById('fretboard-volume');
-    const fretboardVolume = parseFloat(fretboardVolumeControl.value);
-
-    // Combine the passed volume with the fretboard volume control
-    const finalVolume = volume * fretboardVolume;
-
-    if (finalVolume <= 0) return;
-
-    let frequency;
-
-    // Check if we're using string/fret format or direct note name
-    if (typeof stringOrNote === 'string' && stringOrNote.startsWith('string') && typeof fret === 'number') {
-        // String/fret format: Get frequency from fretboard frequencies
-        const stringNumber = stringOrNote;
-        if (FRETBOARD_FREQUENCIES[stringNumber] && FRETBOARD_FREQUENCIES[stringNumber][fret] !== undefined) {
-            frequency = FRETBOARD_FREQUENCIES[stringNumber][fret];
-        } else {
-            console.warn(`Invalid string/fret combination: ${stringNumber}, ${fret}`);
-            return;
-        }
-    } else if (typeof stringOrNote === 'string' && stringOrNote.match(/^[A-G][b#]?\d$/)) {
-        // Note name format (e.g., "C4")
-        frequency = noteToFrequency(stringOrNote);
-    } else if (typeof stringOrNote === 'number') {
-        // Direct frequency value
-        frequency = stringOrNote;
-    } else {
-        console.warn(`Invalid note format: ${stringOrNote}`);
-        return;
-    }
-
-    // Create oscillator
-    const oscillator = AudioContextManager.context.createOscillator();
-    oscillator.type = 'triangle';
-    oscillator.frequency.setValueAtTime(frequency, AudioContextManager.context.currentTime);
-
-    // Create gain node for volume control
-    const gainNode = AudioContextManager.context.createGain();
-    gainNode.gain.setValueAtTime(finalVolume, AudioContextManager.context.currentTime);
-
-    // Add slight attack and release for a more natural sound
-    gainNode.gain.linearRampToValueAtTime(finalVolume, AudioContextManager.context.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, AudioContextManager.context.currentTime + (duration / 1000));
-
-    // Connect nodes
-    oscillator.connect(gainNode);
-    gainNode.connect(AudioContextManager.context.destination);
-
-    // Add slight reverb
-    if (AudioContextManager.reverbNode) {
-        const reverbGain = AudioContextManager.context.createGain();
-        reverbGain.gain.value = 0.2;
-        oscillator.connect(reverbGain);
-        reverbGain.connect(AudioContextManager.reverbNode);
-    }
-
-    // Start and stop the oscillator
-    oscillator.start();
-    setTimeout(() => {
-        try {
-            oscillator.stop();
-        } catch (error) {
-            // Ignore errors from already stopped oscillators
-        }
-    }, duration);
-
-    return oscillator;
-}
-
-
-async function ensureAudioInitialized() {
-    try {
-        if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
-            await AudioContextManager.initialize();
-            if (AudioContextManager.context.state === 'suspended') {
-                await AudioContextManager.context.resume();
-            }
-        }
-        return true;
-    } catch (error) {
-        console.error('Audio initialization failed:', error);
-        alert('Please click anywhere on the page to enable audio playback');
-        return false;
-    }
-}
-
-
-async function playChord(root, quality, duration = 1, beatNumber = 0) {
-    try {
-        // Ensure audio is initialized
-        if (!await ensureAudioInitialized()) return;
-
-        // If a single string parameter is passed (legacy behavior), parse it
-        if (typeof root === 'string' && arguments.length === 1) {
-            const [parsedRoot, parsedQuality] = parseChord(root);
-            root = parsedRoot;
-            quality = parsedQuality;
-        }
-
-        // Get chord volume from slider
-        const chordVolumeControl = document.getElementById('chord-volume');
-        const chordsEnabledButton = document.getElementById('chordsEnabled');
-        const chordsEnabled = chordsEnabledButton.classList.contains('active');
-
-        if (!chordsEnabled) return;
-
-        const chordVolume = parseFloat(chordVolumeControl.value);
-        if (chordVolume <= 0) return;
-
-        const notes = getChordNotes(root, quality);
-        if (!notes || notes.length === 0) {
-            console.warn(`Could not determine notes for chord: ${root} ${quality}`);
-            return;
-        }
-
-        // Determine if we should use random inversion (on beat 3)
-        const useRandomInversion = beatNumber === 4; // Beat 4 is the third beat (beats are 2,3,4,5)
-        let inversion = 0;
-
-        if (useRandomInversion) {
-            // Random inversion between 0-2 (root, first, second)
-            inversion = Math.floor(Math.random() * 3);
-        }
-
-        // Apply inversion if needed
-        let chordNotes = [...notes];
-        for (let i = 0; i < inversion; i++) {
-            // Move the first note up an octave and place it at the end
-            const firstNote = chordNotes.shift();
-            chordNotes.push(firstNote);
-        }
-
-        // Start with a higher base octave (3 instead of 2)
-        const baseOctave = 3;
-
-        // Convert note indices to note names with octaves
-        const noteNames = chordNotes.map(noteName => {
-            // Calculate the octave based on the note index
-            return noteName + baseOctave;
-        });
-
-        // Special handling for drop voicings - lower the first note by an octave
-        if (Math.random() < 0.3 && noteNames.length > 0) { // 30% chance of drop voicing
-            const firstNote = noteNames[0];
-            const noteName = firstNote.replace(/\d+/, '');
-            const octave = parseInt(firstNote.match(/\d+/)[0]) - 1;
-            noteNames[0] = noteName + octave;
-        }
-
-        // Ensure all notes are within C2-A4 range
-        const finalNotes = noteNames.map(note => {
-            const noteName = note.replace(/\d+/, '');
-            let octave = parseInt(note.match(/\d+/)[0]);
-
-            // Ensure octave is between 2 and 4
-            if (octave < 2) octave = 2;
-            if (octave > 4 || (octave === 4 && noteName > 'A')) octave = 4;
-
-            return noteName + octave;
-        });
-
-        // Create a master gain node for the chord
-        const masterGain = AudioContextManager.context.createGain();
-        masterGain.gain.value = chordVolume;
-        masterGain.connect(AudioContextManager.context.destination);
-
-        // Store the current chord gain node for stopping later
-        AudioContextManager.currentChordGain = masterGain;
-
-        // Play each note in the chord
-        finalNotes.forEach((note, index) => {
-            try {
-                // Calculate frequency using noteToFrequency
-                const freq = noteToFrequency(note);
-
-                // Create oscillator
-                const oscillator = AudioContextManager.context.createOscillator();
-                oscillator.type = 'triangle';
-                oscillator.frequency.setValueAtTime(freq, AudioContextManager.context.currentTime);
-
-                // Create individual gain node for each note
-                const gainNode = AudioContextManager.context.createGain();
-
-                // Stagger the attack slightly for a more natural sound
-                const attackDelay = index * 0.02;
-                gainNode.gain.setValueAtTime(0, AudioContextManager.context.currentTime);
-                gainNode.gain.linearRampToValueAtTime(0.7, AudioContextManager.context.currentTime + 0.05 + attackDelay);
-
-                // Add a longer release for sustained chords
-                const releaseTime = AudioContextManager.context.currentTime + (duration || 1) + 0.3;
-                gainNode.gain.exponentialRampToValueAtTime(0.001, releaseTime);
-
-                // Connect to master gain
-                oscillator.connect(gainNode);
-                gainNode.connect(masterGain);
-
-                // Add reverb
-                if (AudioContextManager.reverbNode) {
-                    const reverbGain = AudioContextManager.context.createGain();
-                    reverbGain.gain.value = 0.3;
-                    oscillator.connect(reverbGain);
-                    reverbGain.connect(AudioContextManager.reverbNode);
-                }
-
-                // Start oscillator
-                oscillator.start();
-                oscillator.stop(releaseTime);
-            } catch (error) {
-                console.error(`Error playing note ${note} in chord:`, error);
-            }
-        });
-    } catch (error) {
-        console.error('Error playing chord:', error);
-    }
-}
-
-
-// Clean up audio resources when stopping playback
-function cleanupAudioResources() {
-    if (AudioContextManager.currentChordGain) {
-        AudioContextManager.currentChordGain.gain.setValueAtTime(
-            AudioContextManager.currentChordGain.gain.value, 
-            AudioContextManager.context.currentTime
-        );
-        AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(
-            0.001, 
-            AudioContextManager.context.currentTime + 0.1
-        );
-        AudioContextManager.currentChordGain = null;
-    }
-
-    // Clear any pending audio timeouts
-    if (AudioContextManager.pendingTimeouts) {
-        AudioContextManager.pendingTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
-        AudioContextManager.pendingTimeouts = [];
-    }
-}
-
-// Add this to AudioContextManager initialization
-AudioContextManager.pendingTimeouts = [];
-
-
-// Add ARIA attributes to UI elements
-function enhanceAccessibility() {
-    // Add labels to volume sliders
-    const volumeSliders = document.querySelectorAll('input[type="range"]');
-    volumeSliders.forEach(slider => {
-        if (!slider.hasAttribute('aria-label')) {
-            const label = slider.previousElementSibling?.textContent || 'Volume control';
-            slider.setAttribute('aria-label', label.trim());
-        }
-    });
-
-    // Add roles to interactive elements
-    document.querySelectorAll('.note').forEach(note => {
-        note.setAttribute('role', 'button');
-        note.setAttribute('aria-label', `Play note ${note.textContent}`);
-    });
-
-    // Add keyboard navigation for fretboard notes
-    document.querySelectorAll('.fretboard').forEach(fretboard => {
-        fretboard.setAttribute('tabindex', '0');
-        fretboard.setAttribute('role', 'application');
-        fretboard.setAttribute('aria-label', 'Interactive guitar fretboard');
-    });
-
-    // Add state information to toggle buttons
-    document.querySelectorAll('.toggle-button').forEach(button => {
-        button.setAttribute('aria-pressed', button.classList.contains('active') ? 'true' : 'false');
-    });
-}
-
-// Call this function after DOM is loaded
-document.addEventListener('DOMContentLoaded', enhanceAccessibility);
-
-
-// Global error handler
-window.addEventListener('error', function(event) {
-    console.error('Caught error:', event.error);
-    // Prevent app from breaking completely
-    event.preventDefault();
-
-    // Display user-friendly error message if appropriate
-    if (event.error && event.error.message && event.error.message.includes('audio')) {
-        alert('There was an audio playback error. Please try again or reload the page.');
-    }
-
-    return true;
-});
-
-// Add try-catch blocks to critical functions
-function safeExecute(fn, fallback, errorMessage) {
-    try {
-        return fn();
-    } catch (error) {
-        console.error(errorMessage || 'Function execution failed', error);
-        return typeof fallback === 'function' ? fallback() : fallback;
-    }
-}
-
-
-// Optimize DOM updates by batching changes
-function batchDOMUpdates(updates) {
-    // Use requestAnimationFrame to batch DOM updates
-    return new Promise(resolve => {
-        requestAnimationFrame(() => {
-            updates();
-            resolve();
-        });
-    });
-}
-
-// Example usage:
-// batchDOMUpdates(() => {
-//     element1.className = 'new-class';
-//     element2.style.color = 'red';
-//     element3.textContent = 'New text';
-// });
-
-</script>
+            </script>
         </body>
         </html>
