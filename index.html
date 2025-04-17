@@ -819,6 +819,7 @@
         // Pentatonic Scales
         pentatonicMajor: [0, 2, 4, 7, 9],
         pentatonicMinor: [0, 3, 5, 7, 10],
+        pentatonicMinFuze: [0, 3, 5, 7, 10],
         
         // Blues Scales
         blues: [0, 3, 5, 6, 7, 10],
@@ -1018,7 +1019,20 @@
     
         return scaleMap[quality] || 'major';
     }
+    const intervalToSemitones = {
+          R: 0,
+          m2: 1, M2: 2,
+          m3: 3, M3: 4,
+          P4: 5, A4: 6, d5: 6,
+          P5: 7, A5: 8,
+          m6: 8, M6: 9,
+          m7: 10, M7: 11,
+          '9': 14, '#9': 15, 'b9': 13,
+          '11': 17, '#11': 18, 'b13': 19,
+          '13': 21
+        };
     
+            
     const qualityMap = {
         // Basic triads
         '': 'maj',          // Empty quality defaults to major
@@ -1338,7 +1352,15 @@
             return chromaticScale[noteIndex];
         });
     }
-    
+    function getChordNotes(root, quality) {
+          const intervals = intervalPatterns[quality] || intervalPatterns['maj'];
+          const rootIndex = NOTES.indexOf(root);
+          return intervals.map(interval => {
+            const semitones = intervalToSemitones[interval];
+            const noteIndex = (rootIndex + semitones) % 12;
+            return NOTES[noteIndex];
+          });
+}
     // Helper function to get note at specific fret
     function getNoteAtFret(startNote, fretNumber) {
         const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -1377,7 +1399,13 @@
         if (/^[A-G]/.test(chordFunction)) {
             return chordFunction;
         }
-    
+            if (!intervalPatterns[quality]) {
+            console.warn(`Unsupported quality: ${quality}. Defaulting to 'maj'`);
+            quality = 'maj';
+          }
+          
+          return `${root}${quality}`;
+        }
         // Determine if we're in a minor key
         const isMinorKey = key.toLowerCase().includes('m');
         const actualKey = isMinorKey ? key.replace(/m$|min$/, '') : key;
@@ -1854,97 +1882,70 @@
     }
     
     
-    async function playChord(root, quality, startTime = AudioContextManager.context.currentTime, duration = 1, isPassingChord = false) {
-        // Check if chords are enabled
-        if (!document.getElementById('chordsEnabled').classList.contains('active')) return;
-        
-        // Ensure audio context is initialized
-        await AudioContextManager.ensureAudioContext();
-        
-        // Get chord volume from UI
-        const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
-        if (chordVolume <= 0) return;
-    
-        // Get chord tones
-        const chordNotes = getChordTones(root, quality);
-        
-        // Generate voicing based on whether it's a passing chord
-        let voicing;
-        if (isPassingChord) {
-            // Random voicing for second chord
-            const voicingTypes = [
-                // Close position (default)
-                () => chordNotes.map(note => ({ note, octave: 3 })),
-                
-                // Drop 2 voicing
-                () => chordNotes.map((note, i) => ({
-                    note,
-                    octave: i === 1 ? 2 : 3
-                })),
-                
-                // Drop 3 voicing
-                () => chordNotes.map((note, i) => ({
-                    note,
-                    octave: i === 2 ? 2 : 3
-                })),
-                
-                // Spread voicing
-                () => chordNotes.map((note, i) => ({
-                    note,
-                    octave: i === 0 ? 2 : (i === chordNotes.length - 1 ? 4 : 3)
-                })),
-                
-                // Shell voicing (root, 3rd, 7th)
-                () => chordNotes.filter((_, i) => [0, 1, 3].includes(i))
-                              .map((note, i) => ({
-                                  note,
-                                  octave: i === 0 ? 2 : 3
-                              }))
-            ];
-            
-            // Randomly select a voicing type
-            const randomVoicing = voicingTypes[Math.floor(Math.random() * voicingTypes.length)];
-            voicing = randomVoicing();
-        } else {
-            // Standard root position voicing for first chord
-            voicing = chordNotes.map(note => ({
-                note,
-                octave: 3
-            }));
-        }
-    
-        // Handle gain node transition
-        if (AudioContextManager.currentChordGain) {
-            AudioContextManager.currentChordGain.gain.setValueAtTime(
-                AudioContextManager.currentChordGain.gain.value, 
-                startTime
-            );
-            AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(
-                0.001, 
-                startTime + 0.05
-            );
-        }
-    
-        // Create new gain node
-        AudioContextManager.currentChordGain = AudioContextManager.context.createGain();
-        AudioContextManager.currentChordGain.gain.setValueAtTime(chordVolume, startTime);
-        AudioContextManager.currentChordGain.connect(AudioContextManager.context.destination);
-    
-        // Play each note in the voicing
-        voicing.forEach(({note, octave}) => {
-            const { sampleKey, playbackRate } = getPitchShiftedNote(note, octave);
-            const buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
-            
-            if (buffer) {
-                const source = AudioContextManager.context.createBufferSource();
-                source.buffer = buffer;
-                source.playbackRate.value = playbackRate;
-                source.connect(AudioContextManager.currentChordGain);
-                source.start(startTime);
-                source.stop(startTime + duration);
-            }
-        });
+    function playChord(root, quality, startTime = 0, duration = 2, isShort = false) {
+  if (!AudioContextManager.context) return;
+
+  const chordVolume = parseFloat(UI.elements.chordVolume.value) * volume.piano;
+  if (chordVolume <= 0) return;
+
+  // Get chord notes using your intervalPatterns
+  const chordNotes = getChordNotes(root, quality);
+  if (!chordNotes.length) return;
+
+  // Cleanup previous chord's gain node
+  if (AudioContextManager.currentChordGain) {
+    AudioContextManager.currentChordGain.gain.setValueAtTime(
+      AudioContextManager.currentChordGain.gain.value,
+      AudioContextManager.context.currentTime
+    );
+    AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(
+      0.001,
+      AudioContextManager.context.currentTime + 0.05
+    );
+  }
+
+  // Create new gain node for this chord
+  const gainNode = AudioContextManager.context.createGain();
+  gainNode.gain.value = chordVolume;
+  AudioContextManager.currentChordGain = gainNode;
+
+  const now = AudioContextManager.context.currentTime;
+  const actualStartTime = startTime === 0 ? now : startTime;
+  const releaseTime = actualStartTime + (isShort ? duration * 0.5 : duration * 0.8);
+  const endTime = actualStartTime + duration;
+
+  // Envelope control
+  gainNode.gain.setValueAtTime(chordVolume, actualStartTime);
+  gainNode.gain.linearRampToValueAtTime(chordVolume * 0.7, releaseTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, endTime);
+
+  // Play each note in the chord
+  chordNotes.forEach(note => {
+    // Use your existing getSampledNote logic to handle transposition
+    const [sampleNote, octave, transposition] = getSampledNote(note);
+    const bufferKey = `${sampleNote}${octave}`;
+    const buffer = AudioContextManager.pianoSampleBuffers[bufferKey];
+
+    if (buffer) {
+      const source = AudioContextManager.context.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.value = Math.pow(2, transposition / 12);
+
+      // Connect to reverb and main output
+      const reverbGain = AudioContextManager.context.createGain();
+      reverbGain.gain.value = 0.2;
+      source.connect(reverbGain);
+      reverbGain.connect(AudioContextManager.reverbNode);
+      source.connect(gainNode); // Direct output for balance
+
+      source.start(actualStartTime);
+      source.stop(endTime);
+    } else {
+      console.warn(`No sample found for note: ${note}`);
     }
+  });
+}
+            
             function generateVoicing(root, quality, isSecondChord = false) {
         const chordNotes = getChordTones(root, quality);
         const voicings = [];
