@@ -2328,8 +2328,7 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
                     noteElement.style.backgroundColor = '#4CAF50';
                 }
 
-                // Add click event handler for audio playback
-                noteElement.addEventListener('click', async () => {
+noteElement.addEventListener('click', async () => {
     try {
         await AudioContextManager.ensureAudioContext();
         const volume = 0.75;
@@ -2352,7 +2351,7 @@ function createBeats() {
     const timeSignature = parseInt(UI.elements.timeSignature.value);
     const soundType = UI.elements.soundType.value;
 
-    let totalBeats = timeSignature === 4 ? 8 : timeSignature; // 8 beats for 4/4 time (eighth notes)
+    let totalBeats = timeSignature === 4 ? 8 : timeSignature;
 
     const beatConfigs = {
         4: { 
@@ -2386,15 +2385,13 @@ function createBeats() {
             beat.textContent = `${Math.floor(i / 2 + 1)}${isQuarterNote ? '' : '&'}`;
 
             if (soundType === 'drums') {
-                // Set default hi-hat for all beats
                 let volume = '0.7';
                 let sound = 'hihat';
                 let color = '#9E9E9E';
 
-                // Check if this beat should also have kick or snare
                 const drumConfig = config.drumSounds[i];
                 if (drumConfig) {
-                    sound = drumConfig.sound;  // This will be an array ['kick', 'hihat'] or ['snare', 'hihat']
+                    sound = drumConfig.sound;
                     volume = drumConfig.volume;
                     color = drumConfig.color;
                 }
@@ -2404,7 +2401,6 @@ function createBeats() {
                 beat.dataset.sound = Array.isArray(sound) ? sound.join(',') : sound;
                 beat.style.backgroundColor = color;
             } else {
-                // For click and woodblock, only play on quarter notes
                 if (isQuarterNote) {
                     beat.dataset.sound = soundType;
                     beat.dataset.baseVolume = i === 0 ? '1' : '0.3';
