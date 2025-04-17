@@ -1202,9 +1202,9 @@ const DEFAULT_SETTINGS = Object.freeze({
             const pianoSamples = {};
             const pianoNotes = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab'];
             
-            for (let octave = 2; octave <= 6; octave++) {
+        for (let currentOctave = 2; currentOctave <= 6; currentOctave++) { // Renamed to "currentOctave"
               for (const note of pianoNotes) {
-                const sampleName = `${note}${octave}v12`;
+                const sampleName = `${note}${currentOctave}v12`;
                 try {
                   pianoSamples[sampleName] = await loadSample(context, `${sampleName}.wav`);
                 } catch (e) {
@@ -1231,16 +1231,17 @@ function getSampledNote(note) {
     'B': 'B'
   };
 
-  const match = note.match(/([A-G][#b]?)(\d)/);
+const noteRegex = /([A-G][#b]?)(\d)/;
+  const match = note.match(noteRegex);
   if (!match) {
     console.error(`Invalid note format: ${note}`);
     return [null, null, 0];
   }
 
-  const [noteName, octave] = [match[1], parseInt(match[2])];
+const [noteName, noteOctave] = [match[1], parseInt(match[2])]; // Renamed to "noteOctave"
   const mappedNote = noteMapping[noteName] || noteName;
-  const adjustedOctave = Math.max(2, Math.min(6, octave)); // Clamp to available octaves
-  const transposition = 0; // Add logic for transposition if needed
+  const adjustedOctave = Math.max(2, Math.min(6, noteOctave)); // Use "noteOctave"
+  const transposition = 0;
 
   return [mappedNote, adjustedOctave, transposition];
 }
