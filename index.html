@@ -852,7 +852,35 @@ const DEFAULT_SETTINGS = Object.freeze({
         'egyptian': [0, 2, 5, 7, 10]
         
     };
-    
+
+    const intervalPatterns = {
+          '': ['R', 'M3', 'P5'], // Major triad
+          'maj': ['R', 'M3', 'P5'],
+          'min': ['R', 'm3', 'P5'],
+          'm': ['R', 'm3', 'P5'],
+          'dim': ['R', 'm3', 'd5'],
+          'aug': ['R', 'M3', 'A5'],
+          '7': ['R', 'M3', 'P5', 'm7'],
+          'maj7': ['R', 'M3', 'P5', 'M7'],
+          'm7': ['R', 'm3', 'P5', 'm7'],
+          'min7': ['R', 'm3', 'P5', 'm7'],
+          'dim7': ['R', 'm3', 'd5', 'd7'],
+          'm7b5': ['R', 'm3', 'd5', 'm7'],
+          '6': ['R', 'M3', 'P5', 'M6'],
+          'm6': ['R', 'm3', 'P5', 'M6'],
+          '9': ['R', 'M3', 'P5', 'm7', '9'],
+          'maj9': ['R', 'M3', 'P5', 'M7', '9'],
+          'm9': ['R', 'm3', 'P5', 'm7', '9'],
+          '11': ['R', 'M3', 'P5', 'm7', '9', '11'],
+          '13': ['R', 'M3', 'P5', 'm7', '9', '13'],
+          '7b9': ['R', 'M3', 'P5', 'm7', 'b9'],
+          '7#9': ['R', 'M3', 'P5', 'm7', '#9'],
+          '7b13': ['R', 'M3', 'P5', 'm7', 'b13'],
+          '7#11': ['R', 'M3', 'P5', 'm7', '#11'],
+          'sus2': ['R', 'M2', 'P5'],
+          'sus4': ['R', 'P4', 'P5']
+};
+            
     const TUNINGS = {
         standard: ['E', 'B', 'G', 'D', 'A', 'E'],  // Note the order change
         dropD: ['E', 'B', 'G', 'D', 'A', 'D'],
@@ -1156,46 +1184,65 @@ const DEFAULT_SETTINGS = Object.freeze({
     };
     
     async function initializeAudio() {
-  try {
-    // Create AudioContext
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const context = new AudioContext();
-    
-    // Load drum samples
-    const drumSamples = {
-      click: await loadSample(context, 'Click.wav'),
-      hihat: await loadSample(context, 'HiHat.wav'),
-      kick: await loadSample(context, 'Kick.wav'),
-      snare: await loadSample(context, 'Snare.wav'),
-      woodblock: await loadSample(context, 'woodblock.wav')
-    };
-
-    // Load piano samples (expanded range)
-    const pianoSamples = {};
-    const pianoNotes = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab'];
-    
-    for (let octave = 2; octave <= 6; octave++) {
-      for (const note of pianoNotes) {
-        const sampleName = `${note}${octave}v12`;
-        try {
-          pianoSamples[sampleName] = await loadSample(context, `${sampleName}.wav`);
-        } catch (e) {
-          console.warn(`Missing piano sample: ${sampleName}`);
+          try {
+            // Create AudioContext
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const context = new AudioContext();
+            
+            // Load drum samples
+            const drumSamples = {
+              click: await loadSample(context, 'Click.wav'),
+              hihat: await loadSample(context, 'HiHat.wav'),
+              kick: await loadSample(context, 'Kick.wav'),
+              snare: await loadSample(context, 'Snare.wav'),
+              woodblock: await loadSample(context, 'woodblock.wav')
+            };
+        
+            // Load piano samples (expanded range)
+            const pianoSamples = {};
+            const pianoNotes = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab'];
+            
+            for (let octave = 2; octave <= 6; octave++) {
+              for (const note of pianoNotes) {
+                const sampleName = `${note}${octave}v12`;
+                try {
+                  pianoSamples[sampleName] = await loadSample(context, `${sampleName}.wav`);
+                } catch (e) {
+                  console.warn(`Missing piano sample: ${sampleName}`);
+                }
+              }
+            }
+        
+            return { context, drumSamples, pianoSamples };
+          } catch (error) {
+            console.error('Audio initialization failed:', error);
+            throw error;
+          }
         }
-      }
-    }
-
-    return { context, drumSamples, pianoSamples };
-  } catch (error) {
-    console.error('Audio initialization failed:', error);
-    throw error;
-  }
-}
 
 function getSampledNote(note) {
-    // Example implementation
-    const [noteName, octave] = note.match(/([A-G][#b]?)(\d)/).slice(1);
-    return [noteName, octave, 0]; // Adjust based on your logic
+  // Define your note mapping based on available samples
+  const noteMapping = {
+    'C': 'C', 'C#': 'C', 'Db': 'C',
+    'D': 'D', 'D#': 'D', 'Eb': 'D',
+    'E': 'E', 'F': 'F', 'F#': 'Fs', 'Gb': 'Fs',
+    'G': 'G', 'G#': 'G', 'Ab': 'G',
+    'A': 'A', 'A#': 'A', 'Bb': 'A',
+    'B': 'B'
+  };
+
+  const match = note.match(/([A-G][#b]?)(\d)/);
+  if (!match) {
+    console.error(`Invalid note format: ${note}`);
+    return [null, null, 0];
+  }
+
+  const [noteName, octave] = [match[1], parseInt(match[2])];
+  const mappedNote = noteMapping[noteName] || noteName;
+  const adjustedOctave = Math.max(2, Math.min(6, octave)); // Clamp to available octaves
+  const transposition = 0; // Add logic for transposition if needed
+
+  return [mappedNote, adjustedOctave, transposition];
 }
             
 async function loadSample(context, url) {
@@ -1230,18 +1277,18 @@ async function loadSample(context, url) {
   
   return bestMatch;
 }    
-      const AudioContextManager = {
-          context: null,
-          pianoSampleBuffers: {},
-          drumSampleBuffers: {},
-          reverbNode: null,
-          currentChordGain: null,
+const AudioContextManager = {
+  context: null,
+  pianoSampleBuffers: {},
+  drumSampleBuffers: {},
+  reverbNode: null,
+  currentChordGain: null,
 
-// Add this initialize method
+  // --- METHODS --- //
   async initialize() {
     try {
       this.context = new (window.AudioContext || window.webkitAudioContext)();
-      this.reverbNode = this.createReverb();
+      await this.setupReverb();
       
       // Load drum samples
       this.drumSampleBuffers = {
@@ -1909,8 +1956,16 @@ async function loadSample(context, url) {
     
     // Audio Playback
     async function playNote(noteName, volume = 1.0, duration = 1000) {
-    if (!AudioContextManager.context || !noteName) return;    
-
+          if (!audioContext || !noteName) return;
+        
+          const [sampleNote, octave, transposition] = getSampledNote(noteName);
+          const sampleKey = `${sampleNote}${octave}v12`;
+          const buffer = pianoSamples[sampleKey];
+        
+          if (!buffer) {
+            console.warn(`No sample found for note: ${noteName}`);
+            return;
+          }
     // Fetch fretboardVolume **once**
     const fretboardVolumeControl = document.getElementById('fretboard-volume');
     if (!fretboardVolumeControl) {
