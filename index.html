@@ -1791,7 +1791,7 @@
     
     // Audio Playback
     async function playNote(noteName, volume = 1.0, duration = 1000) {
-    if (!AudioContextManager.context || !noteName) return;
+    if (!AudioContextManager.context || !noteName) return;    
 
     // Fetch fretboardVolume **once**
     const fretboardVolumeControl = document.getElementById('fretboard-volume');
@@ -1800,10 +1800,7 @@
         return;
     }
     const fretboardVolume = parseFloat(fretboardVolumeControl.value);
-
-    // Combine with passed volume (use validateVolume for safety)
     const finalVolume = validateVolume(volume * fretboardVolume);
-}
     
         // Map note name to the closest piano sample
         const noteMapping = {
