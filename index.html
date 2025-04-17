@@ -558,24 +558,35 @@
         <h3>Create a progression or pick one from the dropdown. Choose which key and scale to go with it.</h3>
         <label for="progression-select">Select Progression:</label>
         <select id="progression-select" aria-label="Select chord progression">
-            <option value="I V7">I-V7</option>
-            <option value="jazz_blues">Jazz Blues</option>
-            <option value="minor_blues">Minor Blues</option>
-            <option value="rhythm_changes">Rhythm Changes</option>
-            <option value="2_5_1">II-V-I</option>
-            <option value="6_2_5_1">VI-II-V-I</option>
-            <option value="minor 2_5_1">Minor iim-V7-im</option>
-            <option value="dark_eyes">Dark Eyes</option>
-            <option value="ill_see_you_in_my_dreams">I'll See You In My Dreams</option>
-            <option value="black_orpheus">Black Orpheus</option>
-            <option value="all_the_things_you_are">All The Things You Are</option>
-            <option value="all_of_me">All of Me</option>
-            <option value="stella_by_starlight">Stella By Starlight</option>
-            <option value="autumn_leaves">Autumn Leaves</option>
-            <option value="summertime">Summertime</option>
-            <option value="girl_from_ipanema">Girl From Ipanema</option>
-            <option value="coltrane_changes">Coltrane Changes</option>
-            <option value="bird_blues">Bird Blues</option>
+                <option value="I V7">I-V7</option>
+                <option value="jazz_blues">Jazz Blues</option>
+                <option value="minor_blues">Minor Blues</option>
+                <option value="rhythm_changes">Rhythm Changes</option>
+                <option value="2_5_1">II-V-I</option>
+                <option value="6_2_5_1">VI-II-V-I</option>
+                <option value="minor 2_5_1">Minor iim-V7-im</option>
+                <option value="dark_eyes">Dark Eyes</option>
+                <option value="ill_see_you_in_my_dreams">I'll See You In My Dreams</option>
+                <option value="rose_room">Rose Room</option>
+                <option value="black_orpheus">Black Orpheus</option>
+                <option value="all_the_things_you_are">All The Things You Are</option>
+                <option value="all_of_me">All of Me</option>
+                <option value="stella_by_starlight">Stella By Starlight</option>
+                <option value="autumn_leaves">Autumn Leaves</option>
+                <option value="summertime">Summertime</option>
+                <option value="girl_from_ipanema">Girl From Ipanema</option>
+                <option value="coltrane_changes">Coltrane Changes</option>
+                <option value="bird_blues">Bird Blues</option>
+                <option value="just_friends">Just Friends</option>
+                <option value="blue_bossa">Blue Bossa</option>
+                <option value="on_green_dolphin_street">On Green Dolphin Street</option>
+                <option value="solar">Solar</option>
+                <option value="misty">Misty</option>
+                <option value="days_of_wine_and_roses">Days of Wine and Roses</option>
+                <option value="cherokee">Cherokee</option>
+                <option value="caravan">Caravan</option>
+                <option value="nows_the_time">Now's The Time</option>
+                <option value="tenor_madness">Tenor Madness</option>
         </select>
         <label for="keySelect">Select Key:</label>
         <select id="keySelect" aria-label="Select key">
@@ -751,26 +762,37 @@ const DRUM_PATTERNS = {
     '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
 };
 
-const progressions = {
-    "I V7": { defaultKey: "C", progression: ["I", "V7"] },
-    "jazz_blues": { defaultKey: "Bb", progression: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "ii7", "V7", "I7", "V7"] },
-    "minor_blues": { defaultKey: "Am", progression: ["Im7", "IVm7", "Im7", "Im7", "IVm7", "IVm7", "Im7", "Im7", "V7", "V7", "Im7", "V7"] },
-    "rhythm_changes": { defaultKey: "Bb", progression: ["I6", "vi7", "ii7", "V7", "I6", "vi7", "ii7", "V7", "I6", "IV7", "I6", "I6", "ii7", "V7", "I6", "V7"] },
-    "2_5_1": { defaultKey: "C", progression: ["ii7", "V7", "Imaj7", "Imaj7"] },
-    "6_2_5_1": { defaultKey: "C", progression: ["vi7", "ii7", "V7", "Imaj7", "Imaj7"] },
-    "minor_2_5_1": { defaultKey: "Am", progression: ["iim7b5", "V7b9", "im7", "im7"] },
-    "dark_eyes": { defaultKey: "Am", progression: ["im", "iv", "V7", "im", "iv", "V7", "im", "V7/iv", "iv", "V7/III", "III", "im", "iv", "V7", "im", "V7"] },
-    "ill_see_you_in_my_dreams": { defaultKey: "F", progression: ["IV", "IV", "ivm7", "ivm7", "Imaj7", "VII7", "Imaj7", "Imaj7", "VI7", "VI7", "VI7", "VI7", "II7", "II7", "iim7", "V7", "Imaj7", "ii7", "V7", "Imaj7"] },
-    "black_orpheus": { defaultKey: "Am", progression: ["im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7", "bIIImaj7", "bVImaj7", "iim7b5", "V7b9", "im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7"] },
-    "all_the_things_you_are": { defaultKey: "Ab", progression: ["vi7", "ii7", "V7", "Imaj7", "IVmaj7", "iii7", "VI7", "IImaj7", "ii7", "v7", "I7", "IVmaj7", "Imaj7", "ii7", "V7", "Imaj7", "ii7", "V7", "Imaj7", "ii7", "v7", "I7", "IVmaj7", "Imaj7"] },
-    "all_of_me": { defaultKey: "C", progression: ["Imaj7", "III7", "VI7", "ii7", "III7", "vi7", "II7", "ii7", "V7", "Imaj7", "III7", "VI7", "ii7", "IV", "iv", "Imaj7", "V7"] },
-    "stella_by_starlight": { defaultKey: "Bb", progression: ["iim7b5", "V7b9", "im7", "IV7", "v7", "I7", "IVmaj7", "bVIImaj7", "iiim7b5", "VI7b9", "iim7", "V7", "im7", "IV7", "IVmaj7", "V7"] },
-    "autumn_leaves": { defaultKey: "Em", progression: ["iv7", "VII7", "bIIImaj7", "bVImaj7", "ii∅7", "V7b9", "i7", "i7"] },
-    "summertime": { defaultKey: "Am", progression: ["im", "V7", "im", "V7", "im", "V7", "im", "V7", "iv", "im", "V7", "im", "iv", "im", "V7", "im"] },
-    "girl_from_ipanema": { defaultKey: "F", progression: ["Imaj7", "II7", "ii7", "V7", "Imaj7", "II7", "ii7", "V7", "Imaj7", "bII7", "IV#maj7", "vi7", "ii7", "V7", "Imaj7", "vi7", "ii7", "V7"] },
-    "coltrane_changes": { defaultKey: "C", progression: ["Imaj7", "bIII7", "bVImaj7", "VII7", "IIImaj7", "V7", "Imaj7", "bIII7", "bVImaj7", "VII7", "IIImaj7", "V7"] },
-    "bird_blues": { defaultKey: "F", progression: ["I7", "IV7", "I7", "vi7", "ii7", "V7", "IV7", "iv7", "I7", "vi7", "ii7", "V7"] }
-};
+    const progressions = {
+        "I V7": { defaultKey: "C", progression: ["I", "V7"] },
+        "jazz_blues": { defaultKey: "Bb", progression: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "IIm7", "V7", "I7", "V7"] },
+        "minor_blues": { defaultKey: "Am", progression: ["im7", "ivm7", "im7", "im7", "ivm7", "ivm7", "im7", "im7", "V7", "V7", "im7", "V7"] },
+        "rhythm_changes": { defaultKey: "Bb", progression: ["I6", "vim7", "iim7", "V7", "I6", "vim7", "iim7", "V7", "I6", "IV7", "I6", "I6", "iim7", "V7", "I6", "V7"] },
+        "2_5_1": { defaultKey: "C", progression: ["iim7", "V7", "Imaj7", "Imaj7"] },
+        "6_2_5_1": { defaultKey: "C", progression: ["vim7", "iim7", "V7", "Imaj7", "Imaj7"] },
+        "minor_2_5_1": { defaultKey: "Am", progression: ["iim7b5", "V7b9", "im7", "im7"] },
+        "dark_eyes": { defaultKey: "Dm", progression: ["V7", "V7", "im7", "im7", "V7", "V7", "VI6", "VI6", "ivm6", "ivm6", "im7", "im7", "V7", "V7", "im7", "im7"] },    
+        "ill_see_you_in_my_dreams": { defaultKey: "F", progression: ["IV6", "IV6", "ivm6", "ivm6", "Imaj7", "VII7", "Imaj7", "Imaj7", "VI7", "VI7", "VI7", "VI7", "II7", "II7", "iim7", "V7", "Imaj7"] },
+        "rose_room": {defaultKey: "Ab", progression: ["II7", "V7", "I6", "I7", "IV6", "ivm7", "bVII7", "I6", "VI7", "V7", "V7", "II7", "V7", "I6", "I7", "IV6", "ivm7", "bVII7", "I6", "VI7", "IV7", "V7", "I6", "VI7"] },
+        "black_orpheus": { defaultKey: "Am", progression: ["im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7", "bIIImaj7", "bVImaj7", "iim7b5", "V7b9", "im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7"] },
+        "all_the_things_you_are": { defaultKey: "Ab", progression: ["vim7", "iim7", "V7", "Imaj7", "IVmaj7", "iiim7", "VI7", "IImaj7", "iim7", "vm7", "I7", "IVmaj7", "Imaj7", "iim7", "V7", "Imaj7", "iim7", "V7", "Imaj7", "iim7", "vm7", "I7", "IVmaj7", "Imaj7"] },
+        "all_of_me": { defaultKey: "C", progression: ["Imaj7", "III7", "VI7", "iim7", "III7", "vim7", "II7", "iim7", "V7", "Imaj7", "III7", "VI7", "iim7", "IV", "iv", "Imaj7", "V7"] },
+        "stella_by_starlight": { defaultKey: "Bb", progression: ["iim7b5", "V7b9", "im7", "IV7", "vm7", "I7", "IVmaj7", "bVIImaj7", "iiim7b5", "VI7b9", "iim7", "V7", "im7", "IV7", "IVmaj7", "V7"] },
+        "autumn_leaves": { defaultKey: "Em", progression: ["ivm7", "VII7", "bIIImaj7", "bVImaj7", "iim7b5", "V7b9", "im7", "im7"] },
+        "summertime": { defaultKey: "Am", progression: ["im7", "V7", "im7", "V7", "im7", "V7", "im7", "V7", "iv7", "im7", "V7", "im7", "iv7", "im7", "V7", "im7"] },
+        "girl_from_ipanema": { defaultKey: "F", progression: ["Imaj7", "II7", "iim7", "V7", "Imaj7", "II7", "iim7", "V7", "Imaj7", "bII7", "IV#maj7", "vim7", "iim7", "V7", "Imaj7", "vim7", "iim7", "V7"] },
+        "coltrane_changes": { defaultKey: "C", progression: ["Imaj7", "bIII7", "bVImaj7", "VII7", "IIImaj7", "V7", "Imaj7", "bIII7", "bVImaj7", "VII7", "IIImaj7", "V7"] },
+        "bird_blues": { defaultKey: "F", progression: ["I7", "IV7", "I7", "vim7", "iim7", "V7", "IV7", "ivm7", "I7", "vim7", "iim7", "V7"] },
+        "just_friends": { defaultKey: "G", progression: ["Imaj7", "VI7", "iim7", "V7", "Imaj7", "VI7", "iim7", "V7", "iim7", "V7", "Imaj7", "VI7", "iim7", "V7", "Imaj7", "VI7"] },
+        "blue_bossa": { defaultKey: "Cm", progression: ["im7", "im7", "bVII7", "bVII7", "im7", "im7", "ivm7", "bVII7", "im7", "V7", "im7", "im7"] },
+        "on_green_dolphin_street": { defaultKey: "C", progression: ["Imaj7", "bIII7", "bVImaj7", "iim7", "V7", "Imaj7", "bIII7", "bVImaj7", "iim7", "V7", "Imaj7"] },
+        "solar": { defaultKey: "C", progression: ["im7", "im7", "bIIImaj7", "bIIImaj7", "bVImaj7", "bVImaj7", "bII7", "bII7", "im7", "im7"] },
+        "misty": { defaultKey: "Eb", progression: ["Imaj7", "I7", "IVmaj7", "ivm7", "Imaj7", "V7", "Imaj7", "vim7", "iim7", "V7", "Imaj7"] },
+        "days_of_wine_and_roses": { defaultKey: "F", progression: ["Imaj7", "vim7", "iim7", "V7", "Imaj7", "vim7", "iim7", "V7", "Imaj7", "vim7", "iim7", "V7", "Imaj7"] },
+        "cherokee": { defaultKey: "Bb", progression: ["Imaj7", "Imaj7", "iim7", "V7", "Imaj7", "Imaj7", "iim7", "V7","bVI7", "bVI7", "V7", "V7", "Imaj7", "Imaj7", "iim7", "V7"] },
+        "caravan": { defaultKey: "Eb", progression: ["im7", "IV7", "im7", "IV7", "im7", "IV7", "im7", "IV7", "bVII7", "bVII7", "Imaj7", "Imaj7", "V7", "V7", "im7", "im7"] },
+        "nows_the_time": { defaultKey: "F", progression: ["I7", "I7", "I7", "I7", "IV7", "IV7", "I7", "I7", "V7", "IV7", "I7", "I7"] },
+        "tenor_madness": { defaultKey: "Bb", progression: ["I7", "I7", "I7", "I7", "IV7", "IV7", "I7", "I7", "iim7", "V7", "I7", "I7"] }
+    };
         
 const scaleDegrees = {
     major: {
