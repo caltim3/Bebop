@@ -2542,7 +2542,22 @@ function setupEventListeners() {
         }
     });
 
-    UI.elements.soundType.addEventListener('change', createBeats);
+    UI.elements.soundType.addEventListener('change', () => {
+        createBeats();
+        // Show/hide drum set toggle button based on sound type
+        const drumSetToggleBtn = document.getElementById('drumSetToggleBtn');
+        if (drumSetToggleBtn) {
+            drumSetToggleBtn.style.display = UI.elements.soundType.value === 'drums' ? 'inline-block' : 'none';
+        }
+    });
+
+    // Add drum set toggle button
+    const drumSetToggleBtn = document.getElementById('drumSetToggleBtn');
+    if (drumSetToggleBtn) {
+        drumSetToggleBtn.addEventListener('click', toggleDrumSet);
+        // Initially hide the button if drums aren't selected
+        drumSetToggleBtn.style.display = UI.elements.soundType.value === 'drums' ? 'inline-block' : 'none';
+    }
 
     UI.elements.metronomeVolume.addEventListener('input', () => {
         const volume = parseFloat(UI.elements.metronomeVolume.value);
