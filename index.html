@@ -1242,22 +1242,7 @@ async function loadSample(context, url) {
       return false;
     }
   },
-         createReverb() {
-            const duration = 2;
-            const sampleRate = this.context.sampleRate;
-            const buffer = this.context.createBuffer(2, sampleRate * duration, sampleRate);
-            for (let channel = 0; channel < 2; channel++) {
-              const channelData = buffer.getChannelData(channel);
-              for (let i = 0; i < channelData.length; i++) {
-                channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / (sampleRate * duration), 3);
-              }
-            }
-            const reverbNode = this.context.createConvolver();
-            reverbNode.buffer = buffer;
-            return reverbNode;
-          }
-        };
-            
+           
         async createDrumSound(type) {
             const sampleRate = this.context.sampleRate;
             const duration = type === 'hihat' ? 0.05 : 0.2;
