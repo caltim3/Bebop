@@ -1256,7 +1256,7 @@ async function loadSample(context, url) {
   const arrayBuffer = await response.arrayBuffer();
   return context.decodeAudioData(arrayBuffer);
 }
-        function getNearestSample(pianoSamples, targetNote) {
+function getNearestSample(pianoSamples, targetNote) {
   // Implement semitone-based nearest neighbor search
   const noteOrder = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
   const [note, octave] = targetNote.match(/([A-G][b#]?)(\d)/).slice(1);
@@ -1317,29 +1317,29 @@ const AudioContextManager = {
   },
   
   // Add the ensureAudioContext method here
-  async ensureAudioContext() {
-    try {
-      // If context doesn't exist, initialize it
-      if (!this.context) {
-        await this.initialize();
-      }
-      
-      // If context is suspended (browser policy), resume it
-      if (this.context && this.context.state === 'suspended') {
-        await this.context.resume();
-        console.log('AudioContext resumed');
-      }
-      
-      // Return the state of the audio context
-      return this.context && this.context.state === 'running';
-    } catch (error) {
-      console.error('Failed to ensure audio context:', error);
-      alert('Please click anywhere on the page to enable audio playback');
-      throw error;
+async ensureAudioContext() {
+  try {
+    // If context doesn't exist, initialize it
+    if (!this.context) {
+      await this.initialize();
     }
-  },
     
-    function playMetronomeSound(baseVolume) {
+    // If context is suspended (browser policy), resume it
+    if (this.context && this.context.state === 'suspended') {
+      await this.context.resume();
+      console.log('AudioContext resumed');
+    }
+    
+    // Return the state of the audio context
+    return this.context && this.context.state === 'running';
+  } catch (error) {
+    console.error('Failed to ensure audio context:', error);
+    alert('Please click anywhere on the page to enable audio playback');
+    throw error;
+  }
+},
+    
+    playMetronomeSound: async function(baseVolume) {
         if (!AudioContextManager.context) return;
         
         // Get the metronome volume slider value and combine it with base volume
