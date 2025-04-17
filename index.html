@@ -1192,6 +1192,12 @@ const DEFAULT_SETTINGS = Object.freeze({
   }
 }
 
+function getSampledNote(note) {
+    // Example implementation
+    const [noteName, octave] = note.match(/([A-G][#b]?)(\d)/).slice(1);
+    return [noteName, octave, 0]; // Adjust based on your logic
+}
+            
 async function loadSample(context, url) {
   const response = await fetch(url);
   const arrayBuffer = await response.arrayBuffer();
@@ -1291,54 +1297,66 @@ async function loadSample(context, url) {
             return buffer;
         },
         async loadPianoSamples() {
-            log('Starting piano sample loading...');
-            if (!this.context) {
-                await this.initialize();
-            }
-            for (let note of SAMPLED_NOTES) {
-                for (let octave of PIANO_CONFIG.octaves[note]) {
-                    const sampleName = `${note}${octave}v12`;
-                    try {
-                        const response = await fetch(`./${sampleName}.${PIANO_CONFIG.fileFormat}`);
-                        if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
-                        const arrayBuffer = await response.arrayBuffer();
-                        this.pianoSampleBuffers[sampleName] = await this.context.decodeAudioData(arrayBuffer);
-                        log(`Loaded piano sample: ${sampleName}`);
-                    } catch (error) {
-                        console.warn(`Could not load ${sampleName}, using fallback`, error);
-                        this.pianoSampleBuffers[sampleName] = this.createSyntheticSample(note, octave);
-                    }
+        log('Starting piano sample loading...');
+        if (!this.context) {
+            await this.initialize();
+        }
+        this.pianoSampleBuffers = {}; // Reset buffer storage
+
+        for (const note of SAMPLED_NOTES) {
+            const octaves = PIANO_CONFIG.octaves[note] || [];
+            for (const octave of octaves) {
+                const sampleName = `${note}${octave}v12`;
+                try {
+                    const response = await fetch(`./${sampleName}.${PIANO_CONFIG.fileFormat}`);
+                    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const buffer = await this.context.decodeAudioData(arrayBuffer);
+                    this.pianoSampleBuffers[sampleName] = buffer;
+                    log(`Loaded ${sampleName}`);
+                } catch (error) {
+                    console.warn(`Failed to load ${sampleName}, creating synthetic fallback`, error);
+                    this.pianoSampleBuffers[sampleName] = this.createSyntheticSample(note, octave);
                 }
-            }
-            this.samplesLoaded = true;
-            updateLoadingStatus("Piano samples loaded");
-        },
-        createSyntheticSample(note, octave) {
-            const buffer = this.context.createBuffer(1, this.context.sampleRate, this.context.sampleRate);
-            const data = buffer.getChannelData(0);
-            const frequency = PIANO_NOTES[`${note}${octave}`] || 440;
-            for (let i = 0; i < data.length; i++) {
-                data[i] = Math.sin(2 * Math.PI * frequency * i / this.context.sampleRate) * Math.exp(-i / this.context.sampleRate);
-            }
-            return buffer;
-        },
-        async setupReverb() {
-            if (!this.reverbNode) {
-                this.reverbNode = this.context.createConvolver();
-                const sampleRate = this.context.sampleRate;
-                const length = sampleRate * 2.5;
-                const impulse = this.context.createBuffer(2, length, sampleRate);
-                for (let channel = 0; channel < 2; channel++) {
-                    const channelData = impulse.getChannelData(channel);
-                    for (let i = 0; i < length; i++) {
-                        channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
-                    }
-                }
-                this.reverbNode.buffer = impulse;
-                this.reverbNode.connect(this.context.destination);
             }
         }
-    };
+        this.samplesLoaded = true;
+        updateLoadingStatus("Piano samples loaded");
+    },
+
+    createSyntheticSample(note, octave) {
+        const duration = 2.0; // 2-second buffer for piano samples
+        const sampleRate = this.context.sampleRate;
+        const bufferLength = sampleRate * duration;
+        const buffer = this.context.createBuffer(1, bufferLength, sampleRate);
+        const data = buffer.getChannelData(0);
+        const frequency = PIANO_NOTES[`${note}${octave}`] || 440; // Fallback to A4 if undefined
+
+        for (let i = 0; i < bufferLength; i++) {
+            const t = i / sampleRate;
+            data[i] = Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 0.5); // Decay envelope
+        }
+        return buffer;
+    },
+
+    async setupReverb() {
+        if (!this.reverbNode) {
+            this.reverbNode = this.context.createConvolver();
+            const impulseLength = this.context.sampleRate * 2.5; // 2.5-second impulse
+            const impulse = this.context.createBuffer(2, impulseLength, this.context.sampleRate);
+
+            for (let channel = 0; channel < 2; channel++) {
+                const channelData = impulse.getChannelData(channel);
+                for (let i = 0; i < impulseLength; i++) {
+                    channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / impulseLength, 2);
+                }
+            }
+            this.reverbNode.buffer = impulse;
+            this.reverbNode.connect(this.context.destination); // Connect to output
+        }
+    }
+};
+            
     async function ensureAudioInitialized() {
         if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
             try {
