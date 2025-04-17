@@ -1630,10 +1630,12 @@ function playChord(chord, duration = 1, beatNumber = 0) {
     // Start with a higher base octave (3 instead of 2)
     const baseOctave = 3;
     
-    // Convert MIDI note numbers to note names with octaves
-    const noteNames = chordNotes.map(noteNum => {
-        const noteName = MIDI_NOTES[noteNum % 12];
-        const octave = baseOctave + Math.floor(noteNum / 12);
+    // Convert note names to note names with octaves
+    const noteNames = chordNotes.map(noteIndex => {
+        // Get the note name from the NOTES array using modulo 12
+        const noteName = NOTES[noteIndex % 12];
+        // Calculate the octave based on the note index
+        const octave = baseOctave + Math.floor(noteIndex / 12);
         return noteName + octave;
     });
     
