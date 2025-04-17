@@ -1798,9 +1798,8 @@
         const fretboardVolume = parseFloat(fretboardVolumeControl.value);
     
         // Combine the passed volume with the fretboard volume control
+        const fretboardVolume = parseFloat(document.getElementById('fretboard-volume').value);
         const finalVolume = volume * fretboardVolume;
-    
-        if (finalVolume <= 0) return;
     
         // Map note name to the closest piano sample
         const noteMapping = {
