@@ -2241,8 +2241,7 @@ function createFretboard(container, tuning) {
         }
     });
 }
-        
-function updateFretboardNotes(container, rootNote, scale, tuning) {
+        function updateFretboardNotes(container, rootNote, scale, tuning) {
     // Input validation
     if (!(container instanceof HTMLElement)) {
         console.error('Invalid container element');
@@ -2276,14 +2275,14 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
 
             if (chordRoot && chordQuality && scaleRoot && scaleType) {
                 let displayQuality = chordQuality;
-            switch (chordQuality) {
-                case 'dom7': displayQuality = '7'; break;
-                case 'maj7': displayQuality = 'Maj7'; break;
-                case 'min7': displayQuality = 'm7'; break;
-                case 'min7b5': displayQuality = 'm7b5'; break;
-                case 'minor': displayQuality = 'm'; break;
-                case 'maj6': displayQuality = '6'; break;    // Added major 6th
-                case 'min6': displayQuality = 'm6'; break;   // Added minor 6th
+                switch (chordQuality) {
+                    case 'dom7': displayQuality = '7'; break;
+                    case 'maj7': displayQuality = 'Maj7'; break;
+                    case 'min7': displayQuality = 'm7'; break;
+                    case 'min7b5': displayQuality = 'm7b5'; break;
+                    case 'minor': displayQuality = 'm'; break;
+                    case 'maj6': displayQuality = '6'; break;
+                    case 'min6': displayQuality = 'm6'; break;
                 }
                 let displayScale = scaleType.charAt(0).toUpperCase() + scaleType.slice(1);
                 displayScale = displayScale.replace(/([A-Z])/g, ' $1').trim();
@@ -2328,21 +2327,26 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
                     noteElement.style.backgroundColor = '#4CAF50';
                 }
 
-noteElement.addEventListener('click', async () => {
-    try {
-        await AudioContextManager.ensureAudioContext();
-        const volume = 0.75;
-        const noteWithOctave = `${currentNote}${4}`;
-        await playNote(noteWithOctave, volume);
-        noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
-        setTimeout(() => {
-            noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
-        }, 100);
-    } catch (error) {
-        console.error('Error playing note:', error);
+                noteElement.addEventListener('click', async () => {
+                    try {
+                        await AudioContextManager.ensureAudioContext();
+                        const volume = 0.75;
+                        const noteWithOctave = `${currentNote}${4}`;
+                        await playNote(noteWithOctave, volume);
+                        noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                        setTimeout(() => {
+                            noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
+                        }, 100);
+                    } catch (error) {
+                        console.error('Error playing note:', error);
+                    }
+                });
+                
+                container.appendChild(noteElement);
+            }
+        }
     }
-});
-container.appendChild(noteElement);
+}
 
 function createBeats() {
     const container = document.querySelector('.beats-container');
