@@ -2988,7 +2988,94 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadProgression('I V7');
         setupEventListeners();
 
-        // 7. Start the main loop (should be non-blocking)
+        // 7. Add UI event listeners (MOVED OUT OF mainLoop)
+        UI.elements.progressionSelect.addEventListener('change', (e) => {
+            loadProgression(e.target.value);
+        });
+
+        UI.elements.keySelect.addEventListener('change', (e) => {
+            updateProgressionKey(e.target.value);
+        });
+
+        UI.elements.timeSignature.addEventListener('change', () => {
+            createBeats();
+            if (AppState.isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        });
+
+        UI.elements.soundType.addEventListener('change', () => {
+            createBeats();
+        });
+
+        UI.elements.tempo.addEventListener('input', (e) => {
+            AppState.tempo = parseInt(e.target.value);
+            UI.elements.tempoDisplay.textContent = `${AppState.tempo} BPM`;
+            if (AppState.isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        });
+
+        UI.elements.chordsEnabled.addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+        // Dark mode toggle functionality
+        UI.elements.darkModeToggle.addEventListener('click', function() {
+            this.classList.remove('active', 'active-2', 'active-3');
+            if (!document.body.classList.contains('dark-mode') && 
+                !document.body.classList.contains('dark-mode-2') && 
+                !document.body.classList.contains('dark-mode-3')) {
+                toggleDarkMode('dark-mode');
+                this.classList.add('active');
+            } else if (document.body.classList.contains('dark-mode')) {
+                toggleDarkMode('dark-mode-2');
+                this.classList.add('active-2');
+            } else if (document.body.classList.contains('dark-mode-2')) {
+                toggleDarkMode('dark-mode-3');
+                this.classList.add('active-3');
+            } else {
+                toggleDarkMode(null);
+            }
+        });
+
+        // Tap tempo functionality
+        UI.elements.tapTempo.addEventListener('click', handleTapTempo);
+        setInterval(clearTapTempoAfterDelay, 2000);
+
+        // Volume control listeners
+        UI.elements.metronomeVolume.addEventListener('input', () => {
+            if (AppState.isPlaying) {
+                playMetronomeSound(1);
+            }
+        });
+
+        UI.elements.chordVolume.addEventListener('input', () => {
+            if (AppState.isPlaying) {
+                const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
+                if (currentMeasure) {
+                    const root = currentMeasure.querySelector('.root-note').value;
+                    const quality = currentMeasure.querySelector('.chord-quality').value;
+                    playChord(root, quality);
+                }
+            }
+        });
+
+        // Tuning change listener
+        UI.elements.chordTuning.addEventListener('change', () => {
+            const tuning = TUNINGS[UI.elements.chordTuning.value];
+            createFretboard(UI.elements.chordFretboard, tuning);
+            const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
+            if (currentMeasure) {
+                const scaleRoot = currentMeasure.querySelector('.second-key').value;
+                const scaleType = currentMeasure.querySelector('.scale-select').value;
+                updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
+            }
+        });
+
+        // 8. Start the main loop (should be non-blocking)
         if (typeof mainLoop === 'function') {
             mainLoop();
         } else {
@@ -3001,145 +3088,73 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert('Error initializing application. Please check the console for details.');
     }
 });
-            
-            async function ensureAudioInitialized() {
-        try {
-            if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
-                await AudioContextManager.initialize();
-                if (AudioContextManager.context.state === 'suspended') {
-                    await AudioContextManager.context.resume();
-                }
+
+// Animation loop (if needed)
+function mainLoop() {
+    function animate() {
+        // Your update/render logic here
+        requestAnimationFrame(animate);
+    }
+    animate();
+}
+
+// Ensure audio is initialized
+async function ensureAudioInitialized() {
+    try {
+        if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
+            await AudioContextManager.initialize();
+            if (AudioContextManager.context.state === 'suspended') {
+                await AudioContextManager.context.resume();
             }
-        } catch (error) {
-            console.error('Audio initialization failed:', error);
-            alert('Please click anywhere on the page to enable audio playback');
-            throw error;
         }
+    } catch (error) {
+        console.error('Audio initialization failed:', error);
+        alert('Please click anywhere on the page to enable audio playback');
+        throw error;
     }
-            function validateVolume(volume) {
-        return Math.max(0, Math.min(1, parseFloat(volume) || 0));
+}
+
+// Volume validation
+function validateVolume(volume) {
+    return Math.max(0, Math.min(1, parseFloat(volume) || 0));
+}
+
+// Loading status updates
+function updateLoadingStatus(message) {
+    let indicator = document.getElementById('loading-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'loading-indicator';
+        document.body.appendChild(indicator);
     }
+    indicator.textContent = message;
     
-            function updateLoadingStatus(message) {
-        let indicator = document.getElementById('loading-indicator');
-        if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.id = 'loading-indicator';
-            document.body.appendChild(indicator);
-        }
-        indicator.textContent = message;
-        
-        // Auto-hide after 3 seconds
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        indicator.style.opacity = '0';
         setTimeout(() => {
-            indicator.style.opacity = '0';
-            setTimeout(() => indicator.remove(), 300);
-        }, 3000);
+            if (indicator && indicator.parentNode) {
+                indicator.parentNode.removeChild(indicator);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Cleanup on unload
+window.addEventListener('beforeunload', () => {
+    if (AudioContextManager.context) {
+        AudioContextManager.context.close();
     }
-            
-            function mainLoop() {
-                UI.elements.progressionSelect.addEventListener('change', (e) => {
-                    loadProgression(e.target.value);
-                });
-    
-                UI.elements.keySelect.addEventListener('change', (e) => {
-                    updateProgressionKey(e.target.value);
-                });
-    
-                UI.elements.timeSignature.addEventListener('change', () => {
-                    createBeats();
-                    if (AppState.isPlaying) {
-                        stopPlayback();
-                        startPlayback();
-                    }
-                });
-    
-                UI.elements.soundType.addEventListener('change', () => {
-                    createBeats();
-                });
-    
-                UI.elements.tempo.addEventListener('input', (e) => {
-                    AppState.tempo = parseInt(e.target.value);
-                    UI.elements.tempoDisplay.textContent = `${AppState.tempo} BPM`;
-                    if (AppState.isPlaying) {
-                        stopPlayback();
-                        startPlayback();
-                    }
-                });
-    
-                UI.elements.chordsEnabled.addEventListener('click', function() {
-                    this.classList.toggle('active');
-                });
-    
-                // Dark mode toggle functionality
-                UI.elements.darkModeToggle.addEventListener('click', function() {
-                    this.classList.remove('active', 'active-2', 'active-3');
-                    if (!document.body.classList.contains('dark-mode') && 
-                        !document.body.classList.contains('dark-mode-2') && 
-                        !document.body.classList.contains('dark-mode-3')) {
-                        toggleDarkMode('dark-mode');
-                        this.classList.add('active');
-                    } else if (document.body.classList.contains('dark-mode')) {
-                        toggleDarkMode('dark-mode-2');
-                        this.classList.add('active-2');
-                    } else if (document.body.classList.contains('dark-mode-2')) {
-                        toggleDarkMode('dark-mode-3');
-                        this.classList.add('active-3');
-                    } else {
-                        toggleDarkMode(null);
-                    }
-                });
-    
-                // Tap tempo functionality
-                UI.elements.tapTempo.addEventListener('click', handleTapTempo);
-                setInterval(clearTapTempoAfterDelay, 2000);
-    
-                // Volume control listeners
-                UI.elements.metronomeVolume.addEventListener('input', () => {
-                    if (AppState.isPlaying) {
-                        playMetronomeSound(1);
-                    }
-                });
-    
-                UI.elements.chordVolume.addEventListener('input', () => {
-                    if (AppState.isPlaying) {
-                        const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
-                        if (currentMeasure) {
-                            const root = currentMeasure.querySelector('.root-note').value;
-                            const quality = currentMeasure.querySelector('.chord-quality').value;
-                            playChord(root, quality);
-                        }
-                    }
-                });
-    
-                // Tuning change listener
-                UI.elements.chordTuning.addEventListener('change', () => {
-                    const tuning = TUNINGS[UI.elements.chordTuning.value];
-                    createFretboard(UI.elements.chordFretboard, tuning);
-                    const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
-                    if (currentMeasure) {
-                        const scaleRoot = currentMeasure.querySelector('.second-key').value;
-                        const scaleType = currentMeasure.querySelector('.scale-select').value;
-                        updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
-                    }
-                });
+    stopPlayback();
+});
 
-
-    
-    // Error handling for audio loading
-    window.addEventListener('error', function(e) {
-        if (e.target.tagName === 'AUDIO' || e.target.tagName === 'SOURCE') {
-            console.warn('Audio file failed to load:', e.target.src);
-            log('Using fallback synthetic sound');
-        }
-    }, true);
-    
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-        if (AudioContextManager.context) {
-            AudioContextManager.context.close();
-        }
-        stopPlayback();
-    });
+// Error handling for audio loading
+window.addEventListener('error', function(e) {
+    if (e.target.tagName === 'AUDIO' || e.target.tagName === 'SOURCE') {
+        console.warn('Audio file failed to load:', e.target.src);
+        log('Using fallback synthetic sound');
+    }
+}, true);
             </script>
         </body>
 </html>
