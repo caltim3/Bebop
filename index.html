@@ -1381,18 +1381,6 @@ function sharpenNote(note) {
         '11': 17, '#11': 18, 'b13': 20, '13': 21
     };
 
-    const canonicalQuality = getQualityValue(quality);
-    const pattern = intervalPatterns[canonicalQuality] || intervalPatterns[''];
-    const rootIndex = NOTES.indexOf(standardizeNoteName(root));
-    if (rootIndex === -1) return [];
-
-    // Calculate each chord tone
-    return pattern.map(interval => {
-        const semitones = intervalToSemitones[interval];
-        return NOTES[(rootIndex + semitones) % 12];
-    });
-}
-
 function parseChord(chordStr) {
     // Standardize input
     chordStr = chordStr.trim();
