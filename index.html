@@ -1381,6 +1381,9 @@ function parseChord(chordStr) {
     const enharmonic = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
     if (enharmonic[root]) root = enharmonic[root];
 
+    // Return the parsed root and quality
+    return { root, quality };
+} 
 
 function getQualityValue(chord) {
     if (!chord) return null;
