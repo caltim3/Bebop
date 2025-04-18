@@ -1386,18 +1386,33 @@ function getChordFromFunction(key, chordFunction) {
 }
 
 function getChordTones(root, quality) {
-    // Use your global NOTES array for consistency
-    const chromatic = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    // Always use ENHARMONIC_MAP to standardize root
-    let normalizedRoot = ENHARMONIC_MAP[root] || root;
-    // If still not found, try flattening/sharpening
-    if (!chromatic.includes(normalizedRoot)) {
-        normalizedRoot = flattenNote(root);
-    }
-    const rootIndex = chromatic.indexOf(normalizedRoot);
-    if (rootIndex === -1) return [root];
+    const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
-    // Interval patterns
+    // Map sharps to flats for consistency
+    function standardizeNoteName(note) {
+        const enharmonic = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
+        return enharmonic[note] || note;
+    }
+
+    // Canonicalize quality for lookup
+    function getQualityValue(quality) {
+        const map = {
+            '': '', 'maj': 'maj', 'M': 'maj', 'major': 'maj',
+            'm': 'min', 'min': 'min', 'minor': 'min',
+            '7': '7', 'dom7': '7',
+            'maj7': 'maj7', 'M7': 'maj7',
+            'm7': 'm7', 'min7': 'min7',
+            'dim': 'dim', 'dim7': 'dim7', 'aug': 'aug',
+            'm7b5': 'm7b5', 'min7b5': 'm7b5',
+            '6': '6', 'maj6': 'maj6', 'min6': 'min6', 'm6': 'min6',
+            '9': '9', 'maj9': 'maj9', 'm9': 'm9',
+            '11': '11', '13': '13',
+            '7b9': '7b9', '7#9': '7#9', '7b13': '7b13', '7#11': '7#11',
+            'sus2': 'sus2', 'sus4': 'sus4'
+        };
+        return map[quality] || quality;
+    }
+
     const intervalPatterns = {
         '': ['R', 'M3', 'P5'],
         'maj': ['R', 'M3', 'P5'],
@@ -1412,7 +1427,6 @@ function getChordTones(root, quality) {
         'dim7': ['R', 'm3', 'd5', 'd7'],
         'm7b5': ['R', 'm3', 'd5', 'm7'],
         '6': ['R', 'M3', 'P5', 'M6'],
-        'm6': ['R', 'm3', 'P5', 'M6'],
         'maj6': ['R', 'M3', 'P5', 'M6'],
         'min6': ['R', 'm3', 'P5', 'M6'],
         '9': ['R', 'M3', 'P5', 'm7', '9'],
@@ -1434,19 +1448,15 @@ function getChordTones(root, quality) {
         '11': 17, '#11': 18, 'b13': 20, '13': 21
     };
 
-    const intervals = intervalPatterns[quality] || intervalPatterns[''];
+    const canonicalQuality = getQualityValue(quality);
+    const pattern = intervalPatterns[canonicalQuality] || intervalPatterns[''];
+    const rootIndex = NOTES.indexOf(standardizeNoteName(root));
+    if (rootIndex === -1) return [];
 
-    return intervals.map(interval => {
+    // Calculate each chord tone
+    return pattern.map(interval => {
         const semitones = intervalToSemitones[interval];
-        const noteIndex = (rootIndex + semitones) % 12;
-        // Always return the note as found in your global NOTES array
-        let note = chromatic[noteIndex];
-        // Map to your NOTES array (which uses flats)
-        if (!NOTES.includes(note)) {
-            // Try to map sharp to flat
-            note = flattenNote(note);
-        }
-        return note;
+        return NOTES[(rootIndex + semitones) % 12];
     });
 }
 
