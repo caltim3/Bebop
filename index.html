@@ -1868,17 +1868,23 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
         }
     });
 }
+        // When you want to play a chord:
+        function playChordFromString(chordString, startTime, duration, isPassingChord) {
+            const { root, quality } = parseChord(chordString);
+            const chordNotes = getChordTones(root, quality);
+            playChord(root, quality, startTime, duration, isPassingChord);
+        }
         
         function generateVoicing(root, quality, isSecondChord = false) {
-    const chordNotes = getChordTones(root, quality);
-    const voicings = [];
-    
-    // Base voicing (root position)
-    let baseVoicing = chordNotes.map(note => ({
-        note: note,
-        octave: 3  // Default octave
-    }));
-    
+            const chordNotes = getChordTones(root, quality);
+            const voicings = [];
+            
+            // Base voicing (root position)
+            let baseVoicing = chordNotes.map(note => ({
+                note: note,
+                octave: 3  // Default octave
+            }));
+            
     if (isSecondChord) {
         // Generate different voicing possibilities
         
