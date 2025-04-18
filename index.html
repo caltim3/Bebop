@@ -1460,46 +1460,54 @@ function getChordTones(root, quality) {
     });
 }
 
-function parseChord(chord) {
-    if (!chord) return ['C', ''];
+function parseChord(chordStr) {
+    // Standardize input
+    chordStr = chordStr.trim();
 
-     // Examples matched: C, Cm, Cmin, C6, Cm6, Cmaj6, Cmin6, C7, Cm7, Cmaj7, Cdim, C°
-    const regex = /^([A-Ga-g][b#♭♯]?)(maj7|m7b5|min7b5|m7|min7|maj6|m6|min6|6|m|min|dim7|dim|aug|sus2|sus4|add9|7b9|7#9|7|9|11|13|°)?$/;
-    const match = chord.match(regex);
-
+    // Match root (with optional sharp/flat) and the rest as quality
+    // e.g., "C#m7b5" => root: "C#", quality: "m7b5"
+    const match = chordStr.match(/^([A-Ga-g])([b#]?)(.*)$/);
     if (!match) {
-        console.warn(`Unable to parse chord: ${chord}`);
-        return [standardizeNoteName(chord), ''];
+        // Legacy fallback: default to C major
+        return { root: 'C', quality: '' };
     }
 
-    let [_, root, quality] = match;
+    let [, root, accidental, quality] = match;
+    root = root.toUpperCase() + (accidental || '');
 
-    // Standardize root (e.g., 'Db' instead of 'db')
-    root = standardizeNoteName(root);
+    // Standardize root to flats for internal use
+    const enharmonic = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
+    if (enharmonic[root]) root = enharmonic[root];
 
-    // Normalize quality to legacy and new types
-    if (!quality) {
-        quality = '';
-    } else if (quality === 'min' || quality === 'm') {
-        quality = 'm';
-    } else if (quality === 'min7' || quality === 'm7') {
-        quality = 'm7';
-    } else if (quality === 'maj7') {
-        quality = 'maj7';
-    } else if (quality === 'dim7') {
-        quality = 'dim7';
-    } else if (quality === 'dim' || quality === '°') {
-        quality = 'dim';
-    } else if (quality === 'min7b5' || quality === 'm7b5') {
-        quality = 'm7b5';
-    } else if (quality === 'maj6' || quality === '6') {
-        quality = 'maj6';
-    } else if (quality === 'min6' || quality === 'm6') {
-        quality = 'm6';
+    // Canonicalize quality for lookup
+    function getQualityValue(quality) {
+        const map = {
+            '': '', 'maj': 'maj', 'M': 'maj', 'major': 'maj',
+            'm': 'min', 'min': 'min', 'minor': 'min',
+            '7': '7', 'dom7': '7',
+            'maj7': 'maj7', 'M7': 'maj7',
+            'm7': 'm7', 'min7': 'min7',
+            'dim': 'dim', 'dim7': 'dim7', 'aug': 'aug',
+            'm7b5': 'm7b5', 'min7b5': 'm7b5',
+            '6': '6', 'maj6': 'maj6', 'min6': 'min6', 'm6': 'min6',
+            '9': '9', 'maj9': 'maj9', 'm9': 'm9',
+            '11': '11', '13': '13',
+            '7b9': '7b9', '7#9': '7#9', '7b13': '7b13', '7#11': '7#11',
+            'sus2': 'sus2', 'sus4': 'sus4'
+        };
+        // Try to match the longest possible quality string
+        quality = quality.replace(/^\s+|\s+$/g, '');
+        for (let len = quality.length; len > 0; len--) {
+            const q = quality.slice(0, len);
+            if (map[q]) return map[q];
+        }
+        // If not found, return as-is (may be handled as custom)
+        return quality;
     }
-    // All other qualities (7, 9, 11, 13, aug, sus2, sus4, add9, etc.) are left as-is
 
-    return [root, quality];
+    const canonicalQuality = getQualityValue(quality);
+
+    return { root, quality: canonicalQuality };
 }
 
     // Handle enharmonic equivalents
