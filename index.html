@@ -798,6 +798,10 @@ const DRUM_PATTERNS = {
         "nows_the_time": { defaultKey: "F", progression: ["I7", "I7", "I7", "I7", "IV7", "IV7", "I7", "I7", "V7", "IV7", "I7", "I7"] },
         "tenor_madness": { defaultKey: "Bb", progression: ["I7", "I7", "I7", "I7", "IV7", "IV7", "I7", "I7", "iim7", "V7", "I7", "I7"] }
     };
+
+    const romanToDegree = {
+      "I": 0, "ii": 1, "iii": 2, "IV": 3, "V": 4, "vi": 5, "vii°": 6
+    };
         
 const scaleDegrees = {
     major: {
@@ -855,7 +859,10 @@ const scaleDegrees = {
         'V7/bIII': 7, 'V7/bVI': 7, 'V7/bVII': 7
     }
 };   
-
+  const degreeToQuality = {
+          0: "maj", 1: "min", 2: "min", 3: "maj", 4: "maj", 5: "min", 6: "dim"
+        };
+        
         const drumSoundSets = [
     {
         name: "Default",
@@ -876,7 +883,56 @@ const scaleDegrees = {
         hihat: 'jazzhat.wav'
     }
 ];
-
+function getNoteName(root, interval) {
+  const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  let idx = (notes.indexOf(root) + interval) % 12;
+  if (idx < 0) idx += 12;
+  return notes[idx];
+}
+        function parseChordSymbol(symbol, key = "C") {
+  // Remove any non-roman characters for degree lookup
+  const roman = symbol.replace(/[^IViv]/g, "");
+  const degree = romanToDegree[roman];
+  if (degree === undefined) throw new Error(`Unknown chord symbol: ${symbol}`);
+  const rootNote = getNoteName(key, majorScale[degree]);
+  const quality = degreeToQuality[degree];
+  return { root: rootNote, quality, symbol };
+}
+        function playProgression(progName, key = "C", tempo = 120, bars = 4) {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const progression = progressions[progName];
+          if (!progression) throw new Error(`Unknown progression: ${progName}`);
+          const chords = progression.map(symbol => parseChordSymbol(symbol, key));
+          const beatDuration = 60 / tempo;
+          let beat = 0;
+          let bar = 0;
+        
+          function playNext() {
+            if (bar >= bars) {
+              audioCtx.close();
+              return;
+            }
+            // Metronome click on every beat
+            playMetronomeClick(audioCtx);
+        
+            // Drum: kick on 1, snare on 3
+            if (beat % 4 === 0) playDrum(audioCtx, "kick");
+            if (beat % 4 === 2) playDrum(audioCtx, "snare");
+        
+            // Chord on first beat of each bar
+            if (beat % 4 === 0) {
+              const chordIdx = bar % chords.length;
+              playChord(chords[chordIdx], beatDuration * 4, audioCtx);
+            }
+        
+            beat++;
+            if (beat % 4 === 0) bar++;
+            if (audioCtx.state !== "closed") {
+              setTimeout(playNext, beatDuration * 1000);
+            }
+          }
+          playNext();
+}
 let currentDrumSetIndex = 0;
 
         function toggleDrumSet() {
@@ -1240,6 +1296,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
     const majorScale = [0, 2, 4, 5, 7, 9, 11];
     const minorScale = [0, 2, 3, 5, 7, 8, 10];
 
+  
     // Determine if we're in a minor key
     const isMinorKey = key.toLowerCase().includes('m');
     const actualKey = isMinorKey ? key.replace('m', '') : key;
@@ -1653,43 +1710,42 @@ function noteToFrequency(noteName) {
 let audioContext; // Make sure this is at the top level
 
 function playChord(root, quality, duration = 1, beatNumber = 0) {
-    // If a single string parameter is passed (legacy behavior), parse it
+    // Legacy: If only a string is passed, parse it
     if (typeof root === 'string' && arguments.length === 1) {
         const { root: parsedRoot, type: parsedQuality } = parseChord(root);
         root = parsedRoot;
         quality = parsedQuality;
     }
     
+    // Get MIDI note numbers for the chord
     const notes = getChordNotes(root, quality);
     if (!notes || notes.length === 0) return;
 
-    // Determine if we should use random inversion (on beat 3)
+    // Random inversion on beat 4
     const useRandomInversion = beatNumber === 4;
     let inversion = 0;
-
     if (useRandomInversion) {
         inversion = Math.floor(Math.random() * 3);
     }
 
-    // Apply inversion if needed
+    // Apply inversion
     let chordNotes = [...notes];
     for (let i = 0; i < inversion; i++) {
         const firstNote = chordNotes.shift();
         chordNotes.push(firstNote + 12);
     }
-
     chordNotes.sort((a, b) => a - b);
 
     const baseOctave = 3;
 
-    // Always return a string here
+    // Convert MIDI note numbers to note names with octaves
     const noteNames = chordNotes.map(noteIndex => {
         const noteName = NOTES[noteIndex % 12];
         const octave = baseOctave + Math.floor(noteIndex / 12);
         return noteName + octave;
     });
 
-    // Special handling for drop voicings - lower the first note by an octave
+    // Drop voicing: randomly lower the first note by an octave
     if (Math.random() < 0.3 && noteNames.length > 0) {
         const firstNote = noteNames[0];
         if (typeof firstNote === 'string') {
@@ -1699,7 +1755,7 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
         }
     }
 
-    // Ensure all notes are within C2-A4 range
+    // Ensure all notes are within C2–A4
     const finalNotes = noteNames.map(note => {
         if (typeof note !== 'string') {
             console.warn(`Expected note to be a string, but got: ${typeof note}`);
@@ -1717,6 +1773,7 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
 
+    // Play each note
     finalNotes.forEach(note => {
         const freq = noteToFrequency(note);
         if (freq) {
