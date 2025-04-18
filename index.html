@@ -1702,6 +1702,11 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
 
     // Ensure all notes are within C2-A4 range
     const finalNotes = noteNames.map(note => {
+        if (typeof note !== 'string') {
+            console.warn(`Expected note to be a string, but got: ${typeof note}`);
+            return null; // Skip invalid notes
+        }
+
         const noteName = note.replace(/\d+/, '');
         let octave = parseInt(note.match(/\d+/)[0]);
 
@@ -1710,7 +1715,7 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
         if (octave > 4 || (octave === 4 && noteName > 'A')) octave = 4;
 
         return noteName + octave;
-    });
+    }).filter(note => note !== null); // Remove any null values
 
     // Initialize audio context if not already done
     if (!audioContext) {
@@ -1720,10 +1725,15 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
     // Play each note in the chord - Convert note name to frequency
     finalNotes.forEach(note => {
         const freq = noteToFrequency(note);
-        playNote(freq, duration);
+        if (freq) {
+            playNote(freq, duration);
+        } else {
+            console.warn(`Invalid frequency for note: ${note}`);
+        }
     });
 }
-function getChordNotes(root, quality, voicingType = 'close') {
+        
+        function getChordNotes(root, quality, voicingType = 'close') {
     const rootIndex = NOTES.indexOf(standardizeNoteName(root));
     
     // Define intervals for different chord qualities
