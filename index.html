@@ -1370,34 +1370,42 @@ function getChordFromFunction(chordFunction, key = 'C') {
 }
         
     function parseChord(chord) {
-        if (!chord) return ['C', ''];
-        
-        // Updated regex to handle more chord types
-        const regex = /^([A-G][b#]?)(m7b5|7b9|7b5|7#5|7#9|maj7|min7|m7|7|m|dim7|dim|aug7|aug|sus2|sus4|add9|6|9|11|13|°|ø)?$/;
-        const match = chord.match(regex);
-        
-        if (!match) {
-            console.warn(`Unable to parse chord: ${chord}`);
-            return [standardizeNoteName(chord), ''];
-        }
-        
-        const [_, root, quality] = match;
-        let standardQuality = quality || '';
-        
-        // Map chord qualities to internal representation
-        const qualityMap = {
-            '7': 'dom7',
-            'min7': 'min7',
-            'm7': 'min7',
-            'm7b5': 'min7b5',
-            'ø': 'min7b5',
-            '°': 'dim',
-            'dim7': 'dim7'
-        };
-        
-        return [standardizeNoteName(root), qualityMap[standardQuality] || standardQuality];
+    if (!chord) return ['C', ''];
+
+    // Updated regex to handle more chord types
+    const regex = /^([A-G][b#]?)(m7b5|7b9|7b5|7#5|7#9|maj7|min7|m7|7|m|dim7|dim|aug7|aug|sus2|sus4|add9|6|9|11|13|°|ø)?$/;
+    const match = chord.match(regex);
+
+    if (!match) {
+        console.warn(`Unable to parse chord: ${chord}`);
+        return [standardizeNoteName(chord), ''];
     }
 
+    const [_, root, quality] = match;
+    let standardQuality = quality || '';
+
+    // Map chord qualities to internal representation
+    const qualityMap = {
+        '7': 'dom7',
+        'min7': 'min7',
+        'm7': 'min7',
+        'm7b5': 'min7b5',
+        'ø': 'min7b5',
+        '°': 'dim',
+        'dim7': 'dim7',
+        'maj7': 'maj7',
+        'aug': 'aug',
+        'sus2': 'sus2',
+        'sus4': 'sus4',
+        'add9': 'add9',
+        '6': '6',
+        '9': '9',
+        '11': '11',
+        '13': '13'
+    };
+
+    return [standardizeNoteName(root), qualityMap[standardQuality] || standardQuality];
+}
 // Helper function for flat notes
 function flattenNote(note) {
     const sharpToFlat = {
@@ -1646,23 +1654,23 @@ function noteToFrequency(noteName) {
 function playChord(root, quality, duration = 1, beatNumber = 0) {
     // If a single string parameter is passed (legacy behavior), parse it
     if (typeof root === 'string' && arguments.length === 1) {
-        const [parsedRoot, parsedQuality] = parseChord(root);
+        const { root: parsedRoot, type: parsedQuality } = parseChord(root);
         root = parsedRoot;
         quality = parsedQuality;
     }
     
     const notes = getChordNotes(root, quality);
     if (!notes || notes.length === 0) return;
-    
+
     // Determine if we should use random inversion (on beat 3)
     const useRandomInversion = beatNumber === 4; // Beat 4 is the third beat (beats are 2,3,4,5)
     let inversion = 0;
-    
+
     if (useRandomInversion) {
         // Random inversion between 0-2 (root, first, second)
         inversion = Math.floor(Math.random() * 3);
     }
-    
+
     // Apply inversion if needed
     let chordNotes = [...notes];
     for (let i = 0; i < inversion; i++) {
@@ -1670,49 +1678,51 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
         const firstNote = chordNotes.shift();
         chordNotes.push(firstNote + 12); // Up one octave
     }
-    
+
     // Sort notes for better voicing
     chordNotes.sort((a, b) => a - b);
-    
+
     // Start with a higher base octave (3 instead of 2)
     const baseOctave = 3;
-    
+
     // Convert note indices to note names with octaves
     const noteNames = chordNotes.map(noteIndex => {
-        // Get the note name from the NOTES array using modulo 12
         const noteName = NOTES[noteIndex % 12];
-        // Calculate the octave based on the note index
         const octave = baseOctave + Math.floor(noteIndex / 12);
         return noteName + octave;
     });
-    
+
     // Special handling for drop voicings - lower the first note by an octave
-    if (Math.random() < 0.3 && noteNames.length > 0) { // 30% chance of drop voicing
+    if (Math.random() < 0.3 && noteNames.length > 0) {
         const firstNote = noteNames[0];
         const noteName = firstNote.replace(/\d+/, '');
         const octave = parseInt(firstNote.match(/\d+/)[0]) - 1;
         noteNames[0] = noteName + octave;
     }
-    
+
     // Ensure all notes are within C2-A4 range
     const finalNotes = noteNames.map(note => {
         const noteName = note.replace(/\d+/, '');
         let octave = parseInt(note.match(/\d+/)[0]);
-        
+
         // Ensure octave is between 2 and 4
         if (octave < 2) octave = 2;
         if (octave > 4 || (octave === 4 && noteName > 'A')) octave = 4;
-        
+
         return noteName + octave;
     });
-    
-    // Play each note in the chord - FIX: Convert note name to frequency
+
+    // Initialize audio context if not already done
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    // Play each note in the chord - Convert note name to frequency
     finalNotes.forEach(note => {
         const freq = noteToFrequency(note);
         playNote(freq, duration);
     });
 }
-
 function getChordNotes(root, quality, voicingType = 'close') {
     const rootIndex = NOTES.indexOf(standardizeNoteName(root));
     
