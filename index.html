@@ -1419,33 +1419,6 @@ function getQualityValue(chord) {
     return null;
 }
 
-// The main parseChord function
-function parseChord(chordStr) {
-    // Standardize input
-    chordStr = chordStr.trim();
-
-    // Match root (with optional sharp/flat) and the rest as quality
-    // e.g., "C#m7b5" => root: "C#", quality: "m7b5"
-    const match = chordStr.match(/^([A-Ga-g])([b#]?)(.*)$/);
-    if (!match) {
-        // Legacy fallback: default to C major
-        return { root: 'C', quality: '' };
-    }
-
-    let [, root, accidental, quality] = match;
-    root = root.toUpperCase() + (accidental || '');
-
-    // Standardize root to flats for internal use
-    const enharmonic = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
-    if (enharmonic[root]) root = enharmonic[root];
-
-    // Canonicalize the quality using the map
-    let canonicalQuality = getQualityValue(quality);
-    if (canonicalQuality == null) canonicalQuality = quality.toLowerCase();
-
-    return { root, quality: canonicalQuality };
-}
-    
         
 function getChordTones(root, quality) {
     const canonicalQuality = getQualityValue(quality);
