@@ -1764,6 +1764,13 @@ async function playNote(noteName, volume = 1.0, duration = 1000) {
 }
 
 
+// Utility: Standardize note names to flats
+function standardizeNoteName(note) {
+    const enharmonic = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
+    return enharmonic[note] || note;
+}
+
+// Main function: Play a chord
 async function playChord(root, quality, startTime = AudioContextManager.context.currentTime, duration = 1, isPassingChord = false) {
     // Check if chords are enabled
     if (!document.getElementById('chordsEnabled').classList.contains('active')) return;
@@ -1778,10 +1785,13 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
     // Get chord tones (always mapped to your NOTES array)
     const chordNotes = getChordTones(root, quality);
 
+    // Defensive: If no notes, skip playback
+    if (!chordNotes || chordNotes.length === 0) return;
+
     // Generate voicing based on whether it's a passing chord
     let voicing;
     if (isPassingChord) {
-        // Random voicing for second chord
+        // Random voicing for passing chord
         const voicingTypes = [
             // Close position (default)
             () => chordNotes.map(note => ({ note, octave: 3 })),
