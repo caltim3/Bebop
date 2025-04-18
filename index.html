@@ -1381,20 +1381,6 @@ function parseChord(chordStr) {
     const enharmonic = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
     if (enharmonic[root]) root = enharmonic[root];
 
-const qualityMap = {
-    '': '', 'maj': 'maj', 'M': 'maj', 'major': 'maj',
-    'm': 'min', 'min': 'min', 'minor': 'min',
-    '7': '7', 'dom7': '7',
-    'maj7': 'maj7', 'M7': 'maj7',
-    'm7': 'm7', 'min7': 'm7',
-    'dim': 'dim', 'dim7': 'dim7', 'aug': 'aug',
-    'm7b5': 'm7b5', 'min7b5': 'm7b5',
-    '6': '6', 'maj6': 'maj6', 'min6': 'min6', 'm6': 'min6',
-    '9': '9', 'maj9': 'maj9', 'm9': 'm9',
-    '11': '11', '13': '13',
-    '7b9': '7b9', '7#9': '7#9', '7b13': '7b13', '7#11': '7#11',
-    'sus2': 'sus2', 'sus4': 'sus4'
-};
 
 function getQualityValue(chord) {
     if (!chord) return null;
@@ -1431,6 +1417,33 @@ function getQualityValue(chord) {
     }
 
     return null;
+}
+
+// The main parseChord function
+function parseChord(chordStr) {
+    // Standardize input
+    chordStr = chordStr.trim();
+
+    // Match root (with optional sharp/flat) and the rest as quality
+    // e.g., "C#m7b5" => root: "C#", quality: "m7b5"
+    const match = chordStr.match(/^([A-Ga-g])([b#]?)(.*)$/);
+    if (!match) {
+        // Legacy fallback: default to C major
+        return { root: 'C', quality: '' };
+    }
+
+    let [, root, accidental, quality] = match;
+    root = root.toUpperCase() + (accidental || '');
+
+    // Standardize root to flats for internal use
+    const enharmonic = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
+    if (enharmonic[root]) root = enharmonic[root];
+
+    // Canonicalize the quality using the map
+    let canonicalQuality = getQualityValue(quality);
+    if (canonicalQuality == null) canonicalQuality = quality.toLowerCase();
+
+    return { root, quality: canonicalQuality };
 }
     
         
