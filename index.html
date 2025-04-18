@@ -2509,7 +2509,7 @@ function loadProgression(progressionName, overrideKey = null) {
 
     progression.progression.forEach((chordFunction, index) => {
         const chord = getChordFromFunction(selectedKey, chordFunction);
-        const [root, quality] = parseChord(chord);
+        const { root, quality } = parseChord(chord);
         
         // Get the proper quality value and suggested scale
         const qualityValue = getQualityValue(quality);
