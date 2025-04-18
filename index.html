@@ -1717,7 +1717,7 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
         quality = parsedQuality;
     }
     
-    // Get MIDI note numbers for the chord
+    // Get chord notes as numbers (semitone offsets or similar)
     const notes = getChordNotes(root, quality);
     if (!Array.isArray(notes) || notes.length === 0) return;
 
@@ -1738,7 +1738,7 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
 
     const baseOctave = 3;
 
-    // Convert MIDI note numbers to note names with octaves
+    // Convert to note names with octaves (e.g., "C4")
     const noteNames = chordNotes.map(noteIndex => {
         if (typeof noteIndex !== 'number' || isNaN(noteIndex)) {
             console.warn(`playChord: Invalid noteIndex:`, noteIndex);
@@ -1772,18 +1772,12 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
         return noteName + octave;
     }).filter(note => note !== null);
 
-    // Initialize audio context if not already done
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-
-    // Play each note
+    // Play each note using your sample player
     finalNotes.forEach(note => {
-        const freq = noteToFrequency(note);
-        if (freq) {
-            playNote(freq, duration);
+        if (typeof note === 'string') {
+            playSampledNote(note, duration); // <-- This should play the correct WAV sample, transposed if needed
         } else {
-            console.warn(`Invalid frequency for note: ${note}`);
+            console.warn(`Invalid note for sample playback:`, note);
         }
     });
 }
