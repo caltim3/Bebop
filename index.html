@@ -1650,6 +1650,7 @@ function noteToFrequency(noteName) {
     }
 }
 
+let audioContext; // Make sure this is at the top level
 
 function playChord(root, quality, duration = 1, beatNumber = 0) {
     // If a single string parameter is passed (legacy behavior), parse it
@@ -1663,29 +1664,25 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
     if (!notes || notes.length === 0) return;
 
     // Determine if we should use random inversion (on beat 3)
-    const useRandomInversion = beatNumber === 4; // Beat 4 is the third beat (beats are 2,3,4,5)
+    const useRandomInversion = beatNumber === 4;
     let inversion = 0;
 
     if (useRandomInversion) {
-        // Random inversion between 0-2 (root, first, second)
         inversion = Math.floor(Math.random() * 3);
     }
 
     // Apply inversion if needed
     let chordNotes = [...notes];
     for (let i = 0; i < inversion; i++) {
-        // Move the first note up an octave and place it at the end
         const firstNote = chordNotes.shift();
-        chordNotes.push(firstNote + 12); // Up one octave
+        chordNotes.push(firstNote + 12);
     }
 
-    // Sort notes for better voicing
     chordNotes.sort((a, b) => a - b);
 
-    // Start with a higher base octave (3 instead of 2)
     const baseOctave = 3;
 
-    // Convert note indices to note names with octaves
+    // Always return a string here
     const noteNames = chordNotes.map(noteIndex => {
         const noteName = NOTES[noteIndex % 12];
         const octave = baseOctave + Math.floor(noteIndex / 12);
@@ -1695,34 +1692,31 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
     // Special handling for drop voicings - lower the first note by an octave
     if (Math.random() < 0.3 && noteNames.length > 0) {
         const firstNote = noteNames[0];
-        const noteName = firstNote.replace(/\d+/, '');
-        const octave = parseInt(firstNote.match(/\d+/)[0]) - 1;
-        noteNames[0] = noteName + octave;
+        if (typeof firstNote === 'string') {
+            const noteName = firstNote.replace(/\d+/, '');
+            const octave = parseInt(firstNote.match(/\d+/)[0]) - 1;
+            noteNames[0] = noteName + octave;
+        }
     }
 
     // Ensure all notes are within C2-A4 range
     const finalNotes = noteNames.map(note => {
         if (typeof note !== 'string') {
             console.warn(`Expected note to be a string, but got: ${typeof note}`);
-            return null; // Skip invalid notes
+            return null;
         }
-
         const noteName = note.replace(/\d+/, '');
         let octave = parseInt(note.match(/\d+/)[0]);
-
-        // Ensure octave is between 2 and 4
         if (octave < 2) octave = 2;
         if (octave > 4 || (octave === 4 && noteName > 'A')) octave = 4;
-
         return noteName + octave;
-    }).filter(note => note !== null); // Remove any null values
+    }).filter(note => note !== null);
 
     // Initialize audio context if not already done
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
 
-    // Play each note in the chord - Convert note name to frequency
     finalNotes.forEach(note => {
         const freq = noteToFrequency(note);
         if (freq) {
@@ -1734,61 +1728,61 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
 }
         
         function getChordNotes(root, quality, voicingType = 'close') {
-    const rootIndex = NOTES.indexOf(standardizeNoteName(root));
-    
-    // Define intervals for different chord qualities
-    const intervals = {
-        major: [0, 4, 7],
-        minor: [0, 3, 7],
-        dom7: [0, 4, 7, 10],
-        maj7: [0, 4, 7, 11],
-        min7: [0, 3, 7, 10],
-        min7b5: [0, 3, 6, 10],
-        dim: [0, 3, 6],
-        dim7: [0, 3, 6, 9],
-        aug: [0, 4, 8],
-        sus2: [0, 2, 7],
-        sus4: [0, 5, 7],
-        '7sus4': [0, 5, 7, 10],
-        '6': [0, 4, 7, 9],
-        'm6': [0, 3, 7, 9],
-        '9': [0, 4, 7, 10, 14],
-        'maj9': [0, 4, 7, 11, 14],
-        'm9': [0, 3, 7, 10, 14],
-        '11': [0, 4, 7, 10, 14, 17],
-        '13': [0, 4, 7, 10, 14, 21]
-    }[quality] || [0, 4, 7];
-    
-    // Get the basic chord notes
-    let notes = intervals.map(interval => NOTES[(rootIndex + interval) % 12]);
-    
-    // Apply voicing transformations
-    if (voicingType === 'drop2' && notes.length >= 4) {
-        // Drop the second highest note down an octave
-        const secondHighest = notes[notes.length - 2];
-        notes.splice(notes.length - 2, 1); // Remove the second highest note
-        notes.unshift(secondHighest); // Add it to the beginning
-    } 
-    else if (voicingType === 'drop3' && notes.length >= 4) {
-        // Drop the third highest note down an octave
-        const thirdHighest = notes[notes.length - 3];
-        notes.splice(notes.length - 3, 1); // Remove the third highest note
-        notes.unshift(thirdHighest); // Add it to the beginning
-    }
-    else if (voicingType === 'drop2and4' && notes.length >= 4) {
-        // Drop the second and fourth highest notes down an octave
-        const secondHighest = notes[notes.length - 2];
-        const fourthHighest = notes.length >= 4 ? notes[notes.length - 4] : null;
-        
-        if (fourthHighest) {
-            notes.splice(notes.length - 4, 1); // Remove the fourth highest note
-            notes.splice(notes.length - 1, 1); // Remove the second highest note (now at length-1)
-            notes.unshift(fourthHighest, secondHighest); // Add them to the beginning
+            const rootIndex = NOTES.indexOf(standardizeNoteName(root));
+            
+            // Define intervals for different chord qualities
+            const intervals = {
+                major: [0, 4, 7],
+                minor: [0, 3, 7],
+                dom7: [0, 4, 7, 10],
+                maj7: [0, 4, 7, 11],
+                min7: [0, 3, 7, 10],
+                min7b5: [0, 3, 6, 10],
+                dim: [0, 3, 6],
+                dim7: [0, 3, 6, 9],
+                aug: [0, 4, 8],
+                sus2: [0, 2, 7],
+                sus4: [0, 5, 7],
+                '7sus4': [0, 5, 7, 10],
+                '6': [0, 4, 7, 9],
+                'm6': [0, 3, 7, 9],
+                '9': [0, 4, 7, 10, 14],
+                'maj9': [0, 4, 7, 11, 14],
+                'm9': [0, 3, 7, 10, 14],
+                '11': [0, 4, 7, 10, 14, 17],
+                '13': [0, 4, 7, 10, 14, 21]
+            }[quality] || [0, 4, 7];
+            
+            // Get the basic chord notes
+            let notes = intervals.map(interval => NOTES[(rootIndex + interval) % 12]);
+            
+            // Apply voicing transformations
+            if (voicingType === 'drop2' && notes.length >= 4) {
+                // Drop the second highest note down an octave
+                const secondHighest = notes[notes.length - 2];
+                notes.splice(notes.length - 2, 1); // Remove the second highest note
+                notes.unshift(secondHighest); // Add it to the beginning
+            } 
+            else if (voicingType === 'drop3' && notes.length >= 4) {
+                // Drop the third highest note down an octave
+                const thirdHighest = notes[notes.length - 3];
+                notes.splice(notes.length - 3, 1); // Remove the third highest note
+                notes.unshift(thirdHighest); // Add it to the beginning
+            }
+            else if (voicingType === 'drop2and4' && notes.length >= 4) {
+                // Drop the second and fourth highest notes down an octave
+                const secondHighest = notes[notes.length - 2];
+                const fourthHighest = notes.length >= 4 ? notes[notes.length - 4] : null;
+                
+                if (fourthHighest) {
+                    notes.splice(notes.length - 4, 1); // Remove the fourth highest note
+                    notes.splice(notes.length - 1, 1); // Remove the second highest note (now at length-1)
+                    notes.unshift(fourthHighest, secondHighest); // Add them to the beginning
+                }
+            }
+            
+            return notes;
         }
-    }
-    
-    return notes;
-}
 
 async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
