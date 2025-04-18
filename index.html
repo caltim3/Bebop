@@ -222,6 +222,20 @@
             display: flex;
             align-items: center;
         }
+
+        .control-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .control-button:hover {
+            background: #45a049;
+        }
         
         /* Optional: adjust the button itself for better alignment */
         #chordsEnabled {
@@ -536,6 +550,7 @@
                 <option value="woodblock">Woodblock</option>
                 <option value="drums">Drums</option>
             </select>
+            <button id="drumSetToggleBtn" class="control-button">Drum Set 1</button>
             <div class="volume-control">
                 <span>Metronome Volume:</span>
                 <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" aria-label="Metronome volume">
@@ -750,7 +765,28 @@ const DRUM_PATTERNS = {
     '8': { kick: [1, 0, 0, 0, 1, 0, 0, 0], snare: [0, 0, 1, 0, 0, 0, 1, 0], hihat: [1, 1, 1, 1, 1, 1, 1, 1] },
     '12': { kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0], snare: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], hihat: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
 };
+const drumSoundSets = [
+    {
+        name: "Default",
+        snare: "Snare.wav",
+        hihat: "HiHat.wav",
+        kick: "Kick.wav"
+    },
+    {
+        name: "Set 2",
+        snare: "Snare2.wav",
+        hihat: "HiHat2.wav",
+        kick: "Kick2.wav"
+    },
+    {
+        name: "Jazz Set",
+        kick: 'jazzkick.wav',
+        snare: 'jazzsnare.wav',
+        hihat: 'jazzhat.wav'
+    }
+];
 
+let currentDrumSetIndex = 0;
 const progressions = {
     "I V7": { defaultKey: "C", progression: ["I", "V7"] },
     "jazz_blues": { defaultKey: "Bb", progression: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "ii7", "V7", "I7", "V7"] },
@@ -1526,24 +1562,24 @@ function getChordNotes(root, quality) {
 
 async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
-    
+
     // Get the metronome volume slider value and combine it with base volume
     const metronomeVolumeControl = document.getElementById('metronome-volume');
     const metronomeVolume = parseFloat(metronomeVolumeControl.value);
     const combinedVolume = baseVolume * metronomeVolume;
-    
+
     if (combinedVolume <= 0) return;
-    
+
     const soundType = UI.elements.soundType.value;
     const beatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
-    
+
     if (!beatElement) return;
 
     const drumSounds = beatElement.dataset.sound.split(',');
     const baseVolumeValue = parseFloat(beatElement.dataset.baseVolume) || 0;
     const isAccent = baseVolumeValue >= 1 && ['kick', 'snare'].includes(drumSounds[0]);
     const accentBoost = parseFloat(UI.elements.accentIntensity?.value || 1);
-    
+
     // Apply accent boost if applicable
     let adjustedVolume = combinedVolume;
     if (isAccent) {
@@ -1553,15 +1589,40 @@ async function playMetronomeSound(baseVolume) {
     // Process each sound in the drum pattern
     for (let soundKey of drumSounds) {
         soundKey = soundKey.trim();
-        
+
         // Skip if it's a silent beat
         if (soundKey === 'silent') continue;
+
+        // Get the current drum set if using drums
+        const currentSet = drumSoundSets[currentDrumSetIndex];
 
         // Determine which sound buffer to use
         let buffer;
         if (soundType === 'drums' && soundKey !== 'default') {
-            buffer = AudioContextManager.soundBuffers[soundKey];
+            // Map drum sounds to current set's samples
+            let sampleFile;
+            switch(soundKey) {
+                case 'kick': sampleFile = currentSet.kick; break;
+                case 'snare': sampleFile = currentSet.snare; break;
+                case 'hihat': sampleFile = currentSet.hihat; break;
+                default: sampleFile = null;
+            }
+
+            if (sampleFile) {
+                try {
+                    // Try to load the current set's sample
+                    const response = await fetch(`./${sampleFile}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const arrayBuffer = await response.arrayBuffer();
+                    buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
+                } catch (error) {
+                    console.error(`Failed to load drum sample: ${sampleFile}`, error);
+                    // Fall back to default drum sounds if loading fails
+                    buffer = AudioContextManager.soundBuffers[soundKey];
+                }
+            }
         } else {
+            // Use click or woodblock sounds
             buffer = AudioContextManager.soundBuffers[soundType] || AudioContextManager.soundBuffers['click'];
         }
 
@@ -1570,9 +1631,9 @@ async function playMetronomeSound(baseVolume) {
         // Create and configure audio nodes
         const source = AudioContextManager.context.createBufferSource();
         source.buffer = buffer;
-        
+
         const gainNode = AudioContextManager.context.createGain();
-        
+
         // Adjust volume based on sound type and context
         let finalVolume = adjustedVolume;
         if (soundType === 'drums') {
@@ -1588,7 +1649,7 @@ async function playMetronomeSound(baseVolume) {
                 finalVolume *= 1.1; // Slightly boost snare
             }
         }
-        
+
         // Ensure volume doesn't exceed 1.0
         finalVolume = Math.min(finalVolume, 1.0);
         gainNode.gain.value = finalVolume;
@@ -1613,7 +1674,91 @@ async function playMetronomeSound(baseVolume) {
         }
     }
 }
- 
+function onMetronomeInstrumentChange(selectedInstrument) {
+  if (selectedInstrument === "drums") {
+    document.getElementById("drumSetToggleBtn").style.display = "inline-block";
+  } else {
+    document.getElementById("drumSetToggleBtn").style.display = "none";
+  }
+}
+
+async function playDrumSample(type) {
+    if (!AudioContextManager.context) return;
+    
+    const set = drumSoundSets[currentDrumSetIndex];
+    let sampleFile;
+    
+    // Map the type to the current set's sample file
+    switch(type) {
+    case 'snare': sampleFile = set.snare; break;
+    case 'hihat': sampleFile = set.hihat; break;
+    case 'kick': sampleFile = set.kick; break;
+    default: sampleFile = null;
+    }
+    
+    try {
+        let buffer;
+        // Try to load the current set's sample
+        const response = await fetch(`./${sampleFile}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const arrayBuffer = await response.arrayBuffer();
+        buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
+        
+        const source = AudioContextManager.context.createBufferSource();
+        source.buffer = buffer;
+        
+        const gainNode = AudioContextManager.context.createGain();
+        // Get the metronome volume
+        const metronomeVolume = parseFloat(UI.elements.metronomeVolume.value);
+        
+        // Apply sound-specific volume adjustments
+        let finalVolume = metronomeVolume;
+        if (type === 'kick') {
+            finalVolume *= 1.2; // Slightly boost kick
+        } else if (type === 'snare') {
+            finalVolume *= 1.1; // Slightly boost snare
+        } else if (type === 'hihat') {
+            finalVolume *= 0.8; // Slightly reduce hihat
+        }
+        
+        // Ensure volume doesn't exceed 1.0
+        finalVolume = Math.min(finalVolume, 1.0);
+        gainNode.gain.value = finalVolume;
+        
+        source.connect(gainNode);
+        gainNode.connect(AudioContextManager.context.destination);
+        
+        // Add slight reverb for more depth
+        if (AudioContextManager.reverbNode) {
+            const reverbGain = AudioContextManager.context.createGain();
+            reverbGain.gain.value = 0.1; // Subtle reverb
+            source.connect(reverbGain);
+            reverbGain.connect(AudioContextManager.reverbNode);
+        }
+        
+        source.start(0);
+    } catch (error) {
+        console.error(`Failed to play drum sample: ${type}`, error);
+        try {
+            // Fall back to default drum sounds if loading fails
+            const fallbackBuffer = AudioContextManager.soundBuffers[type] || 
+                await AudioContextManager.createDrumSound(type);
+            const source = AudioContextManager.context.createBufferSource();
+            source.buffer = fallbackBuffer;
+            
+            const gainNode = AudioContextManager.context.createGain();
+            gainNode.gain.value = parseFloat(UI.elements.metronomeVolume.value);
+            
+            source.connect(gainNode);
+            gainNode.connect(AudioContextManager.context.destination);
+            
+            source.start(0);
+        } catch (fallbackError) {
+            console.error('Failed to play fallback sound:', fallbackError);
+        }
+    }
+}
+        
 function createFretboard(container, tuning) {
     container.innerHTML = '';
 
@@ -2364,6 +2509,22 @@ function setupEventListeners() {
         AppState.lastTap = now;
     });
 
+    // Add this to the setupEventListeners function
+UI.elements.soundType.addEventListener('change', (e) => {
+    createBeats();
+    onMetronomeInstrumentChange(e.target.value);
+});
+
+// Add the drum set toggle button event listener
+document.getElementById('drumSetToggleBtn').addEventListener('click', () => {
+    currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
+    document.getElementById('drumSetToggleBtn').textContent = `Drum Set ${currentDrumSetIndex + 1}`;
+    log(`Switched to drum set ${currentDrumSetIndex + 1}`);
+});
+
+// Initially hide the drum set toggle button if drums aren't selected
+onMetronomeInstrumentChange(UI.elements.soundType.value);
+    
     UI.elements.chordFretboardVolume.addEventListener('input', () => {
         log(`Chord fretboard volume set to ${UI.elements.chordFretboardVolume.value}`);
     });
