@@ -1719,7 +1719,7 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
     
     // Get MIDI note numbers for the chord
     const notes = getChordNotes(root, quality);
-    if (!notes || notes.length === 0) return;
+    if (!Array.isArray(notes) || notes.length === 0) return;
 
     // Random inversion on beat 4
     const useRandomInversion = beatNumber === 4;
@@ -1740,10 +1740,14 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
 
     // Convert MIDI note numbers to note names with octaves
     const noteNames = chordNotes.map(noteIndex => {
+        if (typeof noteIndex !== 'number' || isNaN(noteIndex)) {
+            console.warn(`playChord: Invalid noteIndex:`, noteIndex);
+            return null;
+        }
         const noteName = NOTES[noteIndex % 12];
         const octave = baseOctave + Math.floor(noteIndex / 12);
         return noteName + octave;
-    });
+    }).filter(n => n !== null);
 
     // Drop voicing: randomly lower the first note by an octave
     if (Math.random() < 0.3 && noteNames.length > 0) {
@@ -1758,7 +1762,7 @@ function playChord(root, quality, duration = 1, beatNumber = 0) {
     // Ensure all notes are within C2–A4
     const finalNotes = noteNames.map(note => {
         if (typeof note !== 'string') {
-            console.warn(`Expected note to be a string, but got: ${typeof note}`);
+            console.warn(`Expected note to be a string, but got: ${typeof note}`, note);
             return null;
         }
         const noteName = note.replace(/\d+/, '');
