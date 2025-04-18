@@ -1340,8 +1340,91 @@ function getChordFromFunction(key, chordFunction) {
     return root + finalQuality;
 }
 
-function getChordTones(root, quality) {
-    const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+const NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+function getMajorScale(key) {
+    // Simple major scale generator (no double sharps/flats)
+    const majorSteps = [2, 2, 1, 2, 2, 2, 1];
+    let idx = NOTES.indexOf(key);
+    if (idx === -1) throw new Error('Invalid key: ' + key);
+    let scale = [NOTES[idx]];
+    for (let step of majorSteps) {
+        idx = (idx + step) % NOTES.length;
+        scale.push(NOTES[idx]);
+    }
+    return scale.slice(0, 7);
+}
+
+function getMinorScale(key) {
+    // Natural minor scale generator
+    const minorSteps = [2, 1, 2, 2, 1, 2, 2];
+    let idx = NOTES.indexOf(key);
+    if (idx === -1) throw new Error('Invalid key: ' + key);
+    let scale = [NOTES[idx]];
+    for (let step of minorSteps) {
+        idx = (idx + step) % NOTES.length;
+        scale.push(NOTES[idx]);
+    }
+    return scale.slice(0, 7);
+}
+
+function romanNumeralToChord(roman, key) {
+    // Parse accidental, numeral, and quality
+    const match = roman.match(/^([b#]?)([ivIV]+)(m?)(.*)$/);
+    if (!match) return roman; // fallback: treat as literal chord
+    let [, accidental, numeral, minorFlag, rest] = match;
+
+    // Degree (I=1, II=2, etc.)
+    const romanToDegree = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7 };
+    let degree = romanToDegree[numeral.toUpperCase()];
+    if (!degree) return roman;
+
+    // Determine if key is minor or major
+    let scale = /m$/.test(key) ? getMinorScale(key.replace(/m$/, '')) : getMajorScale(key);
+
+    // Get root note
+    let root = scale[degree - 1];
+    // Apply accidental
+    if (accidental === 'b') {
+        root = flattenNote(root);
+    } else if (accidental === '#') {
+        root = sharpenNote(root);
+    }
+
+    // Quality
+    let quality = rest;
+    if (minorFlag) quality = 'm' + quality;
+
+    // Capitalization: if numeral is lowercase, use minor triad by default
+    if (numeral === numeral.toLowerCase() && !quality) quality = 'm';
+
+    // Compose chord string
+    return root + quality;
+}
+
+// Helper functions
+function flattenNote(note) {
+    const flats = { 'C': 'B', 'C#': 'C', 'D': 'Db', 'Eb': 'D', 'E': 'Eb', 'F': 'E', 'F#': 'F', 'G': 'Gb', 'Ab': 'G', 'A': 'Ab', 'Bb': 'A', 'B': 'Bb' };
+    return flats[note] || note;
+}
+function sharpenNote(note) {
+    const sharps = { 'C': 'C#', 'C#': 'D', 'D': 'D#', 'Eb': 'E', 'E': 'F', 'F': 'F#', 'F#': 'G', 'G': 'G#', 'Ab': 'A', 'A': 'A#', 'Bb': 'B', 'B': 'C' };
+    return sharps[note] || note;
+}
+
+        function processProgressionChord(chordStr, key) {
+    // Step 1: Convert Roman numeral to chord string if needed
+    let chordString = chordStr;
+    // Heuristic: if it starts with I, ii, iii, etc., treat as Roman numeral
+    if (/^[b#]?[ivIV]+/.test(chordStr)) {
+        chordString = romanNumeralToChord(chordStr, key);
+    }
+    // Step 2: Parse chord string
+    const { root, quality } = parseChord(chordString);
+    // Step 3: Get chord tones
+    const chordNotes = getChordTones(root, quality);
+    return { root, quality, chordNotes };
+}
 
     // Map sharps to flats for consistency
     function standardizeNoteName(note) {
