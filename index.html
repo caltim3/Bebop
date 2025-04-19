@@ -2429,7 +2429,7 @@ function loadProgression(progressionName, overrideKey = null) {
 
     progression.progression.forEach((chordFunction, index) => {
         const chord = getChordFromFunction(chordFunction, selectedKey);
-        const [root, quality] = parseChord(chord);
+        const { root, quality } = parseChord(chord) || {};
         
         // Get the proper quality value and suggested scale
         const qualityValue = getQualityValue(quality);
@@ -2497,7 +2497,7 @@ function updateProgressionKey(newKey) {
         const chordFunc = progression.progression[index];
         if (!chordFunc) return;
         const chord = getChordFromFunction(newKey, chordFunc);
-        const [root, quality] = parseChord(chord);
+        const { root, quality } = parseChord(chord) || {};
         const rootSelect = measure.querySelector('.root-note');
         const qualitySelect = measure.querySelector('.chord-quality');
         const secondKeySelect = measure.querySelector('.second-key');
