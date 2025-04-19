@@ -805,13 +805,13 @@ const progressions = {
     "I V7": { defaultKey: "C", progression: ["I", "V7"] },
     "jazz_blues": { defaultKey: "Bb", progression: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "IIm7", "V7", "I7", "V7"] },
     "minor_blues": { defaultKey: "Am", progression: ["im7", "ivm7", "im7", "im7", "ivm7", "ivm7", "im7", "im7", "V7", "V7", "im7", "V7"] },
-    "rhythm_changes": { defaultKey: "Bb", progression: ["I6", "vim7", "iim7", "V7", "I6", "vim7", "iim7", "V7", "I6", "IV7", "I6", "I6", "iim7", "V7", "I6", "V7"] },
+    "rhythm_changes": { defaultKey: "Bb", progression: ["Imaj6", "vim7", "iim7", "V7", "Imaj6", "vim7", "iim7", "V7", " Imaj6", "IV7", " Imaj6", " Imaj6", "iim7", "V7", " Imaj6", "V7"] },
     "2_5_1": { defaultKey: "C", progression: ["iim7", "V7", "Imaj7", "Imaj7"] },
     "6_2_5_1": { defaultKey: "C", progression: ["vim7", "iim7", "V7", "Imaj7", "Imaj7"] },
     "minor_2_5_1": { defaultKey: "Am", progression: ["iim7b5", "V7b9", "im7", "im7"] },
-    "dark_eyes": { defaultKey: "Dm", progression: ["V7", "V7", "im7", "im7", "V7", "V7", "VI6", "VI6", "ivm6", "ivm6", "im7", "im7", "V7", "V7", "im7", "im7"] },    
+    "dark_eyes": { defaultKey: "Dm", progression: ["V7", "V7", "im7", "im7", "V7", "V7", " VImaj6", " VImaj6", "ivm6", "ivm6", "im7", "im7", "V7", "V7", "im7", "im7"] },    
     "ill_see_you_in_my_dreams": { defaultKey: "F", progression: ["IV6", "IV6", "ivm6", "ivm6", "Imaj7", "VII7", "Imaj7", "Imaj7", "VI7", "VI7", "VI7", "VI7", "II7", "II7", "iim7", "V7", "Imaj7"] },
-    "rose_room": {defaultKey: "Ab", progression: ["II7", "V7", "I6", "I7", "IV6", "ivm7", "bVII7", "I6", "VI7", "V7", "V7", "II7", "V7", "I6", "I7", "IV6", "ivm7", "bVII7", "I6", "VI7", "IV7", "V7", "I6", "VI7"] },
+    "rose_room": {defaultKey: "Ab", progression: ["II7", "V7", " Imaj6", "I7", "IV6", "ivm7", "bVII7", " Imaj6", "VI7", "V7", "V7", "II7", "V7", " Imaj6", "I7", "IV6", "ivm7", "bVII7", " Imaj6", "VI7", "IV7", "V7", " Imaj6", "VI7"] },
     "black_orpheus": { defaultKey: "Am", progression: ["im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7", "bIIImaj7", "bVImaj7", "iim7b5", "V7b9", "im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7"] },
     "all_the_things_you_are": { defaultKey: "Ab", progression: ["vim7", "iim7", "V7", "Imaj7", "IVmaj7", "iiim7", "VI7", "IImaj7", "iim7", "vm7", "I7", "IVmaj7", "Imaj7", "iim7", "V7", "Imaj7", "iim7", "V7", "Imaj7", "iim7", "vm7", "I7", "IVmaj7", "Imaj7"] },
     "all_of_me": { defaultKey: "C", progression: ["Imaj7", "III7", "VI7", "iim7", "III7", "vim7", "II7", "iim7", "V7", "Imaj7", "III7", "VI7", "iim7", "IV", "iv", "Imaj7", "V7"] },
@@ -831,7 +831,8 @@ const progressions = {
     "caravan": { defaultKey: "Eb", progression: ["im7", "IV7", "im7", "IV7", "im7", "IV7", "im7", "IV7", "bVII7", "bVII7", "Imaj7", "Imaj7", "V7", "V7", "im7", "im7"] },
     "nows_the_time": { defaultKey: "F", progression: ["I7", "I7", "I7", "I7", "IV7", "IV7", "I7", "I7", "V7", "IV7", "I7", "I7"] },
     "tenor_madness": { defaultKey: "Bb", progression: ["I7", "I7", "I7", "I7", "IV7", "IV7", "I7", "I7", "iim7", "V7", "I7", "I7"] }
-};        
+};     
+   
 const scaleDegrees = {
     major: {
         // Basic triads (uppercase = major, lowercase = minor)
@@ -1271,31 +1272,29 @@ function getChordFromFunction(chordFunction, key = 'C') {
         }
     }
 
-    // Special case for V7 in minor keys
-    if (isMinorKey && chordFunction.toUpperCase() === 'V7') {
-        chordQuality = '7';
-    }
-
     // Handle extensions
     if (extension) {
         if (extension === '7') {
-            // Special handling for dominant 7th
-            if (chordQuality === 'maj' && (degree === 4 || chordFunction.toUpperCase().includes('V7'))) {
-                chordQuality = '7';
+            if (roman.toUpperCase() === 'V') {
+                chordQuality = '7'; // Ensure V7 is dominant 7th
             } else if (chordQuality === 'm') {
                 chordQuality = 'm7';
+            } else if (chordQuality === 'maj') {
+                chordQuality = 'maj7';
             } else {
                 chordQuality += '7';
             }
-        } else {
-            // Handle 6, 9, 11, 13 extensions
+        } else if (extension === '6') {
             if (chordQuality === 'maj') {
-                chordQuality = 'maj' + extension;
+                chordQuality = 'maj6';
             } else if (chordQuality === 'm') {
-                chordQuality = 'm' + extension;
+                chordQuality = 'm6';
             } else {
-                chordQuality += extension;
+                chordQuality += '6';
             }
+        } else {
+            // Handle other extensions like 9, 11, 13
+            chordQuality += extension;
         }
     }
 
@@ -1333,6 +1332,142 @@ function getChordFromFunction(chordFunction, key = 'C') {
     }
 
     return chordSymbol;
+}
+
+function parseChord(chord) {
+    if (!chord) return ['C', 'maj'];
+    const regex = /^([A-Ga-g][b#]?)(maj7|m7b5|min7|m7|maj|min|dim7|dim|aug|sus2|sus4|add9|7b9|7#9|7b13|7#11|7|6|9|11|13|°|ø|maj6|m6)?$/;
+    const match = chord.match(regex);
+    if (!match) {
+        console.warn(`Unable to parse chord: ${chord}`);
+        return [standardizeNoteName(chord.split(/[a-zA-Z0-9]/)[0]), 'maj'];
+    }
+    let [, root, quality] = match;
+    root = standardizeNoteName(root);
+    if (!quality) quality = 'maj';
+    // Normalize quality
+    switch (quality.toLowerCase()) {
+        case 'min':
+        case 'm':
+            quality = 'min';
+            break;
+        case 'min7':
+        case 'm7':
+            quality = 'min7';
+            break;
+        case 'maj7':
+            quality = 'maj7';
+            break;
+        case '7':
+            quality = '7';
+            break;
+        case '6':
+            quality = '6';
+            break;
+        case 'maj6':
+            quality = 'maj6';
+            break;
+        case 'm6':
+            quality = 'm6';
+            break;
+        case 'dim':
+            quality = 'dim';
+            break;
+        case 'dim7':
+            quality = 'dim7';
+            break;
+        case 'aug':
+            quality = 'aug';
+            break;
+        case 'sus2':
+            quality = 'sus2';
+            break;
+        case 'sus4':
+            quality = 'sus4';
+            break;
+        case 'add9':
+            quality = 'add9';
+            break;
+        case '7b9':
+            quality = '7b9';
+            break;
+        case '7#9':
+            quality = '7#9';
+            break;
+        case '7b13':
+            quality = '7b13';
+            break;
+        case '7#11':
+            quality = '7#11';
+            break;
+        case '9':
+            quality = '9';
+            break;
+        case '11':
+            quality = '11';
+            break;
+        case '13':
+            quality = '13';
+            break;
+        case '°':
+            quality = 'dim';
+            break;
+        case 'ø':
+            quality = 'm7b5';
+            break;
+    }
+    return [root, quality];
+}
+
+function getChordNotes(root, quality, octave) {
+    const intervals = {
+        'maj': [0, 4, 7],
+        'min': [0, 3, 7],
+        '7': [0, 4, 7, 10],
+        'min7': [0, 3, 7, 10],
+        'maj7': [0, 4, 7, 11],
+        'dim': [0, 3, 6],
+        'dim7': [0, 3, 6, 9],
+        'aug': [0, 4, 8],
+        'sus2': [0, 2, 7],
+        'sus4': [0, 5, 7],
+        'add9': [0, 4, 7, 14],
+        '7b9': [0, 4, 7, 10, 13],
+        '7#9': [0, 4, 7, 10, 15],
+        '7b13': [0, 4, 7, 10, 20],
+        '7#11': [0, 4, 7, 10, 18],
+        '6': [0, 4, 7, 9],
+        '9': [0, 4, 7, 10, 14],
+        '11': [0, 4, 7, 10, 17],
+        '13': [0, 4, 7, 10, 21],
+        'm7b5': [0, 3, 6, 10],
+        'maj6': [0, 4, 7, 9], // Support major 6th
+        'm6': [0, 3, 7, 9]   // Support minor 6th
+    };
+    const chordIntervals = intervals[quality] || intervals['maj'];
+    return chordIntervals.map(interval => {
+        const noteIndex = (NOTES.indexOf(root) + interval) % 12;
+        const noteName = NOTES[noteIndex];
+        return noteName + octave;
+    });
+}
+
+// Example code to populate the key dropdown
+function populateKeyDropdown() {
+    const keys = ["C", "Cm", "C#", "C#m", "D", "Dm", "Eb", "Ebm", "E", "Em", "F", "Fm", "F#", "F#m", "G", "Gm", "Ab", "Abm", "A", "Am", "Bb", "Bbm", "B", "Bm"];
+    const dropdown = document.getElementById("keySelect");
+    dropdown.innerHTML = ''; // Clear existing options
+    keys.forEach(key => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.text = key;
+        dropdown.add(option);
+    });
+    // Set default key based on current progression
+    const progression = progressions[currentProgression];
+    if (progression && progression.defaultKey) {
+        dropdown.value = progression.defaultKey;
+    }
 }
         
     function parseChord(chord) {
