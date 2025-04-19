@@ -1138,7 +1138,52 @@ function findNearestSampledNote(note, targetOctave = 3) {
     return bestMatch;
 }
 
+function getScaleForKeyAndMode(key, mode = 'major') {
+  // Define which keys are flat keys (use flats in their scales)
+  const flatMajorKeys = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'];
+  const flatMinorKeys = ['D', 'G', 'C', 'F', 'Bb', 'Eb', 'Ab']; // relative minors of above
 
+  // Chromatic scales for sharp and flat spelling
+  const chromaticSharps = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const chromaticFlats  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+  // Major and natural minor scale intervals (in semitones)
+  const intervals = {
+    major: [2, 2, 1, 2, 2, 2, 1],
+    minor: [2, 1, 2, 2, 1, 2, 2]
+  };
+
+  // Decide which chromatic scale to use
+  let useFlats = false;
+  if (mode === 'major' && flatMajorKeys.includes(key)) useFlats = true;
+  if (mode === 'minor' && flatMinorKeys.includes(key)) useFlats = true;
+
+  const chromatic = useFlats ? chromaticFlats : chromaticSharps;
+
+  // Normalize key for enharmonics (e.g., "A#" -> "Bb" for flat keys)
+  const enharmonics = {
+    'A#': 'Bb', 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab',
+    'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+  };
+  let tonic = key;
+  if (useFlats && enharmonics[key]) tonic = enharmonics[key];
+  if (!useFlats && enharmonics[key]) tonic = enharmonics[key];
+
+  // Find tonic index
+  let idx = chromatic.indexOf(tonic);
+  if (idx === -1) throw new Error('Unknown key: ' + key);
+
+  // Build scale
+  const scale = [chromatic[idx]];
+  let current = idx;
+  for (let step of intervals[mode]) {
+    current = (current + step) % 12;
+    scale.push(chromatic[current]);
+  }
+  // Remove octave duplication
+  scale.pop();
+  return scale;
+}
 
         
 function getScaleNotes(root, scaleName) {
