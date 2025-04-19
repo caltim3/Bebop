@@ -1192,7 +1192,12 @@ function isMinorKeyName(key) {
 
 function getChordFromFunction(chordFunction, key = 'C') {
     // Helper function to get note from scale degree
-    
+    function getNoteFromScaleDegree(degree, key, scale) {
+        const keyIndex = NOTES.indexOf(key);
+        const noteIndex = (keyIndex + scale[degree]) % 12;
+        return NOTES[noteIndex];
+    }
+
     // Initialize scales
     const majorScale = [0, 2, 4, 5, 7, 9, 11];
     const minorScale = [0, 2, 3, 5, 7, 8, 10];
@@ -1211,7 +1216,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
     if (!match) return null;
 
     let [_, roman, quality, extension, alteration, parenthesizedAlteration] = match;
-    
+
     // Handle flattened degrees
     const isFlat = roman.startsWith('b');
     if (isFlat) roman = roman.substring(1);
@@ -1301,7 +1306,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
     }
 
     // Special cases for secondary dominants
-    if (chordFunction.includes('7') && !isMinorKey && degree !== 4 && !isLowerCase) {
+    if (!quality && chordFunction.includes('7') && !isMinorKey && degree !== 4 && !isLowerCase) {
         chordQuality = '7'; // Make it dominant 7
     }
 
@@ -1312,7 +1317,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
 
     // Build the final chord symbol
     let chordSymbol = rootNote;
-    
+
     // Add the chord quality
     if (chordQuality !== 'maj' || extension) {
         chordSymbol += chordQuality;
