@@ -766,6 +766,10 @@ const TUNINGS = {
     DADGAD: ['D', 'A', 'G', 'D', 'A', 'D'],
     openE: ['E', 'B', 'E', 'Ab', 'B', 'E']
 };
+
+const rootNote = getNoteFromScaleDegree(degree, actualKey, scale);
+const root = standardizeNoteName(rootNote);
+
         
 const DRUM_PATTERNS = {
     '2': { kick: [1, 0], snare: [0, 1], hihat: [1, 1] },
@@ -1095,9 +1099,12 @@ function getNoteIndex(note) {
     return NOTES.indexOf(standardizedNote);
 }
 
+const MIN_OCTAVE = 2;
+const MAX_OCTAVE = 4;
+
 function findNearestSampledNote(note, targetOctave = 3) {
-    const standardNote = standardizeNoteName(note);
-    const mappedNote = ENHARMONIC_MAP[standardNote] || standardNote;
+    const cleanNote = standardizeNoteName(note).replace('m', '');
+    const mappedNote = ENHARMONIC_MAP[cleanNote] || cleanNote;
     const targetIndex = NOTES.indexOf(mappedNote);
     if (targetIndex === -1) {
         console.warn(`Note ${note} not found in NOTES.`);
@@ -1108,13 +1115,12 @@ function findNearestSampledNote(note, targetOctave = 3) {
     let minDistance = Infinity;
 
     for (let sampleNote of SAMPLED_NOTES) {
-        const sampleMappedNote = SAMPLE_NOTE_MAP[sampleNote] || sampleNote;
-        const sampleIndex = NOTES.indexOf(ENHARMONIC_MAP[sampleMappedNote] || sampleMappedNote);
-        for (let octave of [2, 3, 4]) {
+        const sampleMapped = SAMPLE_NOTE_MAP[sampleNote] || sampleNote;
+        const sampleIndex = NOTES.indexOf(ENHARMONIC_MAP[sampleMapped] || sampleMapped);
+        for (let octave = MIN_OCTAVE; octave <= MAX_OCTAVE; octave++) {
             const noteMidi = targetIndex + targetOctave * 12;
             const sampleMidi = sampleIndex + octave * 12;
             const distance = Math.abs(noteMidi - sampleMidi);
-
             if (distance < minDistance) {
                 minDistance = distance;
                 bestMatch = {
@@ -1123,17 +1129,6 @@ function findNearestSampledNote(note, targetOctave = 3) {
                 };
             }
         }
-    }
-
-    return bestMatch;
-}
-
-    // Force all shifted notes into the C2–A4 range
-    const minNoteHz = 65.41;  // C2
-    const maxNoteHz = 440.00; // A4
-    const freq = 440 * Math.pow(2, bestMatch.semitoneDiff / 12);
-    if (freq < minNoteHz || freq > maxNoteHz) {
-        console.warn(`Note ${note} transposed outside allowed range.`);
     }
 
     return bestMatch;
@@ -1188,9 +1183,6 @@ function getChordFromFunction(chordFunction, key = 'C') {
         const noteIndex = (keyIndex + scale[degree]) % 12;
         return chromaticScale[noteIndex];
     }
-
-    function standardizeNoteName(note) {
-        // Convert sharps to flats for consistency
         const sharpToFlat = {
             'C#': 'Db',
             'D#': 'Eb',
@@ -1527,59 +1519,48 @@ function createScaleOptions(selected = 'major') {
 function playNote(noteName, volume = 1.0, duration = 1000) {
     if (!AudioContextManager.context || !noteName) return;
 
-    // Get the fretboard volume control value
     const fretboardVolumeControl = document.getElementById('fretboard-volume');
-    const fretboardVolume = parseFloat(fretboardVolumeControl.value);
-    
-    // Combine the passed volume with the fretboard volume control
+    const fretboardVolume = parseFloat(fretboardVolumeControl?.value ?? 1);
     const finalVolume = volume * fretboardVolume;
-    
+
     if (finalVolume <= 0) return;
 
-    // Map note name to the closest piano sample
-    const noteMapping = {
-        'C': 'C', 'C#': 'Ds', 'Db': 'Ds',
-        'D': 'Ds', 'D#': 'Ds', 'Eb': 'Ds',
-        'E': 'Ds', 'F': 'Fs', 'F#': 'Fs',
-        'Gb': 'Fs', 'G': 'Fs', 'G#': 'A',
-        'Ab': 'A', 'A': 'A', 'A#': 'C',
-        'Bb': 'A', 'B': 'C'
-    };
-
-    // Extract the note and octave
-    const match = noteName.match(/([A-G][#b]?)(\d)/);
-    if (!match) return;
-
-    const [_, note, octave] = match;
-    const mappedNote = noteMapping[note];
-    
-    // Ensure we're using an octave that has samples
-    const adjustedOctave = Math.max(2, Math.min(6, parseInt(octave)));
-    
-    const sampleName = `${mappedNote}${adjustedOctave}v12`;
-    const buffer = AudioContextManager.soundBuffers[sampleName];
-
-    if (!buffer) {
-        console.warn(`No sample found for note: ${sampleName}`);
+    // Extract the pitch class and octave from the note name
+    const match = noteName.match(/^([A-G][b#]?)(\d)$/);
+    if (!match) {
+        console.warn(`Invalid note format: ${noteName}`);
         return;
     }
 
-    const source = AudioContextManager.context.createBufferSource();
-    source.buffer = buffer;
+    let [, rawNote, octaveStr] = match;
+    const baseNote = standardizeNoteName(rawNote).replace('m', '');
+    const mappedNote = SAMPLE_NOTE_MAP[baseNote] || baseNote;
+    const octave = Math.max(2, Math.min(6, parseInt(octaveStr)));
 
-    const gainNode = AudioContextManager.context.createGain();
-    gainNode.gain.value = finalVolume;
+    const sampleName = `${mappedNote}${octave}v12`;
+    const buffer = AudioContextManager.pianoSampleBuffers[sampleName];
 
-    source.connect(gainNode);
-    gainNode.connect(AudioContextManager.context.destination);
+    if (!buffer) {
+        console.warn(`No piano sample found for ${sampleName}`);
+        return;
+    }
 
     try {
+        const source = AudioContextManager.context.createBufferSource();
+        source.buffer = buffer;
+
+        const gainNode = AudioContextManager.context.createGain();
+        gainNode.gain.value = finalVolume;
+
+        source.connect(gainNode);
+        gainNode.connect(AudioContextManager.context.destination);
+
         source.start(0);
         setTimeout(() => {
             try {
                 source.stop();
-            } catch (error) {
-                // Ignore errors from already stopped sources
+            } catch (e) {
+                // No-op on already stopped source
             }
         }, duration);
     } catch (error) {
@@ -1631,15 +1612,34 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
 
 function getChordNotes(root, quality) {
     const rootIndex = NOTES.indexOf(standardizeNoteName(root));
-    const intervals = {
-        major: [0, 4, 7],
-        minor: [0, 3, 7],
-        dom7: [0, 4, 7, 10],
-        maj7: [0, 4, 7, 11],
-        min7: [0, 3, 7, 10],
-        min7b5: [0, 3, 6, 10]
-    }[quality] || [0, 4, 7];
-    return intervals.map(interval => NOTES[(rootIndex + interval) % 12]);
+
+    const INTERVAL_MAP = {
+        'major': [0, 4, 7],
+        'minor': [0, 3, 7],
+        'maj7': [0, 4, 7, 11],
+        'min7': [0, 3, 7, 10],
+        '7': [0, 4, 7, 10],
+        'dom7': [0, 4, 7, 10],
+        'm7b5': [0, 3, 6, 10],
+        'dim7': [0, 3, 6, 9],
+        'aug': [0, 4, 8],
+        'sus2': [0, 2, 7],
+        'sus4': [0, 5, 7],
+        '7b9': [0, 4, 7, 10, 13],
+        '7#9': [0, 4, 7, 10, 15],
+        '7b13': [0, 4, 7, 10, 20],
+        '7#11': [0, 4, 7, 10, 18]
+    };
+
+    const intervals = INTERVAL_MAP[quality];
+    if (!intervals) {
+        console.warn(`Unknown chord quality "${quality}" — defaulting to major triad`);
+    }
+
+    return (intervals || [0, 4, 7]).map(interval => {
+        const noteIndex = (rootIndex + interval) % 12;
+        return NOTES[noteIndex];
+    });
 }
 
 async function playMetronomeSound(baseVolume) {
