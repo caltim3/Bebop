@@ -624,7 +624,7 @@
         <button onclick="addMeasure()" aria-label="Add measure">Add Measure</button>
         <button onclick="removeMeasure()" aria-label="Remove measure">Remove Measure</button>
         <div class="checkbox-wrapper">
-            <<button id="chordsEnabled" class="toggle-button active">Chords Enabled</button>
+            <button id="chordsEnabled" class="toggle-button active">Chords Enabled</button>
         </div>
         <div class="volume-control">
             <label for="chord-volume">Chord Volume:</label>
@@ -1074,21 +1074,7 @@ async function ensureAudioInitialized() {
     }
 }
 // Music Theory Utilities
-
-// --- NEW GLOBAL HELPER -------------------------------------------
-function getNoteFromScaleDegree(degree, key, scale) {
-    // Convert the degree (0–6) into an actual note name in the chosen key
-    const chromaticScale = ['C', 'Db', 'D', 'Eb', 'E', 'F',
-                            'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-    const keyIndex = chromaticScale.indexOf(standardizeNoteName(key));
-    if (keyIndex === -1) return null;           // safety check
-
-    const noteIndex = (keyIndex + scale[degree]) % 12;
-    const note = chromaticScale[noteIndex];
-    return flattenNote(note);                    // keep everything flat‑friendly
-}
-// ------------------------------------------------------------------
-        
+    
 function standardizeNoteName(note) {
     if (!note) return 'C';
     const isMinor = note.trim().endsWith('m') || note.trim().endsWith('min');
@@ -1282,61 +1268,39 @@ function getChordFromFunction(func, key, mode = 'major') {
   return func;
 }
 
-// Helper: get scale degree root, with accidental support
-// Helper: get the scale for a given key and mode
-function getScaleForKeyAndMode(key, mode = 'major') {
-  // All 12 chromatic notes, using sharps for simplicity
-  const chromatic = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
-  // Major and natural minor scale intervals (in semitones)
-  const intervals = {
-    major: [2, 2, 1, 2, 2, 2, 1],
-    minor: [2, 1, 2, 2, 1, 2, 2]
-  };
-
-  // Normalize key (e.g., "Bb" -> "A#", "Db" -> "C#")
-  const enharmonics = {
-    'Bb': 'A#', 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#'
-  };
-  let tonic = enharmonics[key] || key;
-
-  // Find tonic index
-  let idx = chromatic.indexOf(tonic);
-  if (idx === -1) throw new Error('Unknown key: ' + key);
-
-  // Build scale
-  const scale = [chromatic[idx]];
-  let current = idx;
-  for (let step of intervals[mode]) {
-    current = (current + step) % 12;
-    scale.push(chromatic[current]);
-  }
-  // Remove octave duplication
-  scale.pop();
-  return scale;
-}
-
-// Helper: build chord name
-function getScaleDegreeRoot(key, degree, mode) {
-  // For simplicity, assuming key is a string like "D" or "A"
-  // and you have a function to get the scale for the key and mode
-  const scale = getScaleForKeyAndMode(key, mode); // e.g., ["D", "E", "F", "G", "A", "Bb", "C"]
-  return scale[degree];
+function getScaleDegreeRoot(key, degree, mode, accidental = '') {
+  const scale = getScaleForKeyAndMode(key, mode);
+  let deg = degree;
+  if (accidental === 'b') deg = (degree + 6) % 7;
+  if (accidental === '#') deg = (degree + 1) % 7;
+  return scale[deg];
 }
 
 function buildChordName(root, quality) {
   // Map quality to chord symbol
-  const qualityMap = {
-    'maj': '',
-    'maj6': '6',
-    'maj7': 'maj7',
-    'min': 'm',
-    'min6': 'm6',
-    'min7': 'm7',
-    'dim': 'dim',
-    'min7b5': 'm7b5',
-    '7': '7'
-  };
+const qualityMap = {
+  'm': 'min',
+  'min': 'min',
+  'm7': 'min7',
+  'min7': 'min7',
+  'maj': 'maj7',
+  'maj7': 'maj7',
+  'M': 'maj7',
+  'M7': 'maj7',
+  '7': '7',
+  'dom7': '7',
+  'dominant7': '7',
+  'dim': 'dim',
+  'dim7': 'dim7',
+  '°': 'dim',
+  'ø': 'min7b5', // half-diminished
+  'm7b5': 'min7b5',
+  'aug': 'aug',
+  '+': 'aug',
+  'sus2': 'sus2',
+  'sus4': 'sus4',
+  // Add more as needed
+};
   return root + (qualityMap[quality] !== undefined ? qualityMap[quality] : quality);
 }
         
@@ -1355,40 +1319,51 @@ function parseChord(chord) {
 
     let [, root, quality] = match;
     root = standardizeNoteName(root);
-    quality = quality.trim();
+    quality = quality.trim().toLowerCase();
 
-    // Normalize only the base quality at the start
+    // Expanded normalization map
     const baseQualityMap = {
-        'min7b5': 'm7b5',
-        'm7b5': 'm7b5',
-        'ø7': 'm7b5',
-        'ø': 'm7b5',
+        'min7b5': 'min7b5',
+        'm7b5': 'min7b5',
+        'ø7': 'min7b5',
+        'ø': 'min7b5',
         'dim7': 'dim7',
         '°7': 'dim7',
-        '°': 'dim',
         'dim': 'dim',
+        '°': 'dim',
         'maj7': 'maj7',
         'maj': 'maj7',
         'm7': 'min7',
         'min7': 'min7',
         'm': 'min',
         'min': 'min',
-        '7': '7',
+        '7': 'dom7',
+        'dom7': 'dom7',
+        'dominant7': 'dom7',
         '6': '6',
         '9': '9',
         '11': '11',
         '13': '13',
         'aug': 'aug',
+        '+': 'aug',
         'sus2': 'sus2',
         'sus4': 'sus4',
-        'add9': 'add9'
+        'add9': 'add9',
+        'm6': 'min6',
+        'min6': 'min6',
+        'm9': 'min9',
+        'min9': 'min9',
+        'm11': 'min11',
+        'min11': 'min11',
+        'm13': 'min13',
+        'min13': 'min13'
         // Add more as needed
     };
 
     let foundBase = '';
     let rest = '';
     for (let q of Object.keys(baseQualityMap).sort((a, b) => b.length - a.length)) {
-        if (quality.toLowerCase().startsWith(q)) {
+        if (quality.startsWith(q)) {
             foundBase = baseQualityMap[q];
             rest = quality.slice(q.length);
             break;
@@ -1411,19 +1386,36 @@ function flattenNote(note) {
 }
 
 function getQualityValue(quality) {
+    // Expanded and normalized mapping
     const qualityMap = {
         '': 'major',
-        'm': 'minor',
-        '7': 'dom7',
-        'dom7': 'dom7',  // Add explicit mapping
+        'M': 'major',
+        'maj': 'major',
         'maj7': 'maj7',
+        'M7': 'maj7',
+        'm': 'minor',
+        'min': 'minor',
         'm7': 'min7',
         'min7': 'min7',
+        '7': 'dom7',
+        'dom7': 'dom7',
+        'dominant7': 'dom7',
         'dim': 'dim',
-        'min7b5': 'min7b5'
+        'dim7': 'dim7',
+        '°': 'dim',
+        'ø': 'min7b5', // half-diminished
+        'm7b5': 'min7b5',
+        'min7b5': 'min7b5',
+        'aug': 'aug',
+        '+': 'aug',
+        'sus2': 'sus2',
+        'sus4': 'sus4'
+        // Add more as needed
     };
+    // Always return a normalized value, fallback to 'major'
     return qualityMap[quality] || 'major';
 }
+        
 function suggestScaleForQuality(quality) {
     const scaleMap = {
         '': 'major',
@@ -2337,7 +2329,7 @@ function updateProgressionKey(newKey) {
     Array.from(UI.elements.measures.children).forEach((measure, index) => {
         const chordFunc = progression.progression[index];
         if (!chordFunc) return;
-        const chord = getChordFromFunction(newKey, chordFunc);
+       const chord = getChordFromFunction(chordFunc, newKey);
         const [root, quality] = parseChord(chord);
         const rootSelect = measure.querySelector('.root-note');
         const qualitySelect = measure.querySelector('.chord-quality');
