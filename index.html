@@ -1594,124 +1594,44 @@ function findNearestSampledNote(note) {
 }
 
 // Harmonized playChord function that works with your implementation
-function playChord(chordOrRoot, quality, startTime, duration, inversion = false) {
-    // Handle both object-based and parameter-based calling styles
-    let chord;
-    
-    if (typeof chordOrRoot === 'object' && chordOrRoot !== null) {
-        // Object-based call
-        chord = chordOrRoot;
-    } else {
-        // Parameter-based call (legacy support)
-        chord = {
-            root: chordOrRoot,
-            quality: quality || 'major',
-            bass: null,
-            extension: null
-        };
-    }
-    
-    if (!chord || !chord.root) {
-        console.error("Invalid chord:", chord);
-        return;
-    }
-    
-    // Get the notes for this chord
-    let notes = getChordNotes(chord);
-    if (!notes || notes.length === 0) {
-        console.error("No notes found for chord:", chord);
-        return;
-    }
-    
-    console.log(`Playing chord: ${chord.root}${chord.quality}`, notes);
-    
-    // Handle inversion if specified
-    if (inversion && notes.length > 1) {
-        // Move the first note up an octave for the inversion
-        notes = [...notes.slice(1), notes[0] + 12];
-    }
-    
-    // Set default octave
-    const baseOctave = 4;
-    
-    // Distribute notes across octaves for better voicing
-    let voicedNotes = [];
-    for (let i = 0; i < notes.length; i++) {
-        // Adjust octave based on position in chord
-        let noteOctave = baseOctave;
-        if (i > 0 && notes[i] < notes[0]) {
-            noteOctave += 1; // Move higher if note is lower than root
-        }
-        
-        voicedNotes.push(notes[i] + (noteOctave * 12));
-    }
-    
-    // Play each note in the chord using AudioContextManager
-    const chordVolume = parseFloat(UI.elements.chordVolume?.value) || 0.7;
-    for (let note of voicedNotes) {
-        playNote(note, startTime, duration, chordVolume);
-    }
-}
-// Harmonized playChord function that works with your implementation
-function playChord(chordOrRoot, quality, startTime, duration, inversion = false) {
-    // Handle both object-based and parameter-based calling styles
-    let chord;
-    
-    if (typeof chordOrRoot === 'object' && chordOrRoot !== null) {
-        // Object-based call
-        chord = chordOrRoot;
-    } else {
-        // Parameter-based call (legacy support)
-        chord = {
-            root: chordOrRoot,
-            quality: quality || 'major',
-            bass: null,
-            extension: null
-        };
-    }
-    
-    if (!chord || !chord.root) {
-        console.error("Invalid chord:", chord);
-        return;
-    }
-    
-    // Get the notes for this chord
-    let notes = getChordNotes(chord);
-    if (!notes || notes.length === 0) {
-        console.error("No notes found for chord:", chord);
-        return;
-    }
-    
-    console.log(`Playing chord: ${chord.root}${chord.quality}`, notes);
-    
-    // Handle inversion if specified
-    if (inversion && notes.length > 1) {
-        // Move the first note up an octave for the inversion
-        notes = [...notes.slice(1), notes[0] + 12];
-    }
-    
-    // Set default octave
-    const baseOctave = 4;
-    
-    // Distribute notes across octaves for better voicing
-    let voicedNotes = [];
-    for (let i = 0; i < notes.length; i++) {
-        // Adjust octave based on position in chord
-        let noteOctave = baseOctave;
-        if (i > 0 && notes[i] < notes[0]) {
-            noteOctave += 1; // Move higher if note is lower than root
-        }
-        
-        voicedNotes.push(notes[i] + (noteOctave * 12));
-    }
-    
-    // Play each note in the chord using AudioContextManager
-    const chordVolume = parseFloat(UI.elements.chordVolume?.value) || 0.7;
-    for (let note of voicedNotes) {
-        playNote(note, startTime, duration, chordVolume);
-    }
-}
+function playChord(chord, duration = 1000, options = {}) {
+    // options: { inversion: 'random' | 'root', octave: 4 }
+    const octave = options.octave || 4;
+    let notes = getChordNotes(chord, octave);
 
+    if (!notes || notes.length === 0) {
+        console.error("No notes to play for chord:", chord);
+        return;
+    }
+
+    // If random inversion requested and more than one note
+    if (options.inversion === 'random' && notes.length > 1) {
+        // If a bass note is present (not just root), keep it in the bass
+        let bass = null;
+        if (chord.bass) {
+            bass = notes.shift();
+        } else {
+            // Otherwise, keep the root in the bass
+            bass = notes.shift();
+        }
+        // Randomly rotate the remaining notes (upper voices)
+        const inversionIndex = Math.floor(Math.random() * notes.length);
+        notes = notes.slice(inversionIndex).concat(notes.slice(0, inversionIndex));
+        // Put bass/root back at the bottom
+        notes.unshift(bass);
+    }
+
+    // Play each note in the chord
+    notes.forEach(noteName => {
+        const audio = new Audio(`samples/${noteName}.wav`);
+        audio.currentTime = 0;
+        audio.play();
+        setTimeout(() => {
+            audio.pause();
+            audio.currentTime = 0;
+        }, duration);
+    });
+}// Harmonized playChord function that works with your implementation
 // Your existing playBeat function with minor improvements for chord handling
 async function playBeat() {
     // Update beat UI
@@ -1795,79 +1715,72 @@ function distributeNotesForVoicing(notes) {
     
     return voicedNotes;
 }
-function getChordNotes(chord) {
+function getNoteNameWithOctave(note, octave = 4) {
+    // note: "C", "C#", "D", etc.
+    // octave: 2, 3, 4, 5, 6 (default 4)
+    // returns: "C4", "A#3", etc.
+    if (!note) return null;
+    // Normalize input
+    note = note.trim().toUpperCase();
+    // Map flats to sharps for sample file compatibility
+    const flatToSharp = { 'DB': 'C#', 'EB': 'D#', 'GB': 'F#', 'AB': 'G#', 'BB': 'A#' };
+    if (flatToSharp[note]) note = flatToSharp[note];
+    return `${note}${octave}`;
+}
+        
+function getChordNotes(chord, octave = 4) {
     if (typeof chord === 'string') {
         chord = parseChord(chord);
     }
-    
     if (!chord || !chord.root) {
         console.error("Invalid chord object:", chord);
         return [];
     }
-    
-    const rootNote = getNoteNumber(chord.root);
-    if (rootNote === -1) {
+    // Chord intervals by quality
+    let intervals;
+    switch (chord.quality) {
+        case 'major': intervals = [0, 4, 7]; break;
+        case 'minor': intervals = [0, 3, 7]; break;
+        case 'augmented': intervals = [0, 4, 8]; break;
+        case 'diminished': intervals = [0, 3, 6]; break;
+        case 'sus4': intervals = [0, 5, 7]; break;
+        case 'sus2': intervals = [0, 2, 7]; break;
+        case 'dominant7': intervals = [0, 4, 7, 10]; break;
+        case 'major7': intervals = [0, 4, 7, 11]; break;
+        case 'minor7': intervals = [0, 3, 7, 10]; break;
+        default:
+            intervals = [0, 4, 7];
+            console.warn("Unrecognized chord quality:", chord.quality, "- defaulting to major");
+    }
+    // Chromatic scale and flat-to-sharp mapping
+    const chromatic = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const flatToSharp = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
+
+    // Map root and bass to sharps if needed
+    let root = chord.root;
+    if (flatToSharp[root]) root = flatToSharp[root];
+    const rootIndex = chromatic.indexOf(root);
+    if (rootIndex === -1) {
         console.error("Invalid root note:", chord.root);
         return [];
     }
-    
-    let notes = [rootNote];
-    
-    switch (chord.quality) {
-        case 'major':
-            notes.push(rootNote + 4); // Major third
-            notes.push(rootNote + 7); // Perfect fifth
-            break;
-        case 'minor':
-            notes.push(rootNote + 3); // Minor third
-            notes.push(rootNote + 7); // Perfect fifth
-            break;
-        case 'augmented':
-            notes.push(rootNote + 4); // Major third
-            notes.push(rootNote + 8); // Augmented fifth
-            break;
-        case 'diminished':
-            notes.push(rootNote + 3); // Minor third
-            notes.push(rootNote + 6); // Diminished fifth
-            break;
-        case 'sus4':
-            notes.push(rootNote + 5); // Perfect fourth
-            notes.push(rootNote + 7); // Perfect fifth
-            break;
-        case 'sus2':
-            notes.push(rootNote + 2); // Major second
-            notes.push(rootNote + 7); // Perfect fifth
-            break;
-        case 'dominant7':
-            notes.push(rootNote + 4); // Major third
-            notes.push(rootNote + 7); // Perfect fifth
-            notes.push(rootNote + 10); // Minor seventh
-            break;
-        case 'major7':
-            notes.push(rootNote + 4); // Major third
-            notes.push(rootNote + 7); // Perfect fifth
-            notes.push(rootNote + 11); // Major seventh
-            break;
-        case 'minor7':
-            notes.push(rootNote + 3); // Minor third
-            notes.push(rootNote + 7); // Perfect fifth
-            notes.push(rootNote + 10); // Minor seventh
-            break;
-        default:
-            // Default to major if quality not recognized
-            notes.push(rootNote + 4); // Major third
-            notes.push(rootNote + 7); // Perfect fifth
-            console.warn("Unrecognized chord quality:", chord.quality, "- defaulting to major");
-    }
-    
-    // Add bass note if specified
+
+    // Build chord notes (excluding bass for now)
+    let notes = intervals.map(interval => {
+        let noteIndex = (rootIndex + interval) % 12;
+        let noteName = chromatic[noteIndex];
+        return getNoteNameWithOctave(noteName, octave);
+    });
+
+    // Add bass note if specified and not already present
     if (chord.bass) {
-        const bassNote = getNoteNumber(chord.bass);
-        if (bassNote !== -1 && !notes.includes(bassNote)) {
+        let bass = chord.bass;
+        if (flatToSharp[bass]) bass = flatToSharp[bass];
+        const bassNote = getNoteNameWithOctave(bass, octave);
+        if (!notes.includes(bassNote)) {
             notes.unshift(bassNote);
         }
     }
-    
     return notes;
 }
         async function playMetronomeSound(baseVolume) {
