@@ -1325,8 +1325,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
 
     return chordSymbol;
 }
-        
-    function parseChord(chordStr) {
+        function parseChord(chordStr) {
     // Normalize chord string by removing spaces and converting to uppercase
     chordStr = chordStr.trim().replace(/\s+/g, '').toUpperCase();
     
@@ -1334,7 +1333,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
     const rootNoteMatch = chordStr.match(/^([A-G][#b]?)/);
     if (!rootNoteMatch) {
         console.error("Invalid chord format:", chordStr);
-        return null;
+        return [null, null]; // Return iterable for destructuring
     }
     
     const rootNote = rootNoteMatch[1];
@@ -1353,7 +1352,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
     
     if (rootMidiNote === undefined) {
         console.error("Invalid root note:", rootNote);
-        return null;
+        return [null, null]; // Return iterable for destructuring
     }
     
     // Map quality to chord type
@@ -1393,13 +1392,10 @@ function getChordFromFunction(chordFunction, key = 'C') {
         chordType = 'major';
     }
     
-    return {
-        root: rootMidiNote,
-        type: chordType,
-        original: chordStr
-    };
+    // Return an array with [rootMidiNote, chordType] for destructuring
+    return [rootMidiNote, chordType, chordStr];
 }
-
+        
 // Helper function for flat notes
 function flattenNote(note) {
     const sharpToFlat = {
