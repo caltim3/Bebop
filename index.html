@@ -767,9 +767,6 @@ const TUNINGS = {
     openE: ['E', 'B', 'E', 'Ab', 'B', 'E']
 };
 
-const rootNote = getNoteFromScaleDegree(degree, actualKey, scale);
-const root = standardizeNoteName(rootNote);
-
         
 const DRUM_PATTERNS = {
     '2': { kick: [1, 0], snare: [0, 1], hihat: [1, 1] },
@@ -1085,6 +1082,21 @@ async function ensureAudioInitialized() {
     }
 }
 // Music Theory Utilities
+
+// --- NEW GLOBAL HELPER -------------------------------------------
+function getNoteFromScaleDegree(degree, key, scale) {
+    // Convert the degree (0–6) into an actual note name in the chosen key
+    const chromaticScale = ['C', 'Db', 'D', 'Eb', 'E', 'F',
+                            'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+    const keyIndex = chromaticScale.indexOf(standardizeNoteName(key));
+    if (keyIndex === -1) return null;           // safety check
+
+    const noteIndex = (keyIndex + scale[degree]) % 12;
+    const note = chromaticScale[noteIndex];
+    return flattenNote(note);                    // keep everything flat‑friendly
+}
+// ------------------------------------------------------------------
+        
 function standardizeNoteName(note) {
     if (!note) return 'C';
     const isMinor = note.trim().endsWith('m') || note.trim().endsWith('min');
@@ -1178,15 +1190,7 @@ function isMinorKeyName(key) {
 
 function getChordFromFunction(chordFunction, key = 'C') {
     // Helper function to get note from scale degree
-    function getNoteFromScaleDegree(degree, key, scale) {
-        const chromaticScale = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-        const keyIndex = chromaticScale.indexOf(standardizeNoteName(key));
-        if (keyIndex === -1) return null;
-        const noteIndex = (keyIndex + scale[degree]) % 12;
-        const note = chromaticScale[noteIndex];
-        return flattenNote(note); // Use the existing flattenNote function
-    }
-
+    
     // Initialize scales
     const majorScale = [0, 2, 4, 5, 7, 9, 11];
     const minorScale = [0, 2, 3, 5, 7, 8, 10];
