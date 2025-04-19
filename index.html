@@ -1134,6 +1134,8 @@ function findNearestSampledNote(note, targetOctave = 3) {
     return bestMatch;
 }
 
+
+
         
 function getScaleNotes(root, scaleName) {
     if (!root) return [];
@@ -1378,11 +1380,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
 // Helper function for flat notes
 function flattenNote(note) {
     const sharpToFlat = {
-        'C#': 'Db',
-        'D#': 'Eb',
-        'F#': 'Gb',
-        'G#': 'Ab',
-        'A#': 'Bb'
+        'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'
     };
     return sharpToFlat[note] || note;
 }
