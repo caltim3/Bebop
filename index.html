@@ -1561,7 +1561,6 @@ function parseChord(chordStr) {
     return chord;
 }
 
-
 // Improved findNearestSampledNote function
 function findNearestSampledNote(note) {
     // Available sampled notes: A, C, D#, F#
@@ -1594,6 +1593,65 @@ function findNearestSampledNote(note) {
     return nearestNote + (octave * 12);
 }
 
+// Harmonized playChord function that works with your implementation
+function playChord(chordOrRoot, quality, startTime, duration, inversion = false) {
+    // Handle both object-based and parameter-based calling styles
+    let chord;
+    
+    if (typeof chordOrRoot === 'object' && chordOrRoot !== null) {
+        // Object-based call
+        chord = chordOrRoot;
+    } else {
+        // Parameter-based call (legacy support)
+        chord = {
+            root: chordOrRoot,
+            quality: quality || 'major',
+            bass: null,
+            extension: null
+        };
+    }
+    
+    if (!chord || !chord.root) {
+        console.error("Invalid chord:", chord);
+        return;
+    }
+    
+    // Get the notes for this chord
+    let notes = getChordNotes(chord);
+    if (!notes || notes.length === 0) {
+        console.error("No notes found for chord:", chord);
+        return;
+    }
+    
+    console.log(`Playing chord: ${chord.root}${chord.quality}`, notes);
+    
+    // Handle inversion if specified
+    if (inversion && notes.length > 1) {
+        // Move the first note up an octave for the inversion
+        notes = [...notes.slice(1), notes[0] + 12];
+    }
+    
+    // Set default octave
+    const baseOctave = 4;
+    
+    // Distribute notes across octaves for better voicing
+    let voicedNotes = [];
+    for (let i = 0; i < notes.length; i++) {
+        // Adjust octave based on position in chord
+        let noteOctave = baseOctave;
+        if (i > 0 && notes[i] < notes[0]) {
+            noteOctave += 1; // Move higher if note is lower than root
+        }
+        
+        voicedNotes.push(notes[i] + (noteOctave * 12));
+    }
+    
+    // Play each note in the chord using AudioContextManager
+    const chordVolume = parseFloat(UI.elements.chordVolume?.value) || 0.7;
+    for (let note of voicedNotes) {
+        playNote(note, startTime, duration, chordVolume);
+    }
+}
 // Harmonized playChord function that works with your implementation
 function playChord(chordOrRoot, quality, startTime, duration, inversion = false) {
     // Handle both object-based and parameter-based calling styles
@@ -1811,8 +1869,8 @@ function getChordNotes(chord) {
     }
     
     return notes;
-}        
-async function playMetronomeSound(baseVolume) {
+}
+        async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
 
     // Get the metronome volume slider value and combine it with base volume
