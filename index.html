@@ -1097,32 +1097,45 @@ function getNoteIndex(note) {
 
 
 function findNearestSampledNote(note, octave) {
-    let minDistance = Infinity;
+    // Available sampled notes (root notes only)
+    const SAMPLED_NOTES = ['C', 'D', 'Ds', 'E', 'F', 'Fs', 'G', 'A', 'B'];
+    
+    // Standardize the note name for comparison
+    const standardizedNote = standardizeNoteName(note);
+    const noteIndex = NOTES.indexOf(standardizedNote);
+    
+    if (noteIndex === -1) {
+        console.error(`Invalid note: ${note}`);
+        return null;
+    }
+    
+    // Find the nearest sampled note
     let nearestNote = null;
-    let nearestOctave = octave;
-    const sampleNote = SAMPLE_NOTE_MAP[note] || note;
-    const noteIndex = NOTES.indexOf(note);
-    for (let sampledNote of SAMPLED_NOTES) {
+    let minDistance = Infinity;
+    
+    for (const sampledNote of SAMPLED_NOTES) {
+        // Convert sampled note name for comparison
         const compareNote = sampledNote === 'Fs' ? 'Gb' : sampledNote === 'Ds' ? 'Eb' : sampledNote;
-        const sampledIndex = NOTES.indexOf(standardizeNoteName(compareNote));
-        const distance = Math.abs(noteIndex - sampledIndex);
+        const standardizedSampledNote = standardizeNoteName(compareNote);
+        const sampledNoteIndex = NOTES.indexOf(standardizedSampledNote);
+        
+        if (sampledNoteIndex === -1) {
+            console.error(`Invalid sampled note: ${sampledNote}`);
+            continue;
+        }
+        
+        // Calculate distance in semitones (considering circular nature of notes)
+        const distance = Math.min(
+            (noteIndex - sampledNoteIndex + 12) % 12,
+            (sampledNoteIndex - noteIndex + 12) % 12
+        );
+        
         if (distance < minDistance) {
             minDistance = distance;
             nearestNote = sampledNote;
-            if (noteIndex < sampledIndex && noteIndex < 3 && sampledIndex > 8) {
-                nearestOctave = octave - 1;
-            } else if (noteIndex > sampledIndex && noteIndex > 8 && sampledIndex < 3) {
-                nearestOctave = octave + 1;
-            }
         }
     }
-    // Ensure octave stays within A2–C4 range
-    nearestOctave = Math.max(2, Math.min(3, nearestOctave));
-    return {
-        sampleKey: `${nearestNote}${nearestOctave}v12`,
-        semitoneDiff: (noteIndex - NOTES.indexOf(standardizeNoteName(nearestNote === 'Fs' ? 'Gb' : nearestNote === 'Ds' ? 'Eb' : nearestNote)) + 12) % 12
-    };
-}    
+    
     // Calculate the nearest octave
     let nearestOctave = octave;
     
