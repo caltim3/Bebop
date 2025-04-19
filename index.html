@@ -1095,33 +1095,51 @@ function getNoteIndex(note) {
     return NOTES.indexOf(standardizedNote);
 }
 
-function findNearestSampledNote(note, octave) {
+function findNearestSampledNote(note, targetOctave = 3) {
+    const standardNote = standardizeNoteName(note);
+    const mappedNote = ENHARMONIC_MAP[standardNote] || standardNote;
+    const targetIndex = NOTES.indexOf(mappedNote);
+    if (targetIndex === -1) {
+        console.warn(`Note ${note} not found in NOTES.`);
+        return { sampleKey: 'C3v12', semitoneDiff: 0 };
+    }
+
+    let bestMatch = null;
     let minDistance = Infinity;
-    let nearestNote = null;
-    let nearestOctave = octave;
-    const sampleNote = SAMPLE_NOTE_MAP[note] || note;
-    const noteIndex = NOTES.indexOf(note);
-    for (let sampledNote of SAMPLED_NOTES) {
-        const compareNote = sampledNote === 'Fs' ? 'Gb' : sampledNote === 'Ds' ? 'Eb' : sampledNote;
-        const sampledIndex = NOTES.indexOf(standardizeNoteName(compareNote));
-        const distance = Math.abs(noteIndex - sampledIndex);
-        if (distance < minDistance) {
-            minDistance = distance;
-            nearestNote = sampledNote;
-            if (noteIndex < sampledIndex && noteIndex < 3 && sampledIndex > 8) {
-                nearestOctave = octave - 1;
-            } else if (noteIndex > sampledIndex && noteIndex > 8 && sampledIndex < 3) {
-                nearestOctave = octave + 1;
+
+    for (let sampleNote of SAMPLED_NOTES) {
+        const sampleMappedNote = SAMPLE_NOTE_MAP[sampleNote] || sampleNote;
+        const sampleIndex = NOTES.indexOf(ENHARMONIC_MAP[sampleMappedNote] || sampleMappedNote);
+        for (let octave of [2, 3, 4]) {
+            const noteMidi = targetIndex + targetOctave * 12;
+            const sampleMidi = sampleIndex + octave * 12;
+            const distance = Math.abs(noteMidi - sampleMidi);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                bestMatch = {
+                    sampleKey: `${sampleNote}${octave}v12`,
+                    semitoneDiff: noteMidi - sampleMidi
+                };
             }
         }
     }
-    // Ensure octave stays within A2–C4 range
-    nearestOctave = Math.max(2, Math.min(3, nearestOctave));
-    return {
-        sampleKey: `${nearestNote}${nearestOctave}v12`,
-        semitoneDiff: (noteIndex - NOTES.indexOf(standardizeNoteName(nearestNote === 'Fs' ? 'Gb' : nearestNote === 'Ds' ? 'Eb' : nearestNote)) + 12) % 12
-    };
+
+    return bestMatch;
 }
+
+    // Force all shifted notes into the C2–A4 range
+    const minNoteHz = 65.41;  // C2
+    const maxNoteHz = 440.00; // A4
+    const freq = 440 * Math.pow(2, bestMatch.semitoneDiff / 12);
+    if (freq < minNoteHz || freq > maxNoteHz) {
+        console.warn(`Note ${note} transposed outside allowed range.`);
+    }
+
+    return bestMatch;
+}
+
+        
 function getScaleNotes(root, scaleName) {
     if (!root) return [];
     
@@ -1573,19 +1591,32 @@ function playNote(noteName, volume = 1.0, duration = 1000) {
 async function playChord(root, quality, startTime = AudioContextManager.context.currentTime, duration = 1, isPassingChord = false) {
     if (!document.getElementById('chordsEnabled').classList.contains('active')) return;
     await AudioContextManager.ensureAudioContext();
+
     const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
     if (chordVolume <= 0) return;
+
     const chordNotes = getChordNotes(root, quality);
+
     if (AudioContextManager.currentChordGain) {
         AudioContextManager.currentChordGain.gain.setValueAtTime(AudioContextManager.currentChordGain.gain.value, startTime);
         AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.05);
     }
+
     AudioContextManager.currentChordGain = AudioContextManager.context.createGain();
     AudioContextManager.currentChordGain.gain.setValueAtTime(chordVolume, startTime);
     AudioContextManager.currentChordGain.connect(AudioContextManager.context.destination);
-    chordNotes.forEach(note => {
-        // Use octave 3 for chord roots, adjust others to stay within A2–C4
-        const { sampleKey, playbackRate } = getPitchShiftedNote(note, 3);
+
+    // Random inversion (while keeping root on bottom)
+    const rootNote = chordNotes[0];
+    const otherNotes = chordNotes.slice(1);
+    const shuffled = otherNotes.sort(() => 0.5 - Math.random());
+    const finalChord = [rootNote, ...shuffled];
+
+    finalChord.forEach((note, index) => {
+        // Spread the chord notes a bit across octaves for realism
+        const baseOctave = index === 0 ? 2 : 3;
+        const octave = Math.min(4, Math.max(2, baseOctave + Math.floor(Math.random() * 2))); // C2–A4
+        const { sampleKey, playbackRate } = getPitchShiftedNote(note, octave);
         const buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
         if (buffer) {
             const source = AudioContextManager.context.createBufferSource();
