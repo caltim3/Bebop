@@ -1234,11 +1234,6 @@
                 fretboardElement.appendChild(fretMarker);
             });
 
-            updateFretboardNotes(fretboardElement, tuning, scale, key, chord);
-        }
-
-        <script>
-        // Continuing from updateFretboardNotes
         function updateFretboardNotes(fretboardElement, tuning, scale, key, chord = null) {
             if (!fretboardElement) return;
             const existingNotes = fretboardElement.querySelectorAll('.note');
