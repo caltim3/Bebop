@@ -1211,7 +1211,6 @@ function getChordFromFunction(chordFunction, key = 'C') {
     if (!chordFunction) return null;
 
     // Parse the chord function
-    // Updated regex to handle more chord variations
     let match = chordFunction.match(/^(b?[ivIV]+)([°ø]|maj|m|M)?([679]|11|13)?([b#]5|[b#]9|[b#]11|[b#]13)?(\([b#]5\)|\([b#]9\)|\([b#]11\)|\([b#]13\))?$/);
     if (!match) return null;
 
@@ -1272,6 +1271,11 @@ function getChordFromFunction(chordFunction, key = 'C') {
         }
     }
 
+    // Special case for V7 in minor keys
+    if (isMinorKey && chordFunction.toUpperCase() === 'V7') {
+        chordQuality = '7';
+    }
+
     // Handle extensions
     if (extension) {
         if (extension === '7') {
@@ -1284,7 +1288,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
                 chordQuality += '7';
             }
         } else {
-            // Handle 9, 11, 13 extensions
+            // Handle 6, 9, 11, 13 extensions
             if (chordQuality === 'maj') {
                 chordQuality = 'maj' + extension;
             } else if (chordQuality === 'm') {
@@ -1626,6 +1630,8 @@ function getChordNotes(root, quality) {
         'aug': [0, 4, 8],
         'sus2': [0, 2, 7],
         'sus4': [0, 5, 7],
+        'maj6': [0, 4, 7, 9], 
+        'm6': [0, 3, 7, 9],
         '7b9': [0, 4, 7, 10, 13],
         '7#9': [0, 4, 7, 10, 15],
         '7b13': [0, 4, 7, 10, 20],
