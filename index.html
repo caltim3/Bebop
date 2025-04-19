@@ -1081,7 +1081,17 @@ async function ensureAudioInitialized() {
         }
     }
 }
-// Music Theory Utilities
+/function createChordObject(root, quality) {
+    if (!root) return null;
+    
+    return {
+        root: root,
+        quality: quality || 'major',
+        bass: null,
+        extension: null
+    };
+}
+        // Music Theory Utilities
 
 // --- NEW GLOBAL HELPER -------------------------------------------
 function getNoteFromScaleDegree(degree, key, scale) {
@@ -1113,38 +1123,6 @@ function getNoteIndex(note) {
 
 const MIN_OCTAVE = 2;
 const MAX_OCTAVE = 4;
-
-function findNearestSampledNote(note) {
-    // Available sampled notes: A, C, D#, F#
-    const sampledNotes = [9, 0, 3, 6]; // A, C, D#, F#
-    
-    // Normalize note to 0-11 range
-    const normalizedNote = note % 12;
-    
-    // Find the nearest sampled note
-    let nearestNote = sampledNotes[0];
-    let minDistance = 12;
-    
-    for (let sampledNote of sampledNotes) {
-        // Calculate distance in both directions
-        let distance = Math.min(
-            Math.abs(normalizedNote - sampledNote),
-            12 - Math.abs(normalizedNote - sampledNote)
-        );
-        
-        if (distance < minDistance) {
-            minDistance = distance;
-            nearestNote = sampledNote;
-        }
-    }
-    
-    // Calculate the octave
-    const octave = Math.floor(note / 12);
-    
-    // Return the nearest sampled note in the correct octave
-    return nearestNote + (octave * 12);
-}
-        
         
 function getScaleNotes(root, scaleName) {
     if (!root) return [];
@@ -1320,75 +1298,7 @@ function getChordFromFunction(chordFunction, key = 'C') {
 
     return chordSymbol;
 }
-        function parseChord(chordStr) {
-    if (!chordStr) return null;
-    
-    // Handle if already a chord object
-    if (typeof chordStr === 'object' && chordStr.root !== undefined) {
-        return chordStr;
-    }
-    
-    let chord = {
-        root: '',
-        quality: 'major', // Default quality
-        bass: null,
-        extension: null
-    };
-    
-    // Remove any spaces
-    chordStr = chordStr.trim();
-    
-    // Parse root note
-    const rootMatch = chordStr.match(/^([A-G][#b]?)/);
-    if (rootMatch) {
-        chord.root = rootMatch[1];
-        chordStr = chordStr.substring(rootMatch[0].length);
-    } else {
-        console.error("Invalid chord format: no root note found in", chordStr);
-        return null;
-    }
-    
-    // Parse quality and extensions
-    if (chordStr.startsWith('m') || chordStr.startsWith('-') || chordStr.startsWith('min')) {
-        chord.quality = 'minor';
-        if (chordStr.startsWith('m')) chordStr = chordStr.substring(1);
-        else if (chordStr.startsWith('-')) chordStr = chordStr.substring(1);
-        else if (chordStr.startsWith('min')) chordStr = chordStr.substring(3);
-    } else if (chordStr.startsWith('maj')) {
-        chord.quality = 'major';
-        chordStr = chordStr.substring(3);
-    } else if (chordStr.startsWith('aug')) {
-        chord.quality = 'augmented';
-        chordStr = chordStr.substring(3);
-    } else if (chordStr.startsWith('dim')) {
-        chord.quality = 'diminished';
-        chordStr = chordStr.substring(3);
-    } else if (chordStr.startsWith('sus')) {
-        chord.quality = 'sus';
-        chordStr = chordStr.substring(3);
-    }
-    
-    // Parse 7th chords
-    if (chordStr.includes('7')) {
-        if (chord.quality === 'major' && !chordStr.includes('maj7')) {
-            chord.quality = 'dominant7';
-        } else if (chordStr.includes('maj7')) {
-            chord.quality = 'major7';
-        } else if (chord.quality === 'minor') {
-            chord.quality = 'minor7';
-        }
-        chord.extension = '7';
-    }
-    
-    // Parse bass note (for slash chords)
-    const bassMatch = chordStr.match(/\/([A-G][#b]?)/);
-    if (bassMatch) {
-        chord.bass = bassMatch[1];
-    }
-    
-    console.log("Parsed chord:", chord);
-    return chord;
-}
+
         
 // Helper function for flat notes
 function flattenNote(note) {
@@ -1580,20 +1490,126 @@ function playNote(noteName, volume = 1.0, duration = 1000) {
 }
 
 
-function playChord(chordOrRoot, quality, octave, volume) {
+// Improved parseChord function
+function parseChord(chordStr) {
+    if (!chordStr) return null;
+    
+    // Handle if already a chord object
+    if (typeof chordStr === 'object' && chordStr.root !== undefined) {
+        return chordStr;
+    }
+    
+    let chord = {
+        root: '',
+        quality: 'major', // Default quality
+        bass: null,
+        extension: null
+    };
+    
+    // Remove any spaces
+    chordStr = chordStr.trim();
+    
+    // Parse root note
+    const rootMatch = chordStr.match(/^([A-G][#b]?)/);
+    if (rootMatch) {
+        chord.root = rootMatch[1];
+        chordStr = chordStr.substring(rootMatch[0].length);
+    } else {
+        console.error("Invalid chord format: no root note found in", chordStr);
+        return null;
+    }
+    
+    // Parse quality and extensions
+    if (chordStr.startsWith('m') || chordStr.startsWith('-') || chordStr.startsWith('min')) {
+        chord.quality = 'minor';
+        if (chordStr.startsWith('m')) chordStr = chordStr.substring(1);
+        else if (chordStr.startsWith('-')) chordStr = chordStr.substring(1);
+        else if (chordStr.startsWith('min')) chordStr = chordStr.substring(3);
+    } else if (chordStr.startsWith('maj')) {
+        chord.quality = 'major';
+        chordStr = chordStr.substring(3);
+    } else if (chordStr.startsWith('aug')) {
+        chord.quality = 'augmented';
+        chordStr = chordStr.substring(3);
+    } else if (chordStr.startsWith('dim')) {
+        chord.quality = 'diminished';
+        chordStr = chordStr.substring(3);
+    } else if (chordStr.startsWith('sus')) {
+        chord.quality = 'sus';
+        chordStr = chordStr.substring(3);
+    }
+    
+    // Parse 7th chords
+    if (chordStr.includes('7')) {
+        if (chord.quality === 'major' && !chordStr.includes('maj7')) {
+            chord.quality = 'dominant7';
+        } else if (chordStr.includes('maj7')) {
+            chord.quality = 'major7';
+        } else if (chord.quality === 'minor') {
+            chord.quality = 'minor7';
+        }
+        chord.extension = '7';
+    }
+    
+    // Parse bass note (for slash chords)
+    const bassMatch = chordStr.match(/\/([A-G][#b]?)/);
+    if (bassMatch) {
+        chord.bass = bassMatch[1];
+    }
+    
+    console.log("Parsed chord:", chord);
+    return chord;
+}
+
+
+// Improved findNearestSampledNote function
+function findNearestSampledNote(note) {
+    // Available sampled notes: A, C, D#, F#
+    const sampledNotes = [9, 0, 3, 6]; // A, C, D#, F#
+    
+    // Normalize note to 0-11 range
+    const normalizedNote = note % 12;
+    
+    // Find the nearest sampled note
+    let nearestNote = sampledNotes[0];
+    let minDistance = 12;
+    
+    for (let sampledNote of sampledNotes) {
+        // Calculate distance in both directions
+        let distance = Math.min(
+            Math.abs(normalizedNote - sampledNote),
+            12 - Math.abs(normalizedNote - sampledNote)
+        );
+        
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearestNote = sampledNote;
+        }
+    }
+    
+    // Calculate the octave
+    const octave = Math.floor(note / 12);
+    
+    // Return the nearest sampled note in the correct octave
+    return nearestNote + (octave * 12);
+}
+
+// Harmonized playChord function that works with your implementation
+function playChord(chordOrRoot, quality, startTime, duration, inversion = false) {
     // Handle both object-based and parameter-based calling styles
-    let chord, chordOctave, chordVolume;
+    let chord;
     
     if (typeof chordOrRoot === 'object' && chordOrRoot !== null) {
         // Object-based call
         chord = chordOrRoot;
-        chordOctave = octave || 4;
-        chordVolume = volume !== undefined ? volume : 1.0;
     } else {
         // Parameter-based call (legacy support)
-        chord = createChordObject(chordOrRoot, quality);
-        chordOctave = octave || 4;
-        chordVolume = volume !== undefined ? volume : 1.0;
+        chord = {
+            root: chordOrRoot,
+            quality: quality || 'major',
+            bass: null,
+            extension: null
+        };
     }
     
     if (!chord || !chord.root) {
@@ -1610,11 +1626,20 @@ function playChord(chordOrRoot, quality, octave, volume) {
     
     console.log(`Playing chord: ${chord.root}${chord.quality}`, notes);
     
+    // Handle inversion if specified
+    if (inversion && notes.length > 1) {
+        // Move the first note up an octave for the inversion
+        notes = [...notes.slice(1), notes[0] + 12];
+    }
+    
+    // Set default octave
+    const baseOctave = 4;
+    
     // Distribute notes across octaves for better voicing
     let voicedNotes = [];
     for (let i = 0; i < notes.length; i++) {
         // Adjust octave based on position in chord
-        let noteOctave = chordOctave;
+        let noteOctave = baseOctave;
         if (i > 0 && notes[i] < notes[0]) {
             noteOctave += 1; // Move higher if note is lower than root
         }
@@ -1622,12 +1647,71 @@ function playChord(chordOrRoot, quality, octave, volume) {
         voicedNotes.push(notes[i] + (noteOctave * 12));
     }
     
-    // Play each note in the chord
+    // Play each note in the chord using AudioContextManager
+    const chordVolume = parseFloat(UI.elements.chordVolume?.value) || 0.7;
     for (let note of voicedNotes) {
-        playNote(note, chordVolume);
+        playNote(note, startTime, duration, chordVolume);
     }
 }
-// Helper function to distribute notes for better voicing
+
+// Your existing playBeat function with minor improvements for chord handling
+async function playBeat() {
+    // Update beat UI
+    const beats = document.querySelectorAll('.beat');
+    beats.forEach(beat => beat.classList.remove('active'));
+    const currentBeatElement = beats[AppState.currentBeat];
+    if (currentBeatElement) {
+        currentBeatElement.classList.add('active');
+        const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
+        await playMetronomeSound(volume);
+    }
+    
+    // Get time signature and handle measures
+    const measures = UI.elements.measures.children;
+    const timeSignature = parseInt(UI.elements.timeSignature.value);
+    
+    if (measures.length > 0) {
+        const currentMeasureElement = measures[AppState.currentMeasure];
+        if (currentMeasureElement) {
+            // Get chord and scale information
+            const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+            const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+            const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+            const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+            
+            if (root && quality && scaleRoot && scaleType) {
+                // Update fretboard visualization
+                const chordTuning = TUNINGS[UI.elements.chordTuning.value];
+                updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, chordTuning);
+                
+                // Calculate timing
+                const beatDuration = 60 / AppState.tempo;
+                
+                // Play chord based on time signature and current beat
+                if (timeSignature === 4) {
+                    if (AppState.currentBeat === 0) {
+                        // First beat of 4/4 measure
+                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, false);
+                    } else if (AppState.currentBeat === 4) {
+                        // Fifth beat (for 8th notes in 4/4)
+                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, true);
+                    }
+                } else if (AppState.currentBeat === 0) {
+                    // First beat of other time signatures
+                    playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 4, false);
+                }
+            }
+        }
+    }
+    
+    // Update measure highlighting
+    if (measures.length > 0) {
+        Array.from(measures).forEach((measure, index) => {
+            measure.classList.toggle('active', index === AppState.currentMeasure);
+        });
+    }
+}
+        // Helper function to distribute notes for better voicing
 function distributeNotesForVoicing(notes) {
     // This is a simple implementation - you can enhance this based on music theory
     // For example, dropping the 5th down an octave for seventh chords
@@ -1727,8 +1811,7 @@ function getChordNotes(chord) {
     }
     
     return notes;
-}
-        
+}        
 async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
 
@@ -2201,52 +2284,6 @@ function toggleBeatState(beat, timeSignature, soundType) {
     beat.style.backgroundColor = nextState.color;
 }
 
-async function playBeat() {
-    const beats = document.querySelectorAll('.beat');
-    beats.forEach(beat => beat.classList.remove('active'));
-    const currentBeatElement = beats[AppState.currentBeat];
-    if (currentBeatElement) {
-        currentBeatElement.classList.add('active');
-        const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
-        await playMetronomeSound(volume);
-    }
-    const measures = UI.elements.measures.children;
-    const timeSignature = parseInt(UI.elements.timeSignature.value);
-    if (measures.length > 0) {
-        const currentMeasureElement = measures[AppState.currentMeasure];
-        if (currentMeasureElement) {
-            const root = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-            const quality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
-            const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
-            const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-            if (root && quality && scaleRoot && scaleType) {
-                const chordTuning = TUNINGS[UI.elements.chordTuning.value];
-                updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, chordTuning);
-                const beatDuration = 60 / AppState.tempo;
-                if (timeSignature === 4) {
-                    if (AppState.currentBeat === 0) {
-                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, false);
-                    } else if (AppState.currentBeat === 4) {
-                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, true);
-                    }
-                } else if (AppState.currentBeat === 0) {
-                    playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 4, false);
-                }
-            }
-        }
-    }
-    if (measures.length > 0) {
-        Array.from(measures).forEach((measure, index) => {
-            measure.classList.toggle('active', index === AppState.currentMeasure);
-        });
-    }
-    const totalBeats = timeSignature === 4 ? 8 : timeSignature;
-    AppState.currentBeat = (AppState.currentBeat + 1) % totalBeats;
-    if (AppState.currentBeat === 0 && measures.length > 0) {
-        AppState.currentMeasure = (AppState.currentMeasure + 1) % measures.length;
-    }
-    AppState.updateState({ currentBeat: AppState.currentBeat, currentMeasure: AppState.currentMeasure });
-}
 
 async function startPlayback() {
     try {
