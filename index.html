@@ -1514,69 +1514,69 @@
         }
     
         // Event Listeners
-        function setupEventListeners() {
-            UI.elements.chordTuning.addEventListener('change', () => {
-                createFretboard(UI.elements.chordFretboard, UI.elements.chordTuning.value);
-            });
-    
-            UI.elements.timeSignature.addEventListener('change', updateBeatsContainer);
-    
-            UI.elements.startStopButton.addEventListener('click', () => {
-                if (AppState.isPlaying) {
-                    stopMetronome();
-                } else {
-                    startMetronome();
-                }
-            });
-    
-            UI.elements.tempo.addEventListener('input', () => {
-                const tempo = parseInt(UI.elements.tempo.value) || 120;
-                UI.elements.tempoDisplay.textContent = `${tempo} BPM`;
-                AppState.updateState({ tempo });
-                if (AppState.isPlaying) {
-                    stopMetronome();
-                    startMetronome();
-                }
-            });
-    
-            UI.elements.tapTempo.addEventListener('click', () => {
-                const now = Date.now();
-                if (lastTapTime) {
-                    tapTimes.push(now - lastTapTime);
-                    if (tapTimes.length > 4) tapTimes.shift();
-                    const avgInterval = tapTimes.reduce((a, b) => a + b, 0) / tapTimes.length;
-                    const tempo = Math.round(60000 / avgInterval);
-                    UI.elements.tempo.value = tempo;
-                    UI.elements.tempoDisplay.textContent = `${tempo} BPM`;
-                    AppState.updateState({ tempo });
-                    if (AppState.isPlaying) {
-                        stopMetronome();
-                        startMetronome();
-                    }
-                }
-                lastTapTime = now;
-            });
-    
-            UI.elements.progressionSelect.addEventListener('change', loadProgression);
-            UI.elements.keySelect.addEventListener('change', loadProgression);
-    
-            UI.elements.chordsEnabled.addEventListener('click', () => {
-                UI.elements.chordsEnabled.classList.toggle('active');
-                UI.elements.chordsEnabled.textContent = UI.elements.chordsEnabled.classList.contains('active') ? 'Chords Enabled' : 'Chords Disabled';
-            });
-    
-            UI.elements.darkModeToggle.addEventListener('click', () => {
-                AppState.updateState({ darkMode: !AppState.darkMode });
-                document.body.classList.toggle('dark-mode', AppState.darkMode);
-                UI.elements.darkModeToggle.classList.toggle('active', AppState.darkMode);
-                UI.elements.darkModeToggle.textContent = AppState.darkMode ? 'Light Mode' : 'Dark Mode';
-            });
-    
-            UI.elements.drumSetToggleBtn.addEventListener('click', () => {
-                currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
-                UI.elements.drumSetToggleBtn.textContent = drumSoundSets[currentDrumSetIndex].name;
-            });
+function setupEventListeners() {
+    UI.elements.chordTuning.addEventListener('change', () => {
+        createFretboard(UI.elements.chordFretboard, UI.elements.chordTuning.value);
+    });
+
+    UI.elements.timeSignature.addEventListener('change', updateBeatsContainer);
+
+    UI.elements.startStopButton.addEventListener('click', () => {
+        if (AppState.isPlaying) {
+            stopMetronome();
+        } else {
+            startMetronome();
         }
+    });
+
+    UI.elements.tempo.addEventListener('input', () => {
+        const tempo = parseInt(UI.elements.tempo.value) || 120;
+        UI.elements.tempoDisplay.textContent = `${tempo} BPM`;
+        AppState.updateState({ tempo });
+        if (AppState.isPlaying) {
+            stopMetronome();
+            startMetronome();
+        }
+    });
+
+    UI.elements.tapTempo.addEventListener('click', () => {
+        const now = Date.now();
+        if (lastTapTime) {
+            tapTimes.push(now - lastTapTime);
+            if (tapTimes.length > 4) tapTimes.shift();
+            const avgInterval = tapTimes.reduce((a, b) => a + b, 0) / tapTimes.length;
+            const tempo = Math.round(60000 / avgInterval);
+            UI.elements.tempo.value = tempo;
+            UI.elements.tempoDisplay.textContent = `${tempo} BPM`;
+            AppState.updateState({ tempo });
+            if (AppState.isPlaying) {
+                stopMetronome();
+                startMetronome();
+            }
+        }
+        lastTapTime = now;
+    });
+
+    UI.elements.progressionSelect.addEventListener('change', loadProgression);
+    UI.elements.keySelect.addEventListener('change', loadProgression);
+
+    UI.elements.chordsEnabled.addEventListener('click', () => {
+        UI.elements.chordsEnabled.classList.toggle('active');
+        UI.elements.chordsEnabled.textContent = UI.elements.chordsEnabled.classList.contains('active') ? 'Chords Enabled' : 'Chords Disabled';
+    });
+
+    UI.elements.darkModeToggle.addEventListener('click', () => {
+        AppState.updateState({ darkMode: !AppState.darkMode });
+        document.body.classList.toggle('dark-mode', AppState.darkMode);
+        UI.elements.darkModeToggle.classList.toggle('active', AppState.darkMode);
+        UI.elements.darkModeToggle.textContent = AppState.darkMode ? 'Light Mode' : 'Dark Mode';
+    });
+
+    UI.elements.drumSetToggleBtn.addEventListener('click', () => {
+        currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
+        UI.elements.drumSetToggleBtn.textContent = drumSoundSets[currentDrumSetIndex].name;
+    });
+}
     
         // Initialization
         async function initializeApp() {
