@@ -1183,16 +1183,8 @@ function getChordFromFunction(chordFunction, key = 'C') {
         const keyIndex = chromaticScale.indexOf(standardizeNoteName(key));
         if (keyIndex === -1) return null;
         const noteIndex = (keyIndex + scale[degree]) % 12;
-        return chromaticScale[noteIndex];
-    }
-        const sharpToFlat = {
-            'C#': 'Db',
-            'D#': 'Eb',
-            'F#': 'Gb',
-            'G#': 'Ab',
-            'A#': 'Bb'
-        };
-        return sharpToFlat[note] || note;
+        const note = chromaticScale[noteIndex];
+        return flattenNote(note); // Use the existing flattenNote function
     }
 
     // Initialize scales
