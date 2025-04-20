@@ -1230,14 +1230,49 @@ function getNoteAtFret(startNote, fretNumber) {
     const noteIndex = (startIndex + fretNumber) % 12;
     return chromaticScale[noteIndex];
 }
-function getPitchShiftedNote(note, octave) {
-    const standardNote = standardizeNoteName(note);
-    const nearest = findNearestSampledNote(standardNote, octave);
-    const playbackRate = Math.pow(2, nearest.semitoneDiff / 12);
-    return {
-        sampleKey: nearest.sampleKey,
-        playbackRate: playbackRate
-    };
+        
+function getPitchShiftedNote(note, preferredOctave = 3) {
+    const standardNote = standardizeNoteName(note).replace("m", "");
+    const noteIndex = NOTES.indexOf(standardNote);
+    if (noteIndex === -1) {
+        console.warn(`Note index not found for ${note}`);
+        return { sampleKey: "C3v12", playbackRate: 1 };
+    }
+
+    let bestMatch = null;
+    let smallestDiff = Infinity;
+
+    for (let sampleNote of SAMPLED_NOTES) {
+        const mappedSample = SAMPLE_NOTE_MAP[sampleNote] || sampleNote;
+        const sampleIndex = NOTES.indexOf(mappedSample);
+        if (sampleIndex === -1) continue;
+
+        for (let octave of PIANO_CONFIG.octaves[sampleNote]) {
+            const sourceMidi = sampleIndex + 12 * octave;
+            const targetMidi = noteIndex + 12 * preferredOctave;
+            const semitoneDiff = targetMidi - sourceMidi;
+            const pitch = Math.pow(2, semitoneDiff / 12);
+            const resultingFreq = 440 * Math.pow(2, (noteIndex + 12 * preferredOctave - 69) / 12);
+
+            if (resultingFreq >= 65.41 && resultingFreq <= 440) {
+                const diff = Math.abs(semitoneDiff);
+                if (diff < smallestDiff) {
+                    smallestDiff = diff;
+                    bestMatch = {
+                        sampleKey: `${sampleNote}${octave}v12`,
+                        playbackRate: pitch
+                    };
+                }
+            }
+        }
+    }
+
+    if (!bestMatch) {
+        console.warn(`No valid match found for ${note}, fallback to C3`);
+        return { sampleKey: "C3v12", playbackRate: 1 };
+    }
+
+    return bestMatch;
 }
 
 function isMinorKeyName(key) {
@@ -1345,7 +1380,6 @@ const qualityMap = {
 function parseChord(chord) {
     if (!chord) return ['C', 'maj'];
 
-    // Regex: root, then everything else as quality (including multiple extensions/alterations)
     const regex = /^([A-Ga-g][b#]?)(.*)$/;
     const match = chord.match(regex);
 
@@ -1358,43 +1392,18 @@ function parseChord(chord) {
     root = standardizeNoteName(root);
     quality = quality.trim().toLowerCase();
 
-    // Expanded normalization map
     const baseQualityMap = {
-        'min7b5': 'min7b5',
-        'm7b5': 'min7b5',
-        'ø7': 'min7b5',
-        'ø': 'min7b5',
-        'dim7': 'dim7',
-        '°7': 'dim7',
-        'dim': 'dim',
-        '°': 'dim',
-        'maj7': 'maj7',
-        'maj': 'maj7',
-        'm7': 'min7',
-        'min7': 'min7',
-        'm': 'min',
-        'min': 'min',
-        '7': 'dom7',
-        'dom7': 'dom7',
-        'dominant7': 'dom7',
-        '6': '6',
-        '9': '9',
-        '11': '11',
-        '13': '13',
-        'aug': 'aug',
-        '+': 'aug',
-        'sus2': 'sus2',
-        'sus4': 'sus4',
-        'add9': 'add9',
-        'm6': 'min6',
-        'min6': 'min6',
-        'm9': 'min9',
-        'min9': 'min9',
-        'm11': 'min11',
-        'min11': 'min11',
-        'm13': 'min13',
-        'min13': 'min13'
-        // Add more as needed
+        'min7b5': 'min7b5', 'm7b5': 'min7b5', 'ø7': 'min7b5', 'ø': 'min7b5',
+        'dim7': 'dim7', '°7': 'dim7', 'dim': 'dim', '°': 'dim',
+        'maj7': 'maj7', 'maj': 'maj7',
+        'm7': 'min7', 'min7': 'min7', 'm': 'min', 'min': 'min',
+        '7': 'dom7', 'dom7': 'dom7', 'dominant7': 'dom7',
+        '6': '6', '9': '9', '11': '11', '13': '13',
+        'aug': 'aug', '+': 'aug',
+        'sus2': 'sus2', 'sus4': 'sus4', 'add9': 'add9',
+        'm6': 'min6', 'min6': 'min6',
+        'm9': 'min9', 'min9': 'min9', 'm11': 'min11', 'min11': 'min11',
+        'm13': 'min13', 'min13': 'min13'
     };
 
     let foundBase = '';
@@ -1406,15 +1415,17 @@ function parseChord(chord) {
             break;
         }
     }
+
     if (!foundBase) {
-        foundBase = quality ? quality : 'maj';
+        console.warn(`Unknown chord quality: '${quality}' — defaulting to maj`);
+        foundBase = 'maj';
         rest = '';
     }
 
-    // Return [root, full quality string]
     return [root, foundBase + rest];
 }
-// Helper function for flat notes
+
+        // Helper function for flat notes
 function flattenNote(note) {
     const sharpToFlat = {
         'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'
@@ -1658,7 +1669,6 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
 }
 
 function getChordNotes(root, quality) {
-  // Define intervals for common chord qualities
   const CHORD_INTERVALS = {
     'maj': [0, 4, 7],
     'min': [0, 3, 7],
@@ -1667,46 +1677,43 @@ function getChordNotes(root, quality) {
     '6': [0, 4, 9],
     'm6': [0, 3, 9],
     '7': [0, 4, 7, 10],
+    'dom7': [0, 4, 7, 10],
     'maj7': [0, 4, 7, 11],
     'min7': [0, 3, 7, 10],
     'm7': [0, 3, 7, 10],
     'dim7': [0, 3, 6, 9],
     'm7b5': [0, 3, 6, 10],
-    // Add more as needed
+    'sus2': [0, 2, 7],
+    'sus4': [0, 5, 7],
+    'add9': [0, 4, 7, 14],
+    // more to come
   };
 
-  // Chromatic scale for interval calculation
   const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-  // Standardize root to match chromatic scale
-  let baseRoot = standardizeNoteName(root).replace('m', '');
-  let rootIndex = CHROMATIC.indexOf(baseRoot);
+  const standardizedRoot = standardizeNoteName(root).replace('m', '');
+  let rootIndex = CHROMATIC.indexOf(standardizedRoot);
 
-  // Fallback: if not found, try the original root
   if (rootIndex === -1) {
     rootIndex = CHROMATIC.indexOf(root);
-    if (rootIndex === -1) {
-      // If still not found, default to C
-      rootIndex = 0;
-    }
+    if (rootIndex === -1) rootIndex = 0;
   }
 
-  // Get intervals for the chord quality
   let intervals = CHORD_INTERVALS[quality];
   if (!intervals) {
-    // Fallback to major triad if unknown quality
+    console.warn(`Unknown chord quality "${quality}", defaulting to major`);
     intervals = CHORD_INTERVALS['maj'];
   }
 
-  // Build the chord notes as note names
-  let chordNotes = intervals.map(interval => {
-    let noteIndex = (rootIndex + interval) % 12;
-    return CHROMATIC[noteIndex];
+  const chordNotes = intervals.map(semitones => {
+    let index = (rootIndex + semitones) % 12;
+    return CHROMATIC[index];
   });
 
   return chordNotes;
-}        
-async function playMetronomeSound(baseVolume) {
+}
+
+    async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
 
     // Get the metronome volume slider value and combine it with base volume
