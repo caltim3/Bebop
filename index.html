@@ -574,7 +574,7 @@
         <h3>Create a progression or pick one from the dropdown. Choose which key and scale to go with it.</h3>
         <label for="progression-select">Select Progression:</label>
         <select id="progression-select" aria-label="Select chord progression">
-<option value="I V7">I-V7</option>
+            <option value="I V7">I-V7</option>
             <option value="jazz_blues">Jazz Blues</option>
             <option value="minor_blues">Minor Blues</option>
             <option value="rhythm_changes">Rhythm Changes</option>
@@ -631,11 +631,9 @@
           <option value="B">B</option>
           <option value="Bm">Bm</option>
     </select>
-        <div id="measures">
-            <!-- Measures will be populated dynamically -->
-        </div>
+    <div id="measures"></div>
         <button id="add-measure" aria-label="Add measure">Add Measure</button>
-        <button onclick="removeMeasure()" aria-label="Remove measure">Remove Measure</button>
+        <button id="remove-measure" aria-label="Remove measure">Remove Measure</button>
         <div class="checkbox-wrapper">
             <button id="chordsEnabled" class="toggle-button active">Chords Enabled</button>
         </div>
@@ -996,41 +994,105 @@ function parseChord(chord) {
     return [root, quality];
 }
 
-function getChordFromFunction(chordFunction, keyRoot, keyMode) {
-    if (!chordFunction || !keyRoot || !keyMode) {
-        console.error(`Invalid inputs: chordFunction=${chordFunction}, keyRoot=${keyRoot}, keyMode=${keyMode}`);
-        return 'C';
+function getChordFromFunction(chordFunction, key, mode) {
+    chordFunction = chordFunction.toUpperCase();
+    mode = mode.toLowerCase();
+
+    const chordMap = {
+        major: {
+            'I': { quality: 'major', degree: 0 },
+            'II': { quality: 'minor', degree: 1 },
+            'III': { quality: 'minor', degree: 2 },
+            'IV': { quality: 'major', degree: 3 },
+            'V': { quality: 'major', degree: 4 },
+            'VI': { quality: 'minor', degree: 5 },
+            'VII': { quality: 'dim', degree: 6 },
+            'V7': { quality: 'dominant7', degree: 4 }
+        },
+        minor: {
+            'I': { quality: 'minor', degree: 0 },
+            'II': { quality: 'dim', degree: 1 },
+            'III': { quality: 'major', degree: 2 },
+            'IV': { quality: 'minor', degree: 3 },
+            'V': { quality: 'minor', degree: 4 },
+            'VI': { quality: 'major', degree: 5 },
+            'VII': { quality: 'major', degree: 6 },
+            'V7': { quality: 'dominant7', degree: 4 }
+        }
+    };
+
+    if (!chordMap[mode] || !chordMap[mode][chordFunction]) {
+        console.error(`Unknown chord function: ${chordFunction} in ${mode} mode`);
+        return null;
     }
-    // Normalize chord function (e.g., 'im7' to 'i7')
-    const normalizedFunction = chordFunction.toLowerCase().replace(/^([iv]+)/, (match) => match.toLowerCase());
-    const mode = keyMode.toLowerCase();
-    const degrees = scaleDegrees[mode];
-    if (!degrees) {
-        console.error(`Invalid mode: ${mode}`);
-        return 'C';
+
+    const { quality, degree } = chordMap[mode][chordFunction];
+    const scale = getScale(key, mode);
+    if (!scale || scale.length < 7) {
+        console.error(`Invalid scale for key ${key} in ${mode} mode`);
+        return null;
     }
-    const chordInfo = degrees[normalizedFunction];
-    if (!chordInfo) {
-        console.warn(`Unknown chord function: ${chordFunction} in ${mode} mode`);
-        return 'C';
+
+    const rootNote = scale[degree];
+    let chordSymbol = rootNote;
+    switch (quality) {
+        case 'major':
+            break;
+        case 'minor':
+            chordSymbol += 'm';
+            break;
+        case 'dim':
+            chordSymbol += 'dim';
+            break;
+        case 'dominant7':
+            chordSymbol += '7';
+            break;
+        default:
+            console.error(`Unknown chord quality: ${quality}`);
+            return null;
     }
-    const rootIndex = getNoteIndex(keyRoot);
-    const degreeIndex = (rootIndex + chordInfo.degree) % 12;
-    const rootNote = NOTES[degreeIndex];
-    let quality = chordInfo.quality;
-    // Map quality to chord notation
-    const qualityNotation = {
-        maj: '',
-        maj6: '6',
-        maj7: 'maj7',
-        min: 'm',
-        min7: 'm7',
-        dim: 'dim',
-        dom7: '7',
-        min7b5: 'm7b5',
-        min6: 'm6'
-    }[quality] || '';
-    return `${rootNote}${qualityNotation}`;
+
+    return chordSymbol;
+}
+
+function getScale(key, mode) {
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const majorIntervals = [0, 2, 4, 5, 7, 9, 11];
+    const minorIntervals = [0, 2, 3, 5, 7, 8, 10];
+
+    const keyIndex = notes.indexOf(key);
+    if (keyIndex === -1) {
+        console.error(`Invalid key: ${key}`);
+        return null;
+    }
+
+    const intervals = mode === 'major' ? majorIntervals : minorIntervals;
+    const scale = intervals.map(interval => notes[(keyIndex + interval) % 12]);
+    return scale;
+}
+
+function loadProgression(progressionName, key) {
+    const progression = progressions[progressionName];
+    const mode = key.endsWith('m') ? 'minor' : 'major';
+    const cleanKey = key.replace('m', '');
+    UI.elements.measures.innerHTML = '';
+    progression.forEach((chordFunction, index) => {
+        const chord = getChordFromFunction(chordFunction, cleanKey, mode);
+        if (chord) {
+            addMeasure(chord, index);
+            log(`Added measure: ${chord} at index ${index}`);
+        }
+    });
+    updateFretboard(cleanKey, mode);
+    log(`Loaded progression: ${progressionName} in key ${key}`);
+}
+
+function removeMeasure() {
+    const measures = UI.elements.measures.children;
+    if (measures.length > 0) {
+        measures[measures.length - 1].remove();
+        log(`Removed last measure`);
+    }
 }
 
 function suggestScaleForQuality(quality) {
@@ -1047,22 +1109,6 @@ function suggestScaleForQuality(quality) {
         m6: 'melodicMinor'
     };
     return scaleMap[quality] || 'major';
-}
-
-function getScaleForKeyAndMode(key, mode) {
-    // Parse the key to get root and mode
-    const { root, mode: parsedMode } = parseKeyString(key);
-    // Use the provided mode parameter if valid, otherwise fallback to parsedMode
-    const effectiveMode = mode && SCALES[mode] ? mode : parsedMode;
-    // Get the scale intervals
-    let intervals = SCALES[effectiveMode] || SCALES.major;
-    const rootIndex = getNoteIndex(root);
-    // Map intervals to note names
-    const scaleNotes = intervals.map(interval => {
-        const noteIndex = (rootIndex + interval) % 12;
-        return NOTES[noteIndex];
-    });
-    return scaleNotes;
 }
 
 // State Management
@@ -1857,48 +1903,7 @@ function createScaleOptions(selected) {
     return scaleNames.map(scale => `<option value="${scale}" ${scale === selected ? 'selected' : ''}>${scale}</option>`).join('');
 }
 
-function loadProgression(progressionName, overrideKey = null) {
-    if (!progressionName || !progressions[progressionName]) {
-        console.error(`Invalid progression name: ${progressionName}`);
-        return;
-    }
-    const progression = progressions[progressionName];
-    const selectedKey = overrideKey || progression.defaultKey || 'C';
-    let keyRoot, keyMode;
-    try {
-        const parsedKey = parseKeyString(selectedKey);
-        keyRoot = parsedKey.root;
-        keyMode = parsedKey.mode;
-    } catch (error) {
-        console.error(`Failed to parse key: ${selectedKey}`, error);
-        keyRoot = 'C';
-        keyMode = 'major';
-    }
-    UI.elements.keySelect.value = selectedKey;
-    UI.elements.measures.innerHTML = '';
-    progression.progression.forEach((chordFunction, index) => {
-        try {
-            const chord = getChordFromFunction(chordFunction, keyRoot, keyMode);
-            const [root, quality] = parseChord(chord);
-            // Map parseChord qualities to addMeasure expectations
-            const mappedQuality = {
-                maj: 'major',
-                min: 'minor',
-                dom7: 'dom7',
-                min7: 'min7',
-                maj7: 'maj7',
-                '6': '6',
-                m6: 'min6',
-                m7b5: 'min7b5',
-                dim: 'dim'
-            }[quality] || quality;
-            addMeasure(root, mappedQuality, index);
-        } catch (error) {
-            console.error(`Failed to process chord function: ${chordFunction}`, error);
-        }
-    });
-    log(`Loaded progression: ${progressionName} in key ${selectedKey}`);
-}
+
 
 function addMeasure(root = 'C', quality = 'major', index = null) {
     const measure = document.createElement('div');
