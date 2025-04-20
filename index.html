@@ -877,6 +877,15 @@ const scaleDegrees = {
     bVII7: { degree: 6, quality: '7' },
   }
 };
+
+        function parseKeyString(keyString) {
+  // Accepts "C", "C#", "Db", "Dm", "F#m", etc.
+  const match = keyString.match(/^([A-G][b#]?)(m|minor)?$/i);
+  if (!match) throw new Error("Invalid key: " + keyString);
+  const root = match[1].toUpperCase();
+  const mode = match[2] ? "minor" : "major";
+  return { root, mode };
+}
         
 // State Management
 const AppState = {
@@ -1212,11 +1221,14 @@ function isMinorKeyName(key) {
 }
 
 function getChordFromFunction(func, key, mode = 'major') {
+  // Parse key string to root and mode
+  const { root: keyRoot, mode: keyMode } = parseKeyString(key);
+
   // 1. Direct mapping: try to match the full function string first
-  const mapping = scaleDegrees[mode];
+  const mapping = scaleDegrees[keyMode];
   if (mapping && mapping[func]) {
     const { degree, quality } = mapping[func];
-    const root = getScaleDegreeRoot(key, degree, mode);
+    const root = getScaleDegreeRoot(keyRoot, degree, keyMode);
     return buildChordName(root, quality);
   }
 
@@ -1230,14 +1242,14 @@ function getChordFromFunction(func, key, mode = 'major') {
     // Try direct mapping with extension (e.g., bVI6)
     if (mapping && mapping[accidental + roman + extension]) {
       const { degree, quality } = mapping[accidental + roman + extension];
-      const root = getScaleDegreeRoot(key, degree, mode, accidental);
+      const root = getScaleDegreeRoot(keyRoot, degree, keyMode, accidental);
       return buildChordName(root, quality);
     }
 
     // Try mapping without extension (e.g., bVI)
     if (mapping && mapping[accidental + roman]) {
       const { degree, quality } = mapping[accidental + roman];
-      const root = getScaleDegreeRoot(key, degree, mode, accidental);
+      const root = getScaleDegreeRoot(keyRoot, degree, keyMode, accidental);
       // Add extension to quality if present
       let chordQuality = quality;
       if (extension) {
@@ -1260,15 +1272,16 @@ function getChordFromFunction(func, key, mode = 'major') {
     // Add extension if present
     if (extension) quality += extension;
 
-    const root = getScaleDegreeRoot(key, degree, mode);
+    const root = getScaleDegreeRoot(keyRoot, degree, keyMode);
     return buildChordName(root, quality);
   }
 
   // 3. Fallback: return as-is
   return func;
 }
-
+        
 function getScaleDegreeRoot(key, degree, mode, accidental = '') {
+  // key: root note only (e.g. "D"), mode: "major" or "minor"
   const scale = getScaleForKeyAndMode(key, mode);
   let deg = degree;
   if (accidental === 'b') deg = (degree + 6) % 7;
@@ -2256,100 +2269,43 @@ function loadProgression(progressionName, overrideKey = null) {
 
     const progression = progressions[progressionName];
     const selectedKey = overrideKey || progression.defaultKey || "C";
-    UI.elements.keySelect.value = selectedKey;
+    const { root: keyRoot, mode: keyMode } = parseKeyString(selectedKey);
+    UI.elements.keySelect.value = keyRoot + (keyMode === "minor" ? "m" : "");
 
+    // Clear previous measures
     UI.elements.measures.innerHTML = '';
 
     progression.progression.forEach((chordFunction, index) => {
-        const chord = getChordFromFunction(chordFunction, selectedKey);
+        const chord = getChordFromFunction(chordFunction, keyRoot, keyMode);
         const [root, quality] = parseChord(chord);
-        
-        // Get the proper quality value and suggested scale
-        const qualityValue = getQualityValue(quality);
-        const suggestedScale = suggestScaleForQuality(qualityValue);
 
+        // Create and display the measure element
         const measure = document.createElement('div');
         measure.className = 'measure';
-        measure.draggable = true;
-        measure.innerHTML = `
-            <span class="measure-number">${index + 1}</span>
-            <div class="chord-controls">
-                <select class="root-note">${createKeyOptions(root)}</select>
-                <select class="chord-quality">${createQualityOptions(qualityValue)}</select>
-            </div>
-            <div class="scale-controls">
-                <select class="second-key">${createKeyOptions(root)}</select>
-                <select class="scale-select">${createScaleOptions(suggestedScale)}</select>
-            </div>
-        `;
-
+        measure.textContent = chord;
         UI.elements.measures.appendChild(measure);
-        
-        // Explicitly set the correct scale based on chord quality
-        const scaleSelect = measure.querySelector('.scale-select');
-        if (quality === '7' || quality === 'dom7') {
-            scaleSelect.value = 'mixolydian';
-        } else if (quality === 'min7' || quality === 'm7') {
-            scaleSelect.value = 'dorian';
-        } else if (quality === 'maj7') {
-            scaleSelect.value = 'major';
-        } else if (quality === 'min7b5') {
-            scaleSelect.value = 'locrian';
-        } else if (quality === 'm' || quality === 'minor') {
-            scaleSelect.value = 'minor';
-        }
-        
-        // Add drag events
-        measure.addEventListener('dragstart', dragStart);
-        measure.addEventListener('dragover', dragOver);
-        measure.addEventListener('drop', drop);
-        measure.addEventListener('dragend', dragEnd);
     });
 
-    updateMeasureNumbers();
-    addFirstChordListener();
-
-    // Update the fretboard with the first measure's scale
-    const firstMeasure = UI.elements.measures.firstElementChild;
-    if (firstMeasure) {
-        const scaleRoot = firstMeasure.querySelector('.second-key').value;
-        const scaleType = firstMeasure.querySelector('.scale-select').value;
-        const tuning = TUNINGS[UI.elements.chordTuning.value];
-        updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
-    }
-
-    log(`Loaded progression "${progressionName}" in key: ${selectedKey}`);
+    // If you have any other code to run after loading the progression, add it here.
 }
-
 function updateProgressionKey(newKey) {
     const selectedProgression = UI.elements.progressionSelect.value;
     if (!selectedProgression) return;
     const progression = progressions[selectedProgression];
     if (!progression) return;
+
+    const { root: keyRoot, mode: keyMode } = parseKeyString(newKey);
+
     Array.from(UI.elements.measures.children).forEach((measure, index) => {
         const chordFunc = progression.progression[index];
         if (!chordFunc) return;
-       const chord = getChordFromFunction(chordFunc, newKey);
-        const [root, quality] = parseChord(chord);
-        const rootSelect = measure.querySelector('.root-note');
-        const qualitySelect = measure.querySelector('.chord-quality');
-        const secondKeySelect = measure.querySelector('.second-key');
-        const scaleSelect = measure.querySelector('.scale-select');
-        if (rootSelect) rootSelect.value = standardizeNoteName(root);
-        if (qualitySelect) qualitySelect.value = getQualityValue(quality);
-        if (secondKeySelect) secondKeySelect.value = standardizeNoteName(root);
-        if (scaleSelect) scaleSelect.value = suggestScaleForQuality(getQualityValue(quality));
+        const chord = getChordFromFunction(chordFunc, keyRoot, keyMode);
+        measure.textContent = chord;
     });
-    const firstMeasure = UI.elements.measures.firstElementChild;
-    if (firstMeasure) {
-        const scaleRoot = firstMeasure.querySelector('.second-key').value;
-        const scaleType = firstMeasure.querySelector('.scale-select').value;
-        const tuning = TUNINGS[UI.elements.chordTuning.value];
-        updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
-    }
-    log(`Progression updated to key: ${newKey}`);
-}
 
+    // If you have any other code to run after updating the key, add it here.
+}
+        
 function addMeasure(chord = 'C', quality = 'major', scaleRoot = 'C', scaleType = 'major') {
     const measure = document.createElement('div');
     measure.className = 'measure';
