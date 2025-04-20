@@ -1110,11 +1110,13 @@ async function ensureAudioInitialized() {
     
 function standardizeNoteName(note) {
     if (!note) return 'C';
-    const isMinor = note.trim().endsWith('m') || note.trim().endsWith('min');
-    const baseNote = note.trim().replace(/m$|min$/, '');
-    const standardized = ENHARMONIC_MAP[baseNote] || baseNote;
-    return isMinor ? standardized + 'm' : standardized;
+    const match = note.trim().match(/^([A-Ga-g][#b]?)(m|minor)?$/);
+    if (!match) return note;
+    const base = match[1].toUpperCase();
+    const isMinor = match[2] ? 'm' : '';
+    return (ENHARMONIC_MAP[base] || base) + isMinor;
 }
+
 
        
 function getNoteIndex(note) {
@@ -1232,8 +1234,9 @@ function getNoteAtFret(startNote, fretNumber) {
 }
         
 function getPitchShiftedNote(note, preferredOctave = 3) {
-    const standardNote = standardizeNoteName(note).replace("m", "");
-    const enharmonicNote = ENHARMONIC_MAP[standardNote] || standardNote;
+    // Fully normalize note
+    const cleanNote = standardizeNoteName(note).replace(/m$/, '');
+    const enharmonicNote = ENHARMONIC_MAP[cleanNote] || cleanNote;
     const noteIndex = NOTES.indexOf(enharmonicNote);
 
     if (noteIndex === -1) {
@@ -1246,7 +1249,7 @@ function getPitchShiftedNote(note, preferredOctave = 3) {
 
     for (let sampleNote of SAMPLED_NOTES) {
         const mappedSample = SAMPLE_NOTE_MAP[sampleNote] || sampleNote;
-        const sampleIndex = NOTES.indexOf(mappedSample);
+        const sampleIndex = NOTES.indexOf(ENHARMONIC_MAP[mappedSample] || mappedSample);
         if (sampleIndex === -1) continue;
 
         for (let octave of PIANO_CONFIG.octaves[sampleNote]) {
@@ -1254,7 +1257,7 @@ function getPitchShiftedNote(note, preferredOctave = 3) {
             const targetMidi = noteIndex + 12 * preferredOctave;
             const semitoneDiff = targetMidi - sourceMidi;
             const pitch = Math.pow(2, semitoneDiff / 12);
-            const resultingFreq = 440 * Math.pow(2, (noteIndex + 12 * preferredOctave - 69) / 12);
+            const resultingFreq = 440 * Math.pow(2, (targetMidi - 69) / 12);
 
             if (resultingFreq >= 65.41 && resultingFreq <= 440) {
                 const diff = Math.abs(semitoneDiff);
