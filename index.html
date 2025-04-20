@@ -687,7 +687,9 @@ const ENHARMONIC_MAP = {
     'D#': 'Eb', 'Eb': 'Eb',
     'F#': 'Gb', 'Gb': 'Gb',
     'G#': 'Ab', 'Ab': 'Ab',
-    'A#': 'Bb', 'Bb': 'Bb'
+    'A#': 'Bb', 'Bb': 'Bb',
+    'Cb': 'B', 'B#': 'C',
+    'BB': 'Bb' // Explicitly handle "BB"
 };
         
 const SAMPLE_NOTE_MAP = {
@@ -902,14 +904,30 @@ const scaleDegrees = {
   }
 };
 
-        function parseKeyString(keyString) {
-  // Accepts "C", "C#", "Db", "Dm", "F#m", etc.
-  const match = keyString.match(/^([A-G][b#]?)(m|minor)?$/i);
-  if (!match) throw new Error("Invalid key: " + keyString);
-  const root = match[1].toUpperCase();
-  const mode = match[2] ? "minor" : "major";
-  return { root, mode };
-}
+// Updated parseKeyString
+function parseKeyString(keyString) {
+    if (!keyString) {
+        console.error("Invalid key: empty or undefined");
+        return { root: 'C', mode: 'major' };
+    }
+    // Normalize case to handle "BB" or other odd inputs
+    const normalizedKey = keyString.charAt(0).toUpperCase() + keyString.slice(1).toLowerCase();
+    const match = normalizedKey.match(/^([A-G][b#]?)(m|minor)?$/i);
+    if (!match) {
+        const baseNote = ENHARMONIC_MAP[normalizedKey] || normalizedKey;
+        if (NOTES.includes(baseNote)) {
+            return { root: baseNote, mode: 'major' };
+        }
+        console.error(`Invalid key: ${keyString}`);
+        return { root: 'C', mode: 'major' };
+    }
+    const root = ENHARMONIC_MAP[match[1].toUpperCase()] || match[1].toUpperCase();
+    const mode = match[2] ? 'minor' : 'major';
+    if (!NOTES.includes(root)) {
+        console.error(`Invalid root note: ${root}`);
+        return { root: 'C', mode: 'major' };
+    }
+    r
         
 // State Management
 const AppState = {
@@ -1110,13 +1128,16 @@ async function ensureAudioInitialized() {
     
 function standardizeNoteName(note) {
     if (!note) return 'C';
-    const match = note.trim().match(/^([A-Ga-g][#b]?)(m|minor)?$/);
-    if (!match) return note;
+    const match = note.trim().match(/^([A-G][#b]?)(m|minor)?$/i);
+    if (!match) {
+        const normalizedNote = note.toUpperCase();
+        const baseNote = ENHARMONIC_MAP[normalizedNote] || normalizedNote;
+        return NOTES.includes(baseNote) ? baseNote : 'C';
+    }
     const base = match[1].toUpperCase();
-    const isMinor = match[2] ? 'm' : '';
-    return (ENHARMONIC_MAP[base] || base) + isMinor;
+    const standardizedBase = ENHARMONIC_MAP[base] || base;
+    return NOTES.includes(standardizedBase) ? standardizedBase : 'C';
 }
-
 
        
 function getNoteIndex(note) {
@@ -1285,64 +1306,53 @@ function isMinorKeyName(key) {
     return key && (key.endsWith('m') || key.endsWith('min'));
 }
 
-function getChordFromFunction(func, key, mode = 'major') {
-  // Parse key string to root and mode
-  const { root: keyRoot, mode: keyMode } = parseKeyString(key);
-
-  // 1. Direct mapping: try to match the full function string first
-  const mapping = scaleDegrees[keyMode];
-  if (mapping && mapping[func]) {
-    const { degree, quality } = mapping[func];
-    const root = getScaleDegreeRoot(keyRoot, degree, keyMode);
-    return buildChordName(root, quality);
-  }
-
-  // 2. Parse accidentals (e.g., bVI, #iv)
-  const accidentalMatch = func.match(/^([b#]?)([ivIV]+)(.*)$/);
-  if (accidentalMatch) {
-    const accidental = accidentalMatch[1];
-    const roman = accidentalMatch[2];
-    const extension = accidentalMatch[3];
-
-    // Try direct mapping with extension (e.g., bVI6)
-    if (mapping && mapping[accidental + roman + extension]) {
-      const { degree, quality } = mapping[accidental + roman + extension];
-      const root = getScaleDegreeRoot(keyRoot, degree, keyMode, accidental);
-      return buildChordName(root, quality);
+function getChordFromFunction(chordFunction, keyRoot, mode) {
+    if (!chordFunction || !keyRoot || !mode) {
+        console.error(`Invalid input: chordFunction=${chordFunction}, keyRoot=${keyRoot}, mode=${mode}`);
+        return 'C';
     }
 
-    // Try mapping without extension (e.g., bVI)
-    if (mapping && mapping[accidental + roman]) {
-      const { degree, quality } = mapping[accidental + roman];
-      const root = getScaleDegreeRoot(keyRoot, degree, keyMode, accidental);
-      // Add extension to quality if present
-      let chordQuality = quality;
-      if (extension) {
-        chordQuality += extension;
-      }
-      return buildChordName(root, chordQuality);
+    const degreeTable = scaleDegrees[mode.toLowerCase()];
+    if (!degreeTable) {
+        console.error(`Unknown mode: ${mode}`);
+        return 'C';
     }
 
-    // Legacy: parse roman numeral to degree
-    const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
-    let degree = romanNumerals.indexOf(roman.toUpperCase());
-    if (degree === -1) return func; // fallback: return as-is
+    // Normalize chord function (e.g., 'im7' → 'm7' for minor mode)
+    let normalizedFunction = chordFunction.toLowerCase();
+    if (mode === 'minor' && normalizedFunction.startsWith('i')) {
+        normalizedFunction = normalizedFunction.replace(/^i+/i, '');
+        if (!normalizedFunction) normalizedFunction = 'm';
+    }
 
-    // Apply accidental
-    if (accidental === 'b') degree = (degree + 6) % 7;
-    if (accidental === '#') degree = (degree + 1) % 7;
+    const degreeInfo = degreeTable[normalizedFunction] || degreeTable[normalizedFunction.toLowerCase()];
+    if (!degreeInfo) {
+        console.error(`Unknown chord function: ${chordFunction} in ${mode} mode`);
+        return 'C';
+    }
 
-    // Determine quality from case
-    let quality = (roman === roman.toUpperCase()) ? 'maj' : 'min';
-    // Add extension if present
-    if (extension) quality += extension;
+    const scale = getScaleForKeyAndMode(keyRoot, mode);
+    const chordRoot = scale[degreeInfo.degree];
+    if (!chordRoot) {
+        console.error(`Invalid chord root for degree ${degreeInfo.degree} in scale ${scale}`);
+        return 'C';
+    }
 
-    const root = getScaleDegreeRoot(keyRoot, degree, keyMode);
-    return buildChordName(root, quality);
-  }
+    let chord = chordRoot;
+    switch (degreeInfo.quality) {
+        case 'maj': chord += ''; break;
+        case 'min': chord += 'm'; break;
+        case 'dim': chord += 'dim'; break;
+        case 'maj6': chord += '6'; break;
+        case 'min6': chord += 'm6'; break;
+        case 'maj7': chord += 'maj7'; break;
+        case 'min7': chord += 'm7'; break;
+        case '7': chord += '7'; break;
+        case 'min7b5': chord += 'm7b5'; break;
+        default: console.warn(`Unknown quality: ${degreeInfo.quality}`); break;
+    }
 
-  // 3. Fallback: return as-is
-  return func;
+    return chord;
 }
         
 function getScaleDegreeRoot(key, degree, mode, accidental = '') {
@@ -2336,27 +2346,52 @@ function loadProgression(progressionName, overrideKey = null) {
     }
 
     const progression = progressions[progressionName];
-    const selectedKey = overrideKey || progression.defaultKey || "C";
-    const { root: keyRoot, mode: keyMode } = parseKeyString(selectedKey);
-    UI.elements.keySelect.value = selectedKey;
+    const selectedKey = overrideKey || progression.defaultKey || 'C';
+    let keyRoot, keyMode;
+    try {
+        const parsedKey = parseKeyString(selectedKey);
+        keyRoot = parsedKey.root;
+        keyMode = parsedKey.mode;
+    } catch (error) {
+        console.error(`Failed to parse key: ${selectedKey}`, error);
+        keyRoot = 'C';
+        keyMode = 'major';
+    }
 
-    // Clear previous measures
+    UI.elements.keySelect.value = selectedKey;
     UI.elements.measures.innerHTML = '';
 
     progression.progression.forEach((chordFunction, index) => {
-        const chord = getChordFromFunction(chordFunction, keyRoot, keyMode);
-        const [root, quality] = parseChord(chord);
-        addMeasure(root, quality, root, suggestScaleForQuality(quality));
+        try {
+            const chord = getChordFromFunction(chordFunction, keyRoot, keyMode);
+            const [root, quality] = parseChord(chord);
+            // Map parseChord qualities to addMeasure expectations
+            const mappedQuality = {
+                'maj': 'major',
+                'min': 'minor',
+                'dom7': 'dom7',
+                'min7': 'min7',
+                'maj7': 'maj7',
+                '6': '6',
+                'm6': 'min6',
+                'm7b5': 'min7b5',
+                'dim': 'dim'
+            }[quality] || quality;
+            addMeasure(root, mappedQuality, root, suggestScaleForQuality(mappedQuality));
+            log(`Added measure ${index + 1}: ${chord} (${root}, ${mappedQuality})`);
+        } catch (error) {
+            console.error(`Failed to process chord function ${chordFunction} in ${selectedKey}:`, error);
+        }
     });
 
-    // Update fretboard to match first measure
     const firstMeasure = UI.elements.measures.firstElementChild;
     if (firstMeasure) {
         const scaleRoot = firstMeasure.querySelector('.second-key').value;
         const scaleType = firstMeasure.querySelector('.scale-select').value;
-        const tuning = TUNINGS[UI.elements.chordTuning.value];
+        const tuning = TUNINGS[UI.elements.chordTuning.value] || TUNINGS.standard;
         updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
     }
+    log(`Loaded progression: ${progressionName} in ${selectedKey}`);
 }
         
 function updateProgressionKey(newKey) {
@@ -2683,20 +2718,31 @@ onMetronomeInstrumentChange(UI.elements.soundType.value);
 
 // Initialization
 async function initializeApp() {
-    UI.init();
-    createBeats();
-    createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
-    loadProgression(UI.elements.progressionSelect.value);
-    initializeFretFlow();
-    setupEventListeners();
-    updateLoadingStatus("Application initialized");
-    setTimeout(() => {
-        const indicator = document.getElementById('loading-indicator');
-        if (indicator) indicator.remove();
-    }, 1000);
-    log("Application initialized");
+    try {
+        log("Starting initialization...");
+        UI.init();
+        log("UI initialized");
+        createBeats();
+        log("Beats created");
+        createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
+        log("Fretboard created");
+        loadProgression(UI.elements.progressionSelect.value);
+        log("Initial progression loaded");
+        initializeFretFlow();
+        log("FretFlow initialized");
+        setupEventListeners();
+        log("Event listeners set up");
+        updateLoadingStatus("Application initialized");
+        setTimeout(() => {
+            const indicator = document.getElementById('loading-indicator');
+            if (indicator) indicator.remove();
+        }, 1000);
+        log("Application fully initialized");
+    } catch (error) {
+        console.error("Initialization failed:", error);
+        updateLoadingStatus(`Initialization failed: ${error.message}`);
+    }
 }
-
 // Start the app
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp().catch(error => {
