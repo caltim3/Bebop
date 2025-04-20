@@ -532,41 +532,42 @@
         </div>
     </div>
 
-    <div class="app-section" id="metronome-section">
-        <h2>BeatForge Metronome</h2>
-        <h3>Click to accent strong beats</h3>
-        <div class="controls">
-            <select id="time-signature" aria-label="Select time signature">
-                <option value="2">2/4</option>
-                <option value="3">3/4</option>
-                <option value="4" selected>4/4</option>
-                <option value="6">6/8</option>
-                <option value="7">7/8</option>
-                <option value="8">8/8</option>
-                <option value="12">12/8</option>
-            </select>
-            <select id="sound-type" aria-label="Select metronome sound">
-                <option value="click">Click</option>
-                <option value="woodblock">Woodblock</option>
-                <option value="drums">Drums</option>
-            </select>
-            <button id="drumSetToggleBtn" class="control-button">Drums</button>
-            <div class="volume-control">
-                <span>Metronome Volume:</span>
-                <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" aria-label="Metronome volume">
-            </div>
-            <input type="range" id="tempo" min="40" max="220" value="120" aria-label="Tempo">
-            <span id="tempo-display">120 BPM</span>
-            <button id="tap-tempo" aria-label="Tap tempo">Tap Tempo</button>
-            <button id="start-stop" aria-label="Start or stop metronome">Start</button>
+<div class="app-section" id="metronome-section">
+    <h2>BeatForge Metronome</h2>
+    <h3>Click to accent strong beats</h3>
+    <div class="controls">
+        <select id="time-signature" aria-label="Select time signature">
+            <option value="2">2/4</option>
+            <option value="3">3/4</option>
+            <option value="4" selected>4/4</option>
+            <option value="6">6/8</option>
+            <option value="7">7/8</option>
+            <option value="8">8/8</option>
+            <option value="12">12/8</option>
+        </select>
+        <select id="sound-type" aria-label="Select metronome sound">
+            <option value="click">Click</option>
+            <option value="woodblock">Woodblock</option>
+            <option value="drums">Drums</option>
+        </select>
+        <button id="drumSetToggleBtn" class="control-button">Drums</button>
+        <span id="drumSetName">Drums Drums</span>
+        <div class="volume-control">
+            <span>Metronome Volume:</span>
+            <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" aria-label="Metronome volume">
         </div>
-        <div class="beats-container"></div>
+        <input type="range" id="tempo" min="40" max="220" value="120" aria-label="Tempo">
+        <span id="tempo-display">120 BPM</span>
+        <button id="tap-tempo" aria-label="Tap tempo">Tap Tempo</button>
+        <button id="start-stop" aria-label="Start or stop metronome">Start</button>
     </div>
+    <div class="beats-container"></div>
+</div>
 
-    <div class="volume-control">
-        <label for="accent-intensity">Accent Intensity:</label>
-        <input type="range" id="accent-intensity" min="1" max="2" step="0.1" value="1.5" aria-label="Accent intensity">
-    </div>
+<div class="volume-control">
+    <label for="accent-intensity">Accent Intensity:</label>
+    <input type="range" id="accent-intensity" min="1" max="2" step="0.1" value="1.5" aria-label="Accent intensity">
+</div>
     
     <div class="app-section" id="chord-progression-section">
         <h2>Chord Progression Practice</h2>
@@ -602,7 +603,7 @@
             <option value="caravan">Caravan</option>
             <option value="nows_the_time">Now's The Time</option>
             <option value="tenor_madness">Tenor Madness</option>
-        </select>
+    </select>
         <label for="keySelect">Select Key:</label>
         <select id="keySelect" aria-label="Select key">
           <option value="C">C</option>
@@ -629,11 +630,11 @@
           <option value="Bbm">Bbm</option>
           <option value="B">B</option>
           <option value="Bm">Bm</option>
-        </select>
+    </select>
         <div id="measures">
             <!-- Measures will be populated dynamically -->
         </div>
-        <button onclick="addMeasure()" aria-label="Add measure">Add Measure</button>
+        <button id="add-measure" aria-label="Add measure">Add Measure</button>
         <button onclick="removeMeasure()" aria-label="Remove measure">Remove Measure</button>
         <div class="checkbox-wrapper">
             <button id="chordsEnabled" class="toggle-button active">Chords Enabled</button>
@@ -1958,6 +1959,7 @@ function addMeasure(root = 'C', quality = 'major', index = null) {
 }
 
 // Initialization
+// Initialization
 function initializeApp() {
     UI.init();
     createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
@@ -2030,7 +2032,7 @@ function initializeApp() {
         UI.elements.chordsEnabled.classList.toggle('active');
         log(`Chords ${UI.elements.chordsEnabled.classList.contains('active') ? 'enabled' : 'disabled'}`);
     });
-    document.getElementById('add-measure').addEventListener('click', () => addMeasure());
+    // Removed: document.getElementById('add-measure').addEventListener('click', () => addMeasure());
     document.getElementById('drumSetToggleBtn').addEventListener('click', () => {
         currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
         document.getElementById('drumSetName').textContent = drumSoundSets[currentDrumSetIndex].name;
@@ -2045,7 +2047,6 @@ function initializeApp() {
     loadProgression(UI.elements.progressionSelect.value, UI.elements.keySelect.value);
     log("App initialized");
 }
-
 // Start the app
 document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
