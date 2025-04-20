@@ -1706,21 +1706,6 @@ function getChordNotes(root, quality) {
 }
 
 
-  let intervals = CHORD_INTERVALS[quality];
-  if (!intervals) {
-    console.warn(`Unknown chord quality "${quality}", defaulting to major`);
-    intervals = CHORD_INTERVALS['maj'];
-  }
-
-  const chordNotes = intervals.map(semitones => {
-    let index = (rootIndex + semitones) % 12;
-    return CHROMATIC[index];
-  });
-
-  return chordNotes;
-}
-
-
 async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
 
