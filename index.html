@@ -1656,7 +1656,6 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
 
 
 function getChordNotes(root, quality) {
-  // Expanded chord interval definitions
   const CHORD_INTERVALS = {
     'maj': [0, 4, 7],
     'min': [0, 3, 7],
@@ -1682,17 +1681,14 @@ function getChordNotes(root, quality) {
 
   const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-  // Don't strip 'm' from root – just standardize enharmonics
   const standardizedRoot = standardizeNoteName(root);
   let rootIndex = CHROMATIC.indexOf(standardizedRoot);
 
-  // Fallback: if not found, try original
   if (rootIndex === -1) {
     rootIndex = CHROMATIC.indexOf(root);
     if (rootIndex === -1) rootIndex = 0; // fallback to C
   }
 
-  // Normalize quality
   const normQuality = quality?.toLowerCase();
   let intervals = CHORD_INTERVALS[normQuality];
 
