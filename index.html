@@ -691,50 +691,18 @@ const ENHARMONIC_MAP = {
 };
         
 const SAMPLE_NOTE_MAP = {
-  // C
-  'C': 'C',
-  'B#': 'C',
-
-  // C#/Db
-  'C#': 'Cs',
-  'Db': 'Cs',
-
-  // D
+  'C': 'C', 'B#': 'C',
+  'C#': 'C#', 'Db': 'C#',
   'D': 'D',
-
-  // D#/Eb
-  'D#': 'Ds',
-  'Eb': 'Ds',
-
-  // E
-  'E': 'E',
-  'Fb': 'E',
-
-  // F
-  'F': 'F',
-  'E#': 'F',
-
-  // F#/Gb
-  'F#': 'Fs',
-  'Gb': 'Fs',
-
-  // G
+  'D#': 'D#', 'Eb': 'D#',
+  'E': 'E', 'Fb': 'E',
+  'E#': 'F', 'F': 'F',
+  'F#': 'F#', 'Gb': 'F#',
   'G': 'G',
-
-  // G#/Ab
-  'G#': 'Gs',
-  'Ab': 'Gs',
-
-  // A
+  'G#': 'G#', 'Ab': 'G#',
   'A': 'A',
-
-  // A#/Bb
-  'A#': 'As',
-  'Bb': 'As',
-
-  // B
-  'B': 'B',
-  'Cb': 'B'
+  'A#': 'A#', 'Bb': 'A#',
+  'B': 'B', 'Cb': 'B'
 };
         
 const SAMPLED_NOTES = ['A', 'C', 'Ds', 'Fs'];
@@ -1159,8 +1127,8 @@ const MAX_OCTAVE = 4;
 
 function findNearestSampledNote(note, targetOctave = 3) {
     const cleanNote = standardizeNoteName(note).replace('m', '');
-    const mappedNote = ENHARMONIC_MAP[cleanNote] || cleanNote;
-    const targetIndex = NOTES.indexOf(mappedNote);
+    const mappedNote = SAMPLE_NOTE_MAP[cleanNote] || cleanNote;
+    const targetIndex = NOTES.indexOf(ENHARMONIC_MAP[mappedNote] || mappedNote);
     if (targetIndex === -1) {
         console.warn(`Note ${note} not found in NOTES.`);
         return { sampleKey: 'C3v12', semitoneDiff: 0 };
@@ -1690,37 +1658,55 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
 }
 
 function getChordNotes(root, quality) {
-    const rootIndex = NOTES.indexOf(standardizeNoteName(root));
+  // Define intervals for common chord qualities
+  const CHORD_INTERVALS = {
+    'maj': [0, 4, 7],
+    'min': [0, 3, 7],
+    'dim': [0, 3, 6],
+    'aug': [0, 4, 8],
+    '7': [0, 4, 7, 10],
+    'maj7': [0, 4, 7, 11],
+    'min7': [0, 3, 7, 10],
+    'm7': [0, 3, 7, 10],
+    'dim7': [0, 3, 6, 9],
+    'm7b5': [0, 3, 6, 10],
+    // Add more as needed
+  };
 
-    const INTERVAL_MAP = {
-        'major': [0, 4, 7],
-        'minor': [0, 3, 7],
-        'maj7': [0, 4, 7, 11],
-        'min7': [0, 3, 7, 10],
-        '7': [0, 4, 7, 10],
-        'dom7': [0, 4, 7, 10],
-        'm7b5': [0, 3, 6, 10],
-        'dim7': [0, 3, 6, 9],
-        'aug': [0, 4, 8],
-        'sus2': [0, 2, 7],
-        'sus4': [0, 5, 7],
-        '7b9': [0, 4, 7, 10, 13],
-        '7#9': [0, 4, 7, 10, 15],
-        '7b13': [0, 4, 7, 10, 20],
-        '7#11': [0, 4, 7, 10, 18]
-    };
+  // Chromatic scale for interval calculation
+  const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-    const intervals = INTERVAL_MAP[quality];
-    if (!intervals) {
-        console.warn(`Unknown chord quality "${quality}" — defaulting to major triad`);
+  // Normalize root to match chromatic scale
+  let normalizedRoot = findNearestSampledNote(root);
+  let rootIndex = CHROMATIC.indexOf(normalizedRoot);
+
+  // Fallback: if not found, try the original root
+  if (rootIndex === -1) {
+    rootIndex = CHROMATIC.indexOf(root);
+    if (rootIndex === -1) {
+      // If still not found, default to C
+      rootIndex = 0;
     }
+  }
 
-    return (intervals || [0, 4, 7]).map(interval => {
-        const noteIndex = (rootIndex + interval) % 12;
-        return NOTES[noteIndex];
-    });
+  // Get intervals for the chord quality
+  let intervals = CHORD_INTERVALS[quality];
+  if (!intervals) {
+    // Fallback to major triad if unknown quality
+    intervals = CHORD_INTERVALS['maj'];
+  }
+
+  // Build the chord notes
+  let chordNotes = intervals.map(interval => {
+    let noteIndex = (rootIndex + interval) % 12;
+    let noteName = CHROMATIC[noteIndex];
+    // Map to the correct sample note
+    return findNearestSampledNote(noteName);
+  });
+
+  return chordNotes;
 }
-
+        
 async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
 
