@@ -2290,15 +2290,19 @@ function loadProgression(progressionName, overrideKey = null) {
     progression.progression.forEach((chordFunction, index) => {
         const chord = getChordFromFunction(chordFunction, keyRoot, keyMode);
         const [root, quality] = parseChord(chord);
-
-        // Create and display the measure element
-        const measure = document.createElement('div');
-        measure.className = 'measure';
-        measure.textContent = chord;
-        UI.elements.measures.appendChild(measure);
+        addMeasure(root, quality, root, suggestScaleForQuality(quality));
     });
 
-    // If you have any other code to run after loading the progression, add it here.
+    // Update fretboard to match first measure
+    const firstMeasure = UI.elements.measures.firstElementChild;
+    if (firstMeasure) {
+        const scaleRoot = firstMeasure.querySelector('.second-key').value;
+        const scaleType = firstMeasure.querySelector('.scale-select').value;
+        const tuning = TUNINGS[UI.elements.chordTuning.value];
+        updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
+    }
+}
+        // If you have any other code to run after loading the progression, add it here.
 }
 function updateProgressionKey(newKey) {
     const selectedProgression = UI.elements.progressionSelect.value;
