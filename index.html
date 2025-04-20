@@ -691,10 +691,56 @@ const ENHARMONIC_MAP = {
 };
         
 const SAMPLE_NOTE_MAP = {
-    'Gb': 'Fs', 'Eb': 'Ds', 'F#': 'Fs', 'D#': 'Ds'
+  // C
+  'C': 'C',
+  'B#': 'C',
+
+  // C#/Db
+  'C#': 'Cs',
+  'Db': 'Cs',
+
+  // D
+  'D': 'D',
+
+  // D#/Eb
+  'D#': 'Ds',
+  'Eb': 'Ds',
+
+  // E
+  'E': 'E',
+  'Fb': 'E',
+
+  // F
+  'F': 'F',
+  'E#': 'F',
+
+  // F#/Gb
+  'F#': 'Fs',
+  'Gb': 'Fs',
+
+  // G
+  'G': 'G',
+
+  // G#/Ab
+  'G#': 'Gs',
+  'Ab': 'Gs',
+
+  // A
+  'A': 'A',
+
+  // A#/Bb
+  'A#': 'As',
+  'Bb': 'As',
+
+  // B
+  'B': 'B',
+  'Cb': 'B'
 };
 
+const mappedNote = SAMPLE_NOTE_MAP[note] || note;
+        
 const SAMPLED_NOTES = ['A', 'C', 'Ds', 'Fs'];
+        
 const PIANO_CONFIG = {
     octaves: {
         'A': [2, 3, 4, 5, 6],
