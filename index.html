@@ -1664,6 +1664,8 @@ function getChordNotes(root, quality) {
     'min': [0, 3, 7],
     'dim': [0, 3, 6],
     'aug': [0, 4, 8],
+    '6': [0, 4, 9],
+    'm6': [0, 3, 9],
     '7': [0, 4, 7, 10],
     'maj7': [0, 4, 7, 11],
     'min7': [0, 3, 7, 10],
@@ -1676,9 +1678,9 @@ function getChordNotes(root, quality) {
   // Chromatic scale for interval calculation
   const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-  // Normalize root to match chromatic scale
-  let normalizedRoot = findNearestSampledNote(root);
-  let rootIndex = CHROMATIC.indexOf(normalizedRoot);
+  // Standardize root to match chromatic scale
+  let baseRoot = standardizeNoteName(root).replace('m', '');
+  let rootIndex = CHROMATIC.indexOf(baseRoot);
 
   // Fallback: if not found, try the original root
   if (rootIndex === -1) {
@@ -1696,16 +1698,14 @@ function getChordNotes(root, quality) {
     intervals = CHORD_INTERVALS['maj'];
   }
 
-  // Build the chord notes
-    let chordNotes = intervals.map(interval => {
-      let noteIndex = (rootIndex + interval) % 12;
-      let noteName = CHROMATIC[noteIndex];
-      return noteName;
-    });
+  // Build the chord notes as note names
+  let chordNotes = intervals.map(interval => {
+    let noteIndex = (rootIndex + interval) % 12;
+    return CHROMATIC[noteIndex];
+  });
 
   return chordNotes;
-}
-        
+}        
 async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
 
