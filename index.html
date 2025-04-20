@@ -1233,7 +1233,9 @@ function getNoteAtFret(startNote, fretNumber) {
         
 function getPitchShiftedNote(note, preferredOctave = 3) {
     const standardNote = standardizeNoteName(note).replace("m", "");
-    const noteIndex = NOTES.indexOf(standardNote);
+    const enharmonicNote = ENHARMONIC_MAP[standardNote] || standardNote;
+    const noteIndex = NOTES.indexOf(enharmonicNote);
+
     if (noteIndex === -1) {
         console.warn(`Note index not found for ${note}`);
         return { sampleKey: "C3v12", playbackRate: 1 };
@@ -1274,6 +1276,7 @@ function getPitchShiftedNote(note, preferredOctave = 3) {
 
     return bestMatch;
 }
+
 
 function isMinorKeyName(key) {
     return key && (key.endsWith('m') || key.endsWith('min'));
@@ -1629,6 +1632,7 @@ function playNote(noteName, velocity = 1, duration = 1) {
 
 async function playChord(root, quality, startTime = AudioContextManager.context.currentTime, duration = 1, isPassingChord = false) {
     if (!document.getElementById('chordsEnabled').classList.contains('active')) return;
+
     await AudioContextManager.ensureAudioContext();
 
     const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
@@ -1636,46 +1640,59 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
 
     const chordNotes = getChordNotes(root, quality);
 
+    // Fade out previous chord
     if (AudioContextManager.currentChordGain) {
         AudioContextManager.currentChordGain.gain.setValueAtTime(AudioContextManager.currentChordGain.gain.value, startTime);
         AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.05);
     }
 
+    // Set up gain for current chord
     AudioContextManager.currentChordGain = AudioContextManager.context.createGain();
     AudioContextManager.currentChordGain.gain.setValueAtTime(chordVolume, startTime);
     AudioContextManager.currentChordGain.connect(AudioContextManager.context.destination);
 
-    // Random inversion (while keeping root on bottom)
+    // Random inversion (root stays on bottom)
     const rootNote = chordNotes[0];
     const otherNotes = chordNotes.slice(1);
     const shuffled = otherNotes.sort(() => 0.5 - Math.random());
     const finalChord = [rootNote, ...shuffled];
 
     finalChord.forEach((note, index) => {
-        // Spread the chord notes a bit across octaves for realism
         const baseOctave = index === 0 ? 2 : 3;
         const octave = Math.min(4, Math.max(2, baseOctave + Math.floor(Math.random() * 2))); // C2–A4
+
         const { sampleKey, playbackRate } = getPitchShiftedNote(note, octave);
         const buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
-        if (buffer) {
-            const source = AudioContextManager.context.createBufferSource();
-            source.buffer = buffer;
-            source.playbackRate.value = playbackRate;
-            source.connect(AudioContextManager.currentChordGain);
-            source.start(startTime);
-            source.stop(startTime + duration);
+
+        if (!buffer) {
+            console.warn(`[playChord] Missing buffer for ${sampleKey}`);
+            return;
         }
+
+        const source = AudioContextManager.context.createBufferSource();
+        source.buffer = buffer;
+        source.playbackRate.value = playbackRate;
+        source.connect(AudioContextManager.currentChordGain);
+        source.start(startTime);
+        source.stop(startTime + duration);
+
+        // Optional debug log
+        console.log(`[playChord] ${note}${octave} → ${sampleKey} @ ${playbackRate.toFixed(3)}x`);
     });
 }
 
 function getChordNotes(root, quality) {
+  // Expanded chord interval definitions
   const CHORD_INTERVALS = {
     'maj': [0, 4, 7],
     'min': [0, 3, 7],
+    'minor': [0, 3, 7],
+    'major': [0, 4, 7],
     'dim': [0, 3, 6],
     'aug': [0, 4, 8],
     '6': [0, 4, 9],
     'm6': [0, 3, 9],
+    'min6': [0, 3, 9],
     '7': [0, 4, 7, 10],
     'dom7': [0, 4, 7, 10],
     'maj7': [0, 4, 7, 11],
@@ -1683,31 +1700,36 @@ function getChordNotes(root, quality) {
     'm7': [0, 3, 7, 10],
     'dim7': [0, 3, 6, 9],
     'm7b5': [0, 3, 6, 10],
+    'min7b5': [0, 3, 6, 10],
     'sus2': [0, 2, 7],
     'sus4': [0, 5, 7],
-    'add9': [0, 4, 7, 14],
-    // more to come
+    'add9': [0, 4, 7, 14]
   };
 
   const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-  const standardizedRoot = standardizeNoteName(root).replace('m', '');
+  // Don't strip 'm' from root – just standardize enharmonics
+  const standardizedRoot = standardizeNoteName(root);
   let rootIndex = CHROMATIC.indexOf(standardizedRoot);
 
+  // Fallback: if not found, try original
   if (rootIndex === -1) {
     rootIndex = CHROMATIC.indexOf(root);
-    if (rootIndex === -1) rootIndex = 0;
+    if (rootIndex === -1) rootIndex = 0; // fallback to C
   }
 
-  let intervals = CHORD_INTERVALS[quality];
+  // Normalize quality
+  const normQuality = quality?.toLowerCase();
+  let intervals = CHORD_INTERVALS[normQuality];
+
   if (!intervals) {
     console.warn(`Unknown chord quality "${quality}", defaulting to major`);
     intervals = CHORD_INTERVALS['maj'];
   }
 
   const chordNotes = intervals.map(semitones => {
-    let index = (rootIndex + semitones) % 12;
-    return CHROMATIC[index];
+    const noteIndex = (rootIndex + semitones) % 12;
+    return CHROMATIC[noteIndex];
   });
 
   return chordNotes;
