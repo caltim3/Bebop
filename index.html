@@ -964,7 +964,6 @@ function parseKeyString(keyString) {
 }
 
 function parseChord(chord) {
-    // Match chord patterns like C, Cm, C7, Cm7, Cmaj7, Cm7b5, C6, Cm6
     const chordRegex = /^([A-G][b#]?)(m|min|major|maj|dim|7|m7|min7|maj7|m7b5|6|m6)?$/i;
     const match = chord.match(chordRegex);
     if (!match) {
@@ -972,10 +971,8 @@ function parseChord(chord) {
         return ['C', 'maj'];
     }
     let root = match[1];
-    let quality = match[2] || 'maj'; // Default to major if no quality specified
-    // Standardize root note
+    let quality = match[2] || 'maj';
     root = ENHARMONIC_MAP[root.toUpperCase()] || root;
-    // Map quality to internal representation
     const qualityMap = {
         'm': 'min',
         'min': 'min',
@@ -1131,18 +1128,20 @@ function loadProgression(progressionName, key) {
         console.error(`Invalid progression: ${progressionName}`);
         return;
     }
-    const progression = progressionData.progression; // Access the progression array
+    const progression = progressionData.progression;
     const mode = key.endsWith('m') ? 'minor' : 'major';
     const cleanKey = key.replace('m', '');
     UI.elements.measures.innerHTML = '';
     progression.forEach((chordFunction, index) => {
         const chord = getChordFromFunction(chordFunction, cleanKey, mode);
         if (chord) {
-            addMeasure(chord, index);
+            const [root, quality] = parseChord(chord);
+            addMeasure(root, quality, index, false); // Skip fretboard update
             log(`Added measure: ${chord} at index ${index}`);
         }
     });
-    updateFretboard(cleanKey, mode);
+    const chordTuning = TUNINGS[UI.elements.chordTuning.value] || TUNINGS.standard;
+    updateFretboardNotes(UI.elements.chordFretboard, cleanKey, mode, chordTuning);
     log(`Loaded progression: ${progressionName} in key ${key}`);
 }
 
@@ -1964,7 +1963,7 @@ function createScaleOptions(selected) {
 
 
 
-function addMeasure(root = 'C', quality = 'major', index = null) {
+function addMeasure(root = 'C', quality = 'major', index = null, updateFretboard = true) {
     const measure = document.createElement('div');
     measure.className = 'measure';
     measure.innerHTML = `
@@ -1978,10 +1977,15 @@ function addMeasure(root = 'C', quality = 'major', index = null) {
         </div>
         <button class="remove-measure">Remove</button>
     `;
-    const chordTuning = TUNINGS[UI.elements.chordTuning.value];
+    const chordTuning = TUNINGS[UI.elements.chordTuning.value] || TUNINGS.standard;
     const scaleRoot = measure.querySelector('.scale-controls .second-key').value;
     const scaleType = measure.querySelector('.scale-controls .scale-select').value;
-    updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, chordTuning);
+    
+    // Only update fretboard if explicitly requested
+    if (updateFretboard) {
+        updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, chordTuning);
+    }
+    
     measure.querySelector('.remove-measure').addEventListener('click', () => {
         measure.remove();
         log(`Removed measure at index ${index}`);
@@ -2033,12 +2037,10 @@ function initializeApp() {
     UI.elements.tempo.value = AppState.tempo;
     UI.elements.tempoDisplay.textContent = `${AppState.tempo} BPM`;
 
-    // Set initial progression and its default key
-    const initialProgression = UI.elements.progressionSelect.value; // e.g., "I V7"
+    const initialProgression = UI.elements.progressionSelect.value;
     const defaultKey = progressions[initialProgression].defaultKey || 'C';
-    UI.elements.keySelect.value = defaultKey; // Set dropdown to default key
+    UI.elements.keySelect.value = defaultKey;
 
-    // Event listeners
     UI.elements.startStopButton.addEventListener('click', async () => {
         if (AppState.isPlaying) {
             stopPlayback();
@@ -2049,7 +2051,7 @@ function initializeApp() {
     UI.elements.progressionSelect.addEventListener('change', () => {
         const progressionName = UI.elements.progressionSelect.value;
         const defaultKey = progressions[progressionName].defaultKey || 'C';
-        UI.elements.keySelect.value = defaultKey; // Update key dropdown
+        UI.elements.keySelect.value = defaultKey;
         loadProgression(progressionName, defaultKey);
     });
     UI.elements.keySelect.addEventListener('change', () => {
@@ -2071,10 +2073,15 @@ function initializeApp() {
         onMetronomeInstrumentChange(UI.elements.soundType.value);
     });
     UI.elements.darkModeToggle.addEventListener('click', () => {
-        AppState.darkMode = !AppState.darkMode;
-        document.body.classList.toggle('dark-mode', AppState.darkMode);
-        UI.elements.darkModeToggle.textContent = AppState.darkMode ? '☀️' : '🌙';
-        log(`Dark mode ${AppState.darkMode ? 'enabled' : 'disabled'}`);
+        const modes = ['dark-mode', 'dark-mode-2', 'dark-mode-3'];
+        let currentMode = modes.find(mode => document.body.classList.contains(mode));
+        let nextModeIndex = currentMode ? (modes.indexOf(currentMode) + 1) % modes.length : 0;
+        document.body.classList.remove(...modes);
+        if (nextModeIndex !== 0) {
+            document.body.classList.add(modes[nextModeIndex]);
+        }
+        UI.elements.darkModeToggle.textContent = nextModeIndex === 0 ? '🌙' : '☀️';
+        log(`Switched to ${nextModeIndex === 0 ? 'light' : modes[nextModeIndex]} mode`);
     });
     UI.elements.tapTempo.addEventListener('click', () => {
         const now = Date.now();
@@ -2103,7 +2110,7 @@ function initializeApp() {
         UI.elements.chordsEnabled.classList.toggle('active');
         log(`Chords ${UI.elements.chordsEnabled.classList.contains('active') ? 'enabled' : 'disabled'}`);
     });
-    document.getElementById('add-measure').addEventListener('click', () => addMeasure());
+    document.getElementById('add-measure').addEventListener('click', () => addMeasure('C', 'major', null, true));
     document.getElementById('remove-measure').addEventListener('click', () => removeMeasure());
     document.getElementById('drumSetToggleBtn').addEventListener('click', () => {
         currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
@@ -2117,11 +2124,10 @@ function initializeApp() {
         }
     });
 
-    // Load initial progression with default key
     loadProgression(initialProgression, defaultKey);
     log("App initialized");
 }
-        
+    
 // Start the app
 document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
