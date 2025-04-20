@@ -1001,23 +1001,62 @@ function getChordFromFunction(chordFunction, key, mode) {
     const chordMap = {
         major: {
             'I': { quality: 'major', degree: 0 },
+            'I6': { quality: 'maj6', degree: 0 },
+            'I7': { quality: 'dominant7', degree: 0 },
+            'IMAJ7': { quality: 'maj7', degree: 0 },
             'II': { quality: 'minor', degree: 1 },
+            'II7': { quality: 'dominant7', degree: 1 },
+            'IIM7': { quality: 'min7', degree: 1 },
             'III': { quality: 'minor', degree: 2 },
+            'III7': { quality: 'dominant7', degree: 2 },
+            'IIIM7': { quality: 'min7', degree: 2 },
             'IV': { quality: 'major', degree: 3 },
+            'IV6': { quality: 'maj6', degree: 3 },
+            'IV7': { quality: 'dominant7', degree: 3 },
+            'IVMAJ6': { quality: 'maj6', degree: 3 },
+            'IVMAJ7': { quality: 'maj7', degree: 3 },
             'V': { quality: 'major', degree: 4 },
+            'V7': { quality: 'dominant7', degree: 4 },
             'VI': { quality: 'minor', degree: 5 },
+            'VI6': { quality: 'maj6', degree: 5 },
+            'VI7': { quality: 'dominant7', degree: 5 },
+            'VIM7': { quality: 'min7', degree: 5 },
             'VII': { quality: 'dim', degree: 6 },
-            'V7': { quality: 'dominant7', degree: 4 }
+            'VII7': { quality: 'min7b5', degree: 6 },
+            'VIIM7B5': { quality: 'min7b5', degree: 6 },
+            'BVII': { quality: 'major', degree: 6 },
+            'BVII7': { quality: 'dominant7', degree: 6 }
         },
         minor: {
             'I': { quality: 'minor', degree: 0 },
+            'I6': { quality: 'min6', degree: 0 },
+            'I7': { quality: 'min7', degree: 0 },
+            'IM7': { quality: 'min7', degree: 0 },
             'II': { quality: 'dim', degree: 1 },
+            'II7': { quality: 'min7b5', degree: 1 },
+            'IIM7B5': { quality: 'min7b5', degree: 1 },
             'III': { quality: 'major', degree: 2 },
+            'III6': { quality: 'maj6', degree: 2 },
+            'III7': { quality: 'dominant7', degree: 2 },
+            'BIIIMAJ7': { quality: 'maj7', degree: 2 },
             'IV': { quality: 'minor', degree: 3 },
+            'IV6': { quality: 'min6', degree: 3 },
+            'IV7': { quality: 'min7', degree: 3 },
+            'IVM6': { quality: 'min6', degree: 3 },
+            'IVM7': { quality: 'min7', degree: 3 },
             'V': { quality: 'minor', degree: 4 },
+            'V7': { quality: 'dominant7', degree: 4 },
+            'V7B9': { quality: 'dominant7', degree: 4 }, // Treat V7b9 as V7 for simplicity
+            'VM7': { quality: 'min7', degree: 4 },
             'VI': { quality: 'major', degree: 5 },
+            'VI6': { quality: 'maj6', degree: 5 },
+            'VIMAJ6': { quality: 'maj6', degree: 5 },
+            'BVIMAJ7': { quality: 'maj7', degree: 5 },
             'VII': { quality: 'major', degree: 6 },
-            'V7': { quality: 'dominant7', degree: 4 }
+            'VII7': { quality: 'dominant7', degree: 6 },
+            'BVII': { quality: 'major', degree: 6 },
+            'BVII6': { quality: 'maj6', degree: 6 },
+            'BVII7': { quality: 'dominant7', degree: 6 }
         }
     };
 
@@ -1046,6 +1085,21 @@ function getChordFromFunction(chordFunction, key, mode) {
             break;
         case 'dominant7':
             chordSymbol += '7';
+            break;
+        case 'maj7':
+            chordSymbol += 'maj7';
+            break;
+        case 'min7':
+            chordSymbol += 'm7';
+            break;
+        case 'min7b5':
+            chordSymbol += 'm7b5';
+            break;
+        case 'maj6':
+            chordSymbol += '6';
+            break;
+        case 'min6':
+            chordSymbol += 'm6';
             break;
         default:
             console.error(`Unknown chord quality: ${quality}`);
