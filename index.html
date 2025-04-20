@@ -1072,7 +1072,12 @@ function getScale(key, mode) {
 }
 
 function loadProgression(progressionName, key) {
-    const progression = progressions[progressionName];
+    const progressionData = progressions[progressionName];
+    if (!progressionData || !Array.isArray(progressionData.progression)) {
+        console.error(`Invalid progression: ${progressionName}`);
+        return;
+    }
+    const progression = progressionData.progression; // Access the progression array
     const mode = key.endsWith('m') ? 'minor' : 'major';
     const cleanKey = key.replace('m', '');
     UI.elements.measures.innerHTML = '';
@@ -1963,8 +1968,6 @@ function addMeasure(root = 'C', quality = 'major', index = null) {
     log(`Added measure: ${root} ${quality} at index ${index}`);
 }
 
-// Initialization
-// Initialization
 function initializeApp() {
     UI.init();
     createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
@@ -1975,6 +1978,13 @@ function initializeApp() {
     UI.elements.keySelect.innerHTML = createKeyOptions('C');
     UI.elements.tempo.value = AppState.tempo;
     UI.elements.tempoDisplay.textContent = `${AppState.tempo} BPM`;
+
+    // Set initial progression and its default key
+    const initialProgression = UI.elements.progressionSelect.value; // e.g., "I V7"
+    const defaultKey = progressions[initialProgression].defaultKey || 'C';
+    UI.elements.keySelect.value = defaultKey; // Set dropdown to default key
+
+    // Event listeners
     UI.elements.startStopButton.addEventListener('click', async () => {
         if (AppState.isPlaying) {
             stopPlayback();
@@ -1984,7 +1994,9 @@ function initializeApp() {
     });
     UI.elements.progressionSelect.addEventListener('change', () => {
         const progressionName = UI.elements.progressionSelect.value;
-        loadProgression(progressionName, UI.elements.keySelect.value);
+        const defaultKey = progressions[progressionName].defaultKey || 'C';
+        UI.elements.keySelect.value = defaultKey; // Update key dropdown
+        loadProgression(progressionName, defaultKey);
     });
     UI.elements.keySelect.addEventListener('change', () => {
         const progressionName = UI.elements.progressionSelect.value;
@@ -2037,7 +2049,8 @@ function initializeApp() {
         UI.elements.chordsEnabled.classList.toggle('active');
         log(`Chords ${UI.elements.chordsEnabled.classList.contains('active') ? 'enabled' : 'disabled'}`);
     });
-    // Removed: document.getElementById('add-measure').addEventListener('click', () => addMeasure());
+    document.getElementById('add-measure').addEventListener('click', () => addMeasure());
+    document.getElementById('remove-measure').addEventListener('click', () => removeMeasure());
     document.getElementById('drumSetToggleBtn').addEventListener('click', () => {
         currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
         document.getElementById('drumSetName').textContent = drumSoundSets[currentDrumSetIndex].name;
@@ -2049,9 +2062,12 @@ function initializeApp() {
             UI.elements.tempoDisplay.textContent = `${state.tempo} BPM`;
         }
     });
-    loadProgression(UI.elements.progressionSelect.value, UI.elements.keySelect.value);
+
+    // Load initial progression with default key
+    loadProgression(initialProgression, defaultKey);
     log("App initialized");
 }
+        
 // Start the app
 document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
