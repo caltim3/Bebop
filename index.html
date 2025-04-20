@@ -736,8 +736,6 @@ const SAMPLE_NOTE_MAP = {
   'B': 'B',
   'Cb': 'B'
 };
-
-const mappedNote = SAMPLE_NOTE_MAP[note] || note;
         
 const SAMPLED_NOTES = ['A', 'C', 'Ds', 'Fs'];
         
@@ -1602,58 +1600,53 @@ function createScaleOptions(selected = 'major') {
 }
 
 // Audio Playback
-function playNote(noteName, volume = 1.0, duration = 1000) {
-    if (!AudioContextManager.context || !noteName) return;
-
-    const fretboardVolumeControl = document.getElementById('fretboard-volume');
-    const fretboardVolume = parseFloat(fretboardVolumeControl?.value ?? 1);
-    const finalVolume = volume * fretboardVolume;
-
-    if (finalVolume <= 0) return;
-
-    // Extract the pitch class and octave from the note name
+function playNote(noteName, velocity = 1, duration = 1) {
+    // Example noteName: "Ab4", "C#5", "Bb3"
+    // Extract base note and octave
     const match = noteName.match(/^([A-G][b#]?)(\d)$/);
     if (!match) {
-        console.warn(`Invalid note format: ${noteName}`);
+        console.warn(`Invalid note name: ${noteName}`);
         return;
     }
 
     let [, rawNote, octaveStr] = match;
-    const baseNote = standardizeNoteName(rawNote).replace('m', '');
+
+    // Standardize and map to sample name
+    const baseNote = standardizeNoteName(rawNote);
     const mappedNote = SAMPLE_NOTE_MAP[baseNote] || baseNote;
+
+    // Clamp octave to available sample range (adjust as needed)
     const octave = Math.max(2, Math.min(6, parseInt(octaveStr)));
 
+    // Construct sample key (e.g., "Gs4v12")
     const sampleName = `${mappedNote}${octave}v12`;
     const buffer = AudioContextManager.pianoSampleBuffers[sampleName];
 
     if (!buffer) {
-        console.warn(`No piano sample found for ${sampleName}`);
+        console.warn(`Sample not found for: ${sampleName}`);
         return;
     }
 
-    try {
-        const source = AudioContextManager.context.createBufferSource();
-        source.buffer = buffer;
+    // Play the sample
+    const ctx = AudioContextManager.getContext();
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
 
-        const gainNode = AudioContextManager.context.createGain();
-        gainNode.gain.value = finalVolume;
+    // Set up gain for velocity
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = velocity;
 
-        source.connect(gainNode);
-        gainNode.connect(AudioContextManager.context.destination);
+    source.connect(gainNode).connect(ctx.destination);
 
-        source.start(0);
-        setTimeout(() => {
-            try {
-                source.stop();
-            } catch (e) {
-                // No-op on already stopped source
-            }
-        }, duration);
-    } catch (error) {
-        console.error('Error playing note:', error);
-    }
+    source.start();
+    source.stop(ctx.currentTime + duration);
+
+    // Optional: clean up after playback
+    source.onended = () => {
+        source.disconnect();
+        gainNode.disconnect();
+    };
 }
-
 
 async function playChord(root, quality, startTime = AudioContextManager.context.currentTime, duration = 1, isPassingChord = false) {
     if (!document.getElementById('chordsEnabled').classList.contains('active')) return;
