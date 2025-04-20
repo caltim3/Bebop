@@ -1697,12 +1697,11 @@ function getChordNotes(root, quality) {
   }
 
   // Build the chord notes
-  let chordNotes = intervals.map(interval => {
-    let noteIndex = (rootIndex + interval) % 12;
-    let noteName = CHROMATIC[noteIndex];
-    // Map to the correct sample note
-    return findNearestSampledNote(noteName);
-  });
+    let chordNotes = intervals.map(interval => {
+      let noteIndex = (rootIndex + interval) % 12;
+      let noteName = CHROMATIC[noteIndex];
+      return noteName;
+    });
 
   return chordNotes;
 }
