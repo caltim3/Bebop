@@ -2302,8 +2302,7 @@ function loadProgression(progressionName, overrideKey = null) {
         updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
     }
 }
-        // If you have any other code to run after loading the progression, add it here.
-}
+        
 function updateProgressionKey(newKey) {
     const selectedProgression = UI.elements.progressionSelect.value;
     if (!selectedProgression) return;
