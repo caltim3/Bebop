@@ -1,5 +1,3 @@
- <script>
-  // Utility Functions
 function log(message) {
     console.log(`[FretFlow Debug] ${message}`);
 }
@@ -1795,4 +1793,3 @@ document.addEventListener('DOMContentLoaded', () => {
             updateLoadingStatus("Initialization failed");
         });
     });
-            </script>
