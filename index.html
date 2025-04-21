@@ -1240,7 +1240,7 @@ function suggestScaleForQuality(quality) {
     return scaleMap[quality] || 'major';
 }
 
-        function getCompatibleScales(chord, quality) {
+function getCompatibleScales(chord, quality) {
     const scaleChoices = {
         'major': ['major', 'lydian', 'mixolydian'],
         'minor': ['dorian', 'phrygian', 'aeolian'],
@@ -1249,7 +1249,10 @@ function suggestScaleForQuality(quality) {
         'diminished': ['diminishedWH', 'diminishedHW'],
         'altered': ['altered', 'diminishedWH']
     };
-    
+    // Example return (customize as needed)
+    return scaleChoices[quality] || [];
+}
+        
 async function playMetronomeSound(baseVolume) {
     if (!AudioContextManager.context) return;
 
