@@ -1,15 +1,29 @@
-import { log, updateLoadingStatus } from './helpers.js';
+// js/main.js
 import { AppState } from './app-state.js';
-import { UI } from './ui-manager.js';
-import { AudioContextManager } from './audio-context.js';
-import { TUNINGS } from './constants.js';
-import { createBeats, startPlayback, stopPlayback, onMetronomeInstrumentChange } from './metronome.js';
+import { UI } from '../core/ui-manager.js';
+import { AudioContextManager } from '../core/audio-context.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
+import { createBeats, onMetronomeInstrumentChange } from './metronome.js';
 import { loadProgression, updateProgressionKey, addMeasure, removeMeasure } from './chord-progression.js';
 import { initializeFretFlow } from './fretflow.js';
+import { log, ensureAudioInitialized } from '../utils/helpers.js';
+import { TUNINGS } from '../utils/constants.js';
 
-// Global variables for drum sets
-let currentDrumSetIndex = 0;
+// Initialization
+async function initializeApp() {
+    UI.init();
+    createBeats();
+    createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
+    loadProgression(UI.elements.progressionSelect.value);
+    initializeFretFlow();
+    setupEventListeners();
+    updateLoadingStatus("Application initialized");
+    setTimeout(() => {
+        const indicator = document.getElementById('loading-indicator');
+        if (indicator) indicator.remove();
+    }, 1000);
+    log("Application initialized");
+}
 
 // Event Listeners
 function setupEventListeners() {
@@ -147,7 +161,7 @@ function setupEventListeners() {
 
     // Initially hide the drum set toggle button if drums aren't selected
     onMetronomeInstrumentChange(UI.elements.soundType.value);
-        
+    
     UI.elements.chordFretboardVolume.addEventListener('input', () => {
         log(`Chord fretboard volume set to ${UI.elements.chordFretboardVolume.value}`);
     });
@@ -180,38 +194,6 @@ function setupEventListeners() {
     log("Event listeners set up");
 }
 
-// Make sure audio is initialized
-async function ensureAudioInitialized() {
-    if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
-        try {
-            await AudioContextManager.initialize();
-            if (AudioContextManager.context.state === 'suspended') {
-                await AudioContextManager.context.resume();
-            }
-        } catch (error) {
-            console.error('Audio initialization failed:', error);
-            alert('Please click anywhere on the page to enable audio playback');
-            throw error;
-        }
-    }
-}
-
-// Initialization
-async function initializeApp() {
-    UI.init();
-    createBeats();
-    createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
-    loadProgression(UI.elements.progressionSelect.value);
-    initializeFretFlow();
-    setupEventListeners();
-    updateLoadingStatus("Application initialized");
-    setTimeout(() => {
-        const indicator = document.getElementById('loading-indicator');
-        if (indicator) indicator.remove();
-    }, 1000);
-    log("Application initialized");
-}
-
 // Start the app
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp().catch(error => {
@@ -220,6 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Export functions that need to be globally accessible
-window.addMeasure = addMeasure;
-window.removeMeasure = removeMeasure;
+// Import these functions from their respective modules
+import { startPlayback, stopPlayback } from './playback.js';
+import { suggestScaleForQuality } from '../utils/helpers.js';
+import { updateLoadingStatus } from '../utils/helpers.js';
+import { currentDrumSetIndex, drumSoundSets } from './metronome.js';
