@@ -504,6 +504,29 @@
             color: #ffe8d6;
             border: 1px solid #6b705c;
         }
+
+        .fretboards-grid {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 20px;
+              justify-content: center;
+            }
+            .fretboard-container {
+              border: 1px solid #ccc;
+              padding: 10px;
+              margin: 5px;
+              min-width: 220px;
+              background: #fafafa;
+              border-radius: 8px;
+            }
+            .controls {
+              margin-bottom: 10px;
+            }
+            .fretboard {
+              min-height: 100px; /* Adjust as needed for your fretboard rendering */
+              background: #eee;
+              border-radius: 4px;
+            }
         
     </style>
 </head>
@@ -1496,11 +1519,55 @@ initStaticFretboards();
 
    // Add to your initialization code
 
+        
 
 async function playMetronomeSound(baseVolume) {
   // ... existing code ...
   
 }     
+
+        function renderFretboard(containerId, key, scale) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = `<strong>Key:</strong> ${key} <br> <strong>Scale:</strong> ${scale}`;
+    // Replace with your actual fretboard rendering logic
+  }
+
+  function initStaticFretboards() {
+    for (let i = 1; i <= 4; i++) {
+      const key = document.getElementById(`static-key-select-${i}`).value;
+      const scale = document.getElementById(`static-scale-select-${i}`).value;
+      renderFretboard(`static-fretboard-${i}`, key, scale);
+    }
+  }
+
+  // This is the code you asked about:
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById(`static-key-select-${i}`).addEventListener('change', function() {
+      const key = this.value;
+      const scale = document.getElementById(`static-scale-select-${i}`).value;
+      renderFretboard(`static-fretboard-${i}`, key, scale);
+    });
+    document.getElementById(`static-scale-select-${i}`).addEventListener('change', function() {
+      const scale = this.value;
+      const key = document.getElementById(`static-key-select-${i}`).value;
+      renderFretboard(`static-fretboard-${i}`, key, scale);
+    });
+  }
+        
+function renderFretboard(containerId, key, scale) {
+  const container = document.getElementById(containerId);
+  // For demonstration, just show the key and scale
+  container.innerHTML = `<strong>Key:</strong> ${key} <br> <strong>Scale:</strong> ${scale}`;
+  // Replace this with your actual fretboard drawing logic!
+}
+        
+        function initStaticFretboards() {
+  for (let i = 1; i <= 4; i++) {
+    const key = document.getElementById(`static-key-select-${i}`).value;
+    const scale = document.getElementById(`static-scale-select-${i}`).value;
+    renderFretboard(`static-fretboard-${i}`, key, scale);
+  }
+}
         
 function standardizeNoteName(note) {
   if (!note) return 'C';
