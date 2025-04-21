@@ -1,4 +1,4 @@
-import { AudioContextManager } from '../core/audio-context.js';
+import { AudioContextManager } from './core/audio-context.js';
 import { NOTES } from './constants.js';
 
 // Utility Functions
