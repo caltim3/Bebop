@@ -1459,6 +1459,51 @@ function playBuffer(buffer, type) {
     // Start playback
     source.start(0);
 }
+
+function getDropVoicing(notes, type) {
+    let root = notes[0];
+    let upper = notes.slice(1);
+
+    function lowerOctave(note) {
+        let pitch = note.slice(0, -1);
+        let octave = parseInt(note.slice(-1));
+        return pitch + (octave - 1);
+    }
+
+    switch(type) {
+        case "drop2":
+            if (upper.length >= 2) {
+                upper[upper.length - 2] = lowerOctave(upper[upper.length - 2]);
+            }
+            break;
+        case "drop3":
+            if (upper.length >= 3) {
+                upper[upper.length - 3] = lowerOctave(upper[upper.length - 3]);
+            }
+            break;
+        case "drop2and4":
+            if (upper.length >= 4) {
+                upper[upper.length - 2] = lowerOctave(upper[upper.length - 2]);
+                upper[upper.length - 4] = lowerOctave(upper[upper.length - 4]);
+            }
+            break;
+        default:
+            break;
+    }
+    return [root, ...upper];
+}
+
+function playChordWithInversion(notes, measureStart, playSample) {
+    // Play root position on beat 1
+    notes.forEach(note => playSample(note, measureStart));
+
+    // On beat 3, play a random drop voicing
+    const dropTypes = ["drop2", "drop3", "drop2and4"];
+    const randomDrop = dropTypes[Math.floor(Math.random() * dropTypes.length)];
+    const dropVoicing = getDropVoicing(notes, randomDrop);
+
+    dropVoicing.forEach(note => playSample(note, measureStart + 2)); // beat 3
+}
         
 function createFretboard(container, tuning) {
     container.innerHTML = '';
