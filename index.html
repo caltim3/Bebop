@@ -656,14 +656,6 @@ function updateLoadingStatus(message) {
     indicator.textContent = message;
 }
 
-function debounce(func, wait) {
-    let timeout;
-    return function (...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-}
-
 // Musical Constants
 const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         
@@ -720,7 +712,6 @@ const SCALES = {
     majorBlues: [0, 2, 3, 4, 7, 9],
     
     // Additional Modern Jazz Scales
-    altered: [0, 1, 3, 4, 6, 8, 10],
     halfWhole: [0, 1, 3, 4, 6, 7, 9, 10],
     harmonicMajor: [0, 2, 4, 5, 7, 8, 11],
     doubleHarmonic: [0, 1, 4, 5, 7, 8, 11],
@@ -1529,7 +1520,6 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
         const noteIndex = (rootIndex + interval) % 12;
         return NOTES[noteIndex];
     });
-    console.log(`[updateFretboardNotes] scaleNotes for ${rootNote} ${scale}: ${scaleNotes.join(',')}`);
     for (let string = 0; string < 6; string++) {
         const openNote = tuning[string];
         const openNoteIndex = NOTES.indexOf(openNote);
@@ -1551,33 +1541,33 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
                 } else {
                     noteElement.style.backgroundColor = '#4CAF50';
                 }
-        noteElement.addEventListener('click', async () => {
-            try {
-                await AudioContextManager.ensureAudioContext();
-                const noteName = currentNote.toLowerCase().replace('b', '#');
-                const octave = 3; // Default to octave 3 for fretboard clicks
-                const sampleKey = `${noteName}${octave}`;
-                const buffer = AudioContextManager.pianoSamples[sampleKey];
-                if (!buffer) {
-                    console.error(`No sample for ${sampleKey}`);
-                    return;
-                }
-                const source = AudioContextManager.context.createBufferSource();
-                source.buffer = buffer;
-                const gainNode = AudioContextManager.context.createGain();
-                const volume = parseFloat(UI.elements.chordFretboardVolume.value) || 0.3;
-                gainNode.gain.value = volume;
-                source.connect(gainNode);
-                gainNode.connect(AudioContextManager.context.destination);
-                source.start(0);
-                noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
-                setTimeout(() => {
-                    noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
-                }, 100);
-            } catch (error) {
-                console.error('Error playing note:', error);
-            }
-        });
+                noteElement.addEventListener('click', async () => {
+                    try {
+                        await AudioContextManager.ensureAudioContext();
+                        const noteName = currentNote.toLowerCase().replace('b', '#');
+                        const octave = 3; // Default to octave 3 for fretboard clicks
+                        const sampleKey = `${noteName}${octave}`;
+                        const buffer = AudioContextManager.pianoSamples[sampleKey];
+                        if (!buffer) {
+                            console.error(`No sample for ${sampleKey}`);
+                            return;
+                        }
+                        const source = AudioContextManager.context.createBufferSource();
+                        source.buffer = buffer;
+                        const gainNode = AudioContextManager.context.createGain();
+                        const volume = parseFloat(UI.elements.chordFretboardVolume.value) || 0.3;
+                        gainNode.gain.value = volume;
+                        source.connect(gainNode);
+                        gainNode.connect(AudioContextManager.context.destination);
+                        source.start(0);
+                        noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                        setTimeout(() => {
+                            noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
+                        }, 100);
+                    } catch (error) {
+                        console.error('Error playing note:', error);
+                    }
+                });
                 noteElement.addEventListener('mouseenter', () => {
                     noteElement.style.transform = 'translate(-50%, -50%) scale(1.1)';
                 });
@@ -1588,7 +1578,6 @@ function updateFretboardNotes(container, rootNote, scale, tuning) {
             }
         }
     }
-    log(`Fretboard updated with ${rootNote} ${scale} scale`);
 }
         
 function createBeats() {
