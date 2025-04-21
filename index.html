@@ -1093,64 +1093,52 @@ function getChordNotes(root, quality) {
     return chordNotes;
 }
 
-async function playChord(root, quality, startTime = 0, duration = 1, isSecondHalf = false) {
+async function playChord(root, quality, startTime = 0, duration = 1, isSecondHalf = false, voicingType = null) {
     try {
-        // Ensure the AudioContext is initialized
         await AudioContextManager.ensureAudioContext();
-
-        // Get the chord notes based on the root and quality
-        const chordNotes = getChordNotes(root, quality);
+        let chordNotes = getChordNotes(root, quality);
         if (!chordNotes.length) {
             console.error(`No valid notes found for chord: ${root} ${quality}`);
             return;
         }
 
-        // Get the chord volume from the UI
-        const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
+        // If this is the second half (beat 3), randomize voicing
+        if (isSecondHalf && voicingType) {
+            chordNotes = getDropVoicing(chordNotes, voicingType);
+        }
 
-        // Check if chords are enabled
+        const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
         if (!UI.elements.chordsEnabled.classList.contains('active')) {
             console.warn("Chords are disabled. Skipping chord playback.");
             return;
         }
 
-        // Play each note in the chord
         chordNotes.forEach((note, i) => {
-            const octave = i === 0 ? 3 : 4; // Use a lower octave for the root note
-            const sampleKey = `${note.toLowerCase().replace('b', '#')}${octave}`; // Convert Db to c#, etc.
+            // Always root in the bass (octave 3), others in octave 4
+            const octave = i === 0 ? 3 : 4;
+            const sampleKey = `${note.toLowerCase().replace('b', '#')}${octave}`;
             const buffer = AudioContextManager.pianoSamples[sampleKey];
-
             if (!buffer) {
                 console.error(`No sample found for note: ${sampleKey}`);
                 return;
             }
-
-            // Create audio nodes for playback
             const source = AudioContextManager.context.createBufferSource();
             source.buffer = buffer;
-
             const gainNode = AudioContextManager.context.createGain();
             gainNode.gain.value = chordVolume;
-
-            // Connect nodes
             source.connect(gainNode);
-
-            // Add reverb if available
             if (AudioContextManager.reverbNode) {
                 const reverbGain = AudioContextManager.context.createGain();
-                reverbGain.gain.value = 0.1; // Subtle reverb
+                reverbGain.gain.value = 0.1;
                 source.connect(reverbGain);
                 reverbGain.connect(AudioContextManager.reverbNode);
             }
-
             gainNode.connect(AudioContextManager.context.destination);
-
-            // Schedule playback
             source.start(startTime);
             source.stop(startTime + duration);
         });
 
-        console.log(`Playing chord: ${root} ${quality}`);
+        console.log(`Playing chord: ${root} ${quality} ${isSecondHalf && voicingType ? '(' + voicingType + ')' : ''}`);
     } catch (error) {
         console.error(`Error playing chord: ${root} ${quality}`, error);
     }
@@ -1461,30 +1449,40 @@ function playBuffer(buffer, type) {
 }
 
 function getDropVoicing(notes, type) {
+    // notes: array of note names, e.g. ["C", "E", "G", "B"]
+    // type: "drop2", "drop3", "drop2and4"
     let root = notes[0];
     let upper = notes.slice(1);
 
-    function lowerOctave(note) {
-        let pitch = note.slice(0, -1);
-        let octave = parseInt(note.slice(-1));
-        return pitch + (octave - 1);
+    function lowerOctave(note, octave) {
+        // e.g., "E", 4 -> "E3"
+        return note + (octave - 1);
     }
 
+    // We'll assign octaves later, just shuffle the order here
     switch(type) {
         case "drop2":
             if (upper.length >= 2) {
-                upper[upper.length - 2] = lowerOctave(upper[upper.length - 2]);
+                // Move 2nd highest down
+                let idx = upper.length - 2;
+                let note = upper.splice(idx, 1)[0];
+                upper.unshift(note); // Will assign lower octave later
             }
             break;
         case "drop3":
             if (upper.length >= 3) {
-                upper[upper.length - 3] = lowerOctave(upper[upper.length - 3]);
+                let idx = upper.length - 3;
+                let note = upper.splice(idx, 1)[0];
+                upper.unshift(note);
             }
             break;
         case "drop2and4":
             if (upper.length >= 4) {
-                upper[upper.length - 2] = lowerOctave(upper[upper.length - 2]);
-                upper[upper.length - 4] = lowerOctave(upper[upper.length - 4]);
+                let idx2 = upper.length - 2;
+                let idx4 = upper.length - 4;
+                let note2 = upper.splice(idx2, 1)[0];
+                let note4 = upper.splice(idx4, 1)[0];
+                upper.unshift(note4, note2);
             }
             break;
         default:
@@ -1808,14 +1806,15 @@ async function playBeat() {
                 const chordTuning = TUNINGS[UI.elements.chordTuning.value];
                 updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, chordTuning);
                 const beatDuration = 60 / AppState.tempo;
-                if (timeSignature === 4) {
-                    if (AppState.currentBeat === 0) {
-                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, false);
-                    } else if (AppState.currentBeat === 4) {
-                        playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, true);
-                    }
-                } else if (AppState.currentBeat === 0) {
-                    playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 4, false);
+               if (timeSignature === 4) {
+                if (AppState.currentBeat === 0) {
+                    // Beat 1: root position
+                    playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, false, null);
+                } else if (AppState.currentBeat === 4) {
+                    // Beat 3: random drop voicing
+                    const dropTypes = ["drop2", "drop3", "drop2and4"];
+                    const randomDrop = dropTypes[Math.floor(Math.random() * dropTypes.length)];
+                    playChord(root, quality, AudioContextManager.context.currentTime, beatDuration * 2, true, randomDrop);
                 }
             }
         }
