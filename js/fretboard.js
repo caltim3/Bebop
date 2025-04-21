@@ -1,8 +1,8 @@
-// js/components/fretboard.js
-import { NOTES, SCALES, TUNINGS } from '../utils/constants.js';
-import { standardizeNoteName } from '../utils/helpers.js';
-import { AudioContextManager } from '../core/audio-context.js';
-import { UI } from '../core/ui-manager.js';
+// Fix imports to use relative paths
+import { NOTES, SCALES, TUNINGS } from './constants.js';
+import { log } from './helpers.js';
+import { UI } from './ui-manager.js';
+import { AudioContextManager } from './audio-context.js';
 
 export function createFretboard(container, tuning) {
     container.innerHTML = '';
@@ -72,9 +72,7 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
         console.error('Invalid tuning');
         return;
     }
-    
     container.querySelectorAll('.note').forEach(note => note.remove());
-    
     if (container.id === 'chord-fretboard') {
         const measures = UI.elements.measures.children;
         if (measures.length > 0 && AppState.currentMeasure < measures.length) {
@@ -83,7 +81,6 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
             const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
             const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
             const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-            
             if (chordRoot && chordQuality && scaleRoot && scaleType) {
                 let displayQuality = chordQuality;
                 switch (chordQuality) {
@@ -93,14 +90,12 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
                     case 'min7b5': displayQuality = 'm7b5'; break;
                     case 'minor': displayQuality = 'm'; break;
                 }
-                
                 let displayScale = scaleType.charAt(0).toUpperCase() + scaleType.slice(1);
                 displayScale = displayScale.replace(/([A-Z])/g, ' $1').trim();
                 UI.elements.scaleDisplay.textContent = `${scaleRoot} ${displayScale} over ${chordRoot} ${displayQuality}`;
             }
         }
     }
-    
     const scaleIntervals = SCALES[scale];
     const standardizedRoot = standardizeNoteName(rootNote);
     const rootIndex = NOTES.indexOf(standardizedRoot);
@@ -108,15 +103,12 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
         const noteIndex = (rootIndex + interval) % 12;
         return NOTES[noteIndex];
     });
-    
     for (let string = 0; string < 6; string++) {
         const openNote = tuning[string];
         const openNoteIndex = NOTES.indexOf(openNote);
-        
         for (let fret = 0; fret <= 12; fret++) {
             const noteIndex = (openNoteIndex + fret) % 12;
             const currentNote = NOTES[noteIndex];
-            
             if (scaleNotes.includes(currentNote)) {
                 const noteElement = document.createElement('div');
                 noteElement.className = 'note';
@@ -124,7 +116,6 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
                 const fretOffset = fret === 0 ? 0 : ((fret - 0.5) / 12) * 100;
                 noteElement.style.left = `${fretOffset}%`;
                 noteElement.style.top = `${(string / 5) * 100}%`;
-                
                 const degree = scaleNotes.indexOf(currentNote);
                 if (currentNote === standardizedRoot) {
                     noteElement.style.backgroundColor = '#BD2031';
@@ -133,7 +124,6 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
                 } else {
                     noteElement.style.backgroundColor = '#4CAF50';
                 }
-                
                 noteElement.addEventListener('click', async () => {
                     try {
                         await AudioContextManager.ensureAudioContext();
@@ -141,12 +131,10 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
                         const octave = 3; // Default to octave 3 for fretboard clicks
                         const sampleKey = `${noteName}${octave}`;
                         const buffer = AudioContextManager.pianoSamples[sampleKey];
-                        
                         if (!buffer) {
                             console.error(`No sample for ${sampleKey}`);
                             return;
                         }
-                        
                         const source = AudioContextManager.context.createBufferSource();
                         source.buffer = buffer;
                         const gainNode = AudioContextManager.context.createGain();
@@ -155,7 +143,6 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
                         source.connect(gainNode);
                         gainNode.connect(AudioContextManager.context.destination);
                         source.start(0);
-                        
                         noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
                         setTimeout(() => {
                             noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
@@ -164,17 +151,31 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
                         console.error('Error playing note:', error);
                     }
                 });
-                
                 noteElement.addEventListener('mouseenter', () => {
                     noteElement.style.transform = 'translate(-50%, -50%) scale(1.1)';
                 });
-                
                 noteElement.addEventListener('mouseleave', () => {
                     noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
                 });
-                
                 container.appendChild(noteElement);
             }
         }
     }
+}
+
+function standardizeNoteName(note) {
+    if (!note) return 'C';
+    const match = note.match(/^([A-G])([b#])?(\d)?$/);
+    if (!match) return note.toUpperCase();
+    let [, letter, accidental, octave] = match;
+    letter = letter.toUpperCase();
+    const CHROMATIC = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+    if (accidental === 'b') {
+        const index = CHROMATIC.indexOf(letter);
+        return CHROMATIC[(index - 1 + 12) % 12];
+    } else if (accidental === '#') {
+        const index = CHROMATIC.indexOf(letter);
+        return CHROMATIC[(index + 1) % 12];
+    }
+    return letter;
 }
