@@ -1,8 +1,8 @@
-import { NOTES, SCALES, TUNINGS } from './constants.js';
+import { TUNINGS } from './constants.js';
 import { log } from './helpers.js';
 import { UI } from './ui-manager.js';
-import { AudioContextManager } from './audio-context.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
+import { AudioContextManager } from './audio-context.js';
 
 export function initializeFretFlow() {
     const fretboardsGrid = UI.elements.fretboardsGrid;
@@ -58,19 +58,14 @@ export function initializeFretFlow() {
     log("FretFlow initialized");
 }
 
-async function playNote(noteName, volume, duration) {
+function playNote(noteName, volume, duration) {
     try {
-        await AudioContextManager.ensureAudioContext();
-        const noteLower = noteName.toLowerCase().replace('b', '#');
-        const octave = 3; // Default octave
-        const sampleKey = `${noteLower}${octave}`;
+        const sampleKey = `${noteName.toLowerCase().replace('b', '#')}3`;
         const buffer = AudioContextManager.pianoSamples[sampleKey];
-        
         if (!buffer) {
             console.error(`No sample for ${sampleKey}`);
             return;
         }
-        
         const source = AudioContextManager.context.createBufferSource();
         source.buffer = buffer;
         const gainNode = AudioContextManager.context.createGain();
@@ -78,12 +73,9 @@ async function playNote(noteName, volume, duration) {
         source.connect(gainNode);
         gainNode.connect(AudioContextManager.context.destination);
         source.start(0);
-        
-        if (duration) {
-            setTimeout(() => {
-                source.stop();
-            }, duration);
-        }
+        setTimeout(() => {
+            source.stop();
+        }, duration);
     } catch (error) {
         console.error('Error playing note:', error);
     }
