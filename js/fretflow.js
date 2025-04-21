@@ -1,82 +1,181 @@
-import { TUNINGS } from './constants.js';
-import { log } from './helpers.js';
-import { UI } from './ui-manager.js';
-import { createFretboard, updateFretboardNotes } from './fretboard.js';
-import { AudioContextManager } from './audio-context.js';
+// js/fretboard.js
+import { NOTES, SCALES, TUNINGS } from '../utils/constants.js';
+import { AudioContextManager } from '../core/audio-context.js';
+import { UI } from '../core/ui-manager.js';
+import { standardizeNoteName } from '../utils/helpers.js';
 
-export function initializeFretFlow() {
-    const fretboardsGrid = UI.elements.fretboardsGrid;
-    const scales = ['major', 'minor', 'dorian', 'mixolydian'];
-    const tuning = TUNINGS[UI.elements.chordTuning.value];
-    fretboardsGrid.innerHTML = '';
-    
-    scales.forEach((scale, index) => {
-        const container = document.createElement('div');
-        container.className = 'fretboard-container';
-        container.innerHTML = `
-            <div class="scale-display">${UI.elements.keySelect.value} ${scale.charAt(0).toUpperCase() + scale.slice(1)}</div>
-            <div class="controls">
-                <select class="tuning-select" id="fretflow-tuning-${index}" aria-label="Select guitar tuning">
-                    <option value="standard">Standard (EADGBE)</option>
-                    <option value="dropD">Drop D (DADGBE)</option>
-                    <option value="openG">Open G (DGDGBD)</option>
-                    <option value="DADGAD">DADGAD</option>
-                    <option value="openE">Open E (EBEG#BE)</option>
-                </select>
-            </div>
-            <div id="fretflow-fretboard-${index}" class="fretboard"></div>
-        `;
-        fretboardsGrid.appendChild(container);
-        
-        const fretboard = container.querySelector(`#fretflow-fretboard-${index}`);
-        createFretboard(fretboard, tuning);
-        updateFretboardNotes(fretboard, UI.elements.keySelect.value, scale, tuning);
-        
-        // Add tuning change handler
-        const tuningSelect = container.querySelector(`#fretflow-tuning-${index}`);
-        tuningSelect.addEventListener('change', () => {
-            const newTuning = TUNINGS[tuningSelect.value];
-            createFretboard(fretboard, newTuning);
-            updateFretboardNotes(fretboard, UI.elements.keySelect.value, scale, newTuning);
-            
-            // Reattach note click handlers
-            const updatedNotes = fretboard.getElementsByClassName('note');
-            Array.from(updatedNotes).forEach(note => {
-                note.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const noteName = this.dataset.note;
-                    if (noteName) {
-                        const fretboardVolume = parseFloat(UI.elements.fretboardVolume.value) || 1.0;
-                        playNote(noteName, fretboardVolume, 500);
-                        log(`Playing note: ${noteName}`);
-                    }
-                }); 
-            });
-        });
+export function createFretboard(container, tuning) {
+    container.innerHTML = '';
+
+    // Create fret lines and fret numbers
+    for (let i = 0; i <= 12; i++) {
+        const fretLine = document.createElement('div');
+        fretLine.className = 'fret-line';
+        fretLine.style.left = `${(i / 12) * 100}%`;
+        container.appendChild(fretLine);
+
+        if (i > 0) { // Add fret numbers for frets 1-12
+            const fretNumber = document.createElement('div');
+            fretNumber.className = 'fret-number';
+            fretNumber.textContent = i;
+            fretNumber.style.left = `${((i - 0.5) / 12) * 100}%`;
+            container.appendChild(fretNumber);
+        }
+    }
+
+    // Create string lines
+    for (let i = 0; i < 6; i++) {
+        const stringLine = document.createElement('div');
+        stringLine.className = 'string-line';
+        stringLine.style.top = `${(i / 5) * 100}%`;
+        container.appendChild(stringLine);
+    }
+
+    // Add fret markers (dots)
+    const markerPositions = [3, 5, 7, 9, 12]; // Frets with markers
+    markerPositions.forEach(position => {
+        const marker = document.createElement('div');
+        marker.className = 'fret-marker';
+        marker.style.left = `${((position - 0.5) / 12) * 100}%`;
+
+        if (position === 12) {
+            // Double markers at the 12th fret
+            const topMarker = marker.cloneNode(true);
+            topMarker.style.top = '25%';
+            container.appendChild(topMarker);
+
+            const bottomMarker = marker.cloneNode(true);
+            bottomMarker.style.top = '75%';
+            container.appendChild(bottomMarker);
+        } else {
+            // Single marker
+            marker.style.top = '50%';
+            container.appendChild(marker);
+        }
     });
-    
-    log("FretFlow initialized");
 }
 
-function playNote(noteName, volume, duration) {
-    try {
-        const sampleKey = `${noteName.toLowerCase().replace('b', '#')}3`;
-        const buffer = AudioContextManager.pianoSamples[sampleKey];
-        if (!buffer) {
-            console.error(`No sample for ${sampleKey}`);
-            return;
+export function updateFretboardNotes(container, rootNote, scale, tuning) {
+    if (!(container instanceof HTMLElement)) {
+        console.error('Invalid container element');
+        return;
+    }
+    if (!NOTES.includes(standardizeNoteName(rootNote))) {
+        console.error(`Invalid root note: ${rootNote}`);
+        return;
+    }
+    if (!SCALES[scale]) {
+        console.error(`Invalid scale: ${scale}`);
+        return;
+    }
+    if (!Array.isArray(tuning) || tuning.length !== 6) {
+        console.error('Invalid tuning');
+        return;
+    }
+    
+    container.querySelectorAll('.note').forEach(note => note.remove());
+    
+    if (container.id === 'chord-fretboard') {
+        const measures = UI.elements.measures.children;
+        if (measures.length > 0 && AppState.currentMeasure < measures.length) {
+            const currentMeasureElement = measures[AppState.currentMeasure];
+            const chordRoot = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+            const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+            const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
+            const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+            
+            if (chordRoot && chordQuality && scaleRoot && scaleType) {
+                let displayQuality = chordQuality;
+                switch (chordQuality) {
+                    case 'dom7': displayQuality = '7'; break;
+                    case 'maj7': displayQuality = 'Maj7'; break;
+                    case 'min7': displayQuality = 'm7'; break;
+                    case 'min7b5': displayQuality = 'm7b5'; break;
+                    case 'minor': displayQuality = 'm'; break;
+                }
+                let displayScale = scaleType.charAt(0).toUpperCase() + scaleType.slice(1);
+                displayScale = displayScale.replace(/([A-Z])/g, ' $1').trim();
+                UI.elements.scaleDisplay.textContent = `${scaleRoot} ${displayScale} over ${chordRoot} ${displayQuality}`;
+            }
         }
-        const source = AudioContextManager.context.createBufferSource();
-        source.buffer = buffer;
-        const gainNode = AudioContextManager.context.createGain();
-        gainNode.gain.value = volume;
-        source.connect(gainNode);
-        gainNode.connect(AudioContextManager.context.destination);
-        source.start(0);
-        setTimeout(() => {
-            source.stop();
-        }, duration);
-    } catch (error) {
-        console.error('Error playing note:', error);
+    }
+    
+    const scaleIntervals = SCALES[scale];
+    const standardizedRoot = standardizeNoteName(rootNote);
+    const rootIndex = NOTES.indexOf(standardizedRoot);
+    
+    const scaleNotes = scaleIntervals.map(interval => {
+        const noteIndex = (rootIndex + interval) % 12;
+        return NOTES[noteIndex];
+    });
+    
+    for (let string = 0; string < 6; string++) {
+        const openNote = tuning[string];
+        const openNoteIndex = NOTES.indexOf(openNote);
+        
+        for (let fret = 0; fret <= 12; fret++) {
+            const noteIndex = (openNoteIndex + fret) % 12;
+            const currentNote = NOTES[noteIndex];
+            
+            if (scaleNotes.includes(currentNote)) {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'note';
+                noteElement.textContent = currentNote;
+                
+                const fretOffset = fret === 0 ? 0 : ((fret - 0.5) / 12) * 100;
+                noteElement.style.left = `${fretOffset}%`;
+                noteElement.style.top = `${(string / 5) * 100}%`;
+                
+                const degree = scaleNotes.indexOf(currentNote);
+                if (currentNote === standardizedRoot) {
+                    noteElement.style.backgroundColor = '#BD2031';
+                } else if ([2, 4, 6].includes(degree)) {
+                    noteElement.style.backgroundColor = '#006400';
+                } else {
+                    noteElement.style.backgroundColor = '#4CAF50';
+                }
+                
+                noteElement.addEventListener('click', async () => {
+                    try {
+                        await AudioContextManager.ensureAudioContext();
+                        const noteName = currentNote.toLowerCase().replace('b', '#');
+                        const octave = 3; // Default to octave 3 for fretboard clicks
+                        const sampleKey = `${noteName}${octave}`;
+                        const buffer = AudioContextManager.pianoSamples[sampleKey];
+                        
+                        if (!buffer) {
+                            console.error(`No sample for ${sampleKey}`);
+                            return;
+                        }
+                        
+                        const source = AudioContextManager.context.createBufferSource();
+                        source.buffer = buffer;
+                        const gainNode = AudioContextManager.context.createGain();
+                        const volume = parseFloat(UI.elements.chordFretboardVolume.value) || 0.3;
+                        gainNode.gain.value = volume;
+                        source.connect(gainNode);
+                        gainNode.connect(AudioContextManager.context.destination);
+                        source.start(0);
+                        
+                        noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                        setTimeout(() => {
+                            noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
+                        }, 100);
+                    } catch (error) {
+                        console.error('Error playing note:', error);
+                    }
+                });
+                
+                noteElement.addEventListener('mouseenter', () => {
+                    noteElement.style.transform = 'translate(-50%, -50%) scale(1.1)';
+                });
+                
+                noteElement.addEventListener('mouseleave', () => {
+                    noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
+                });
+                
+                container.appendChild(noteElement);
+            }
+        }
     }
 }
