@@ -533,8 +533,8 @@
 
 <div class="app-section" id="static-fretboards-section">
   <h2>Static Fretboards</h2>
-  <h3>Practice multiple scales simultaneously</h3>
   <div class="controls">
+    <label for="static-key-select">Key:</label>
     <select id="static-key-select">
       <option value="C">C</option>
       <option value="Db">Db</option>
@@ -549,40 +549,62 @@
       <option value="Bb">Bb</option>
       <option value="B">B</option>
     </select>
+    <label for="static-scale-select">Scale:</label>
     <select id="static-scale-select">
       <option value="major">Major</option>
       <option value="minor">Minor</option>
-      <option value="dorian">Dorian</option>
-      <option value="phrygian">Phrygian</option>
-      <option value="lydian">Lydian</option>
-      <option value="mixolydian">Mixolydian</option>
-      <option value="locrian">Locrian</option>
-      <option value="harmonicMinor">Harmonic Minor</option>
-      <option value="melodicMinor">Melodic Minor</option>
-      <option value="bebopDominant">Bebop Dominant</option>
-      <option value="bebopMajor">Bebop Major</option>
-      <option value="altered">Altered</option>
-      <option value="diminishedWH">Diminished (WH)</option>
-      <option value="diminishedHW">Diminished (HW)</option>
-      <option value="wholeHalf">Whole Tone</option>
+      <option value="pentatonic_major">Pentatonic Major</option>
+      <option value="pentatonic_minor">Pentatonic Minor</option>
       <option value="blues">Blues</option>
     </select>
   </div>
   <div class="fretboards-grid">
     <div class="fretboard-container">
+      <h3>Fretboard 1</h3>
       <div class="fretboard" id="static-fretboard-1"></div>
     </div>
     <div class="fretboard-container">
+      <h3>Fretboard 2</h3>
       <div class="fretboard" id="static-fretboard-2"></div>
     </div>
     <div class="fretboard-container">
+      <h3>Fretboard 3</h3>
       <div class="fretboard" id="static-fretboard-3"></div>
     </div>
     <div class="fretboard-container">
+      <h3>Fretboard 4</h3>
       <div class="fretboard" id="static-fretboard-4"></div>
     </div>
   </div>
 </div>
+
+<script>
+function initStaticFretboards() {
+  const keySelect = document.getElementById('static-key-select');
+  const scaleSelect = document.getElementById('static-scale-select');
+  const tuning = TUNINGS['standard']; // Default tuning
+
+  function updateStaticFretboards() {
+    const key = keySelect.value;
+    const scale = scaleSelect.value;
+    
+    // Update all 4 static fretboards
+    for (let i = 1; i <= 4; i++) {
+      const fretboard = document.getElementById(`static-fretboard-${i}`);
+      updateFretboardNotes(fretboard, key, scale, tuning);
+    }
+  }
+
+  keySelect.addEventListener('change', updateStaticFretboards);
+  scaleSelect.addEventListener('change', updateStaticFretboards);
+  
+  // Initialize with default values
+  updateStaticFretboards();
+}
+
+// Call initStaticFretboards when the document is ready
+
+</script>
     
     <div class="app-section" id="metronome-section">
         <h2>BeatForge Metronome</h2>
@@ -3109,6 +3131,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeApp().catch(error => {
         console.error("Initialization failed:", error);
         updateLoadingStatus("Initialization failed");
+        initStaticFretboards();
+});
     });
 });
             </script>
