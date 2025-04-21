@@ -1860,37 +1860,51 @@ function stopPlayback() {
 }
 
 function getChordFromFunction(chordFunction, key) {
-    // This is a basic implementation for major keys.
-    // You may want to expand it for minor keys and more advanced progressions.
+    // Determine if the key is minor
+    const isMinor = isMinorKeyName(key);
+    // Remove 'm' or 'min' from key to get the root
+    const keyRoot = key.replace(/m(in)?$/, '');
+    // Use your NOTES array for chromatic scale
     const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11];
-    const keyIndex = NOTES.indexOf(key.replace('b', '#'));
-    let degree = 0;
-    let quality = '';
+    // Standardize key name (handle flats)
+    let keyIndex = NOTES.indexOf(keyRoot);
+    if (keyIndex === -1) {
+        // Try enharmonic equivalents
+        const enharmonic = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
+        keyIndex = NOTES.indexOf(enharmonic[keyRoot] || keyRoot);
+    }
+    if (keyIndex === -1) keyIndex = 0; // Default to C if not found
 
-    // Extract degree and quality from chordFunction
-    const match = chordFunction.match(/^([b#]?\w+)(.*)$/);
-    if (match) {
-        let roman = match[1];
-        quality = match[2] || '';
-        // Map roman numerals to scale degrees
-        const romanMap = {
-            'I': 0, 'II': 1, 'III': 2, 'IV': 3, 'V': 4, 'VI': 5, 'VII': 6,
-            'i': 0, 'ii': 1, 'iii': 2, 'iv': 3, 'v': 4, 'vi': 5, 'vii': 6,
-        };
-        // Handle flats and sharps
-        let accidental = 0;
-        if (roman.startsWith('b')) { accidental = -1; roman = roman.slice(1); }
-        if (roman.startsWith('#')) { accidental = 1; roman = roman.slice(1); }
-        if (romanMap[roman] !== undefined) {
-            degree = romanMap[roman];
-            let noteIndex = (keyIndex + MAJOR_SCALE[degree] + accidental + 12) % 12;
-            let note = NOTES[noteIndex];
-            return note + quality;
+    // Choose the correct scaleDegrees mapping
+    const degreeMap = isMinor ? scaleDegrees.minor : scaleDegrees.major;
+
+    // Try to find the degree and quality
+    let degree = null;
+    let quality = '';
+    // Try to match the full chordFunction (e.g., "iim7b5")
+    if (degreeMap[chordFunction]) {
+        degree = degreeMap[chordFunction];
+        // Extract quality (e.g., "m7b5" from "iim7b5")
+        quality = chordFunction.replace(/^[b#]?[ivIV]+/, '');
+    } else {
+        // Try to match the root (e.g., "ii" from "iim7b5")
+        const match = chordFunction.match(/^([b#]?[ivIV]+)(.*)$/);
+        if (match) {
+            const roman = match[1];
+            quality = match[2] || '';
+            if (degreeMap[roman]) {
+                degree = degreeMap[roman];
+            }
         }
     }
-    // Fallback: just return the function as-is
-    return chordFunction;
+    if (degree === null) {
+        // Fallback: just return the function as-is
+        return chordFunction;
+    }
+    // Calculate the note index
+    let noteIndex = (keyIndex + degree) % 12;
+    let note = NOTES[noteIndex];
+    return note + quality;
 }
 
  function parseChord(chord) {
