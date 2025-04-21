@@ -937,8 +937,8 @@ const UI = {
 // Audio Management
 const AudioContextManager = {
     context: null,
-    soundBuffers: {},
-    pianoSampleBuffers: {},
+    soundBuffers: {}, // For drum sounds (click, hihat, etc.)
+    pianoSamples: {}, // Replaces pianoSampleBuffers for WAVs
     reverbNode: null,
     samplesLoaded: false,
     currentChordGain: null,
@@ -953,6 +953,7 @@ const AudioContextManager = {
             await this.context.resume();
         }
         AppState.updateState({ audioInitialized: true });
+        this.samplesLoaded = true; // Update flag
         return this.context;
     },
     async ensureAudioContext() {
@@ -981,17 +982,22 @@ const AudioContextManager = {
         }
         updateLoadingStatus("Drum sounds loaded");
     },
-    async createDrumSound(type) {
+    
+async createDrumSound(type) {
         const sampleRate = this.context.sampleRate;
         const duration = type === 'hihat' ? 0.05 : 0.2;
         const buffer = this.context.createBuffer(1, sampleRate * duration, sampleRate);
         const data = buffer.getChannelData(0);
         switch (type) {
             case 'click':
-                for (let i = 0; i < data.length; i++) data[i] = Math.sin(i * 0.05) * Math.exp(-i * 0.01);
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = Math.sin(i * 0.05) * Math.exp(-i * 0.01);
+                }
                 break;
             case 'hihat':
-                for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.01));
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.01));
+                }
                 break;
             case 'kick':
                 for (let i = 0; i < data.length; i++) {
@@ -1011,30 +1017,33 @@ const AudioContextManager = {
                     data[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 20);
                 }
                 break;
+            default:
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = Math.random() * 2 - 1; // Fallback noise
+                }
+                break;
         }
         return buffer;
-    },
-    async loadPianoSamples() {
-        log('Starting piano sample loading...');
-        if (!this.context) {
-            await this.initialize();
-        }
-        for (let note of SAMPLED_NOTES) {
-            for (let octave of PIANO_CONFIG.octaves[note]) {
-                const sampleName = `${note}${octave}v12`;
+    }
+};
+        
+async loadPianoSamples() {
+        const octaves = [2, 3, 4, 5];
+        const notes = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
+        for (const octave of octaves) {
+            for (const note of notes) {
+                const sampleName = `${note}${octave}.wav`; // e.g., 'c#3.wav'
                 try {
-                    const response = await fetch(`./${sampleName}.${PIANO_CONFIG.fileFormat}`);
+                    const response = await fetch(`./${sampleName}`);
                     if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
                     const arrayBuffer = await response.arrayBuffer();
-                    this.pianoSampleBuffers[sampleName] = await this.context.decodeAudioData(arrayBuffer);
-                    log(`Loaded piano sample: ${sampleName}`);
+                    this.pianoSamples[`${note}${octave}`] = await this.context.decodeAudioData(arrayBuffer);
+                    log(`Loaded ${sampleName}`);
                 } catch (error) {
-                    console.warn(`Could not load ${sampleName}, using fallback`, error);
-                    this.pianoSampleBuffers[sampleName] = this.createSyntheticSample(note, octave);
+                    console.error(`Error loading ${sampleName}:`, error);
                 }
             }
         }
-        this.samplesLoaded = true;
         updateLoadingStatus("Piano samples loaded");
     },
     createSyntheticSample(note, octave) {
@@ -1046,23 +1055,21 @@ const AudioContextManager = {
         }
         return buffer;
     },
-    async setupReverb() {
-        if (!this.reverbNode) {
-            this.reverbNode = this.context.createConvolver();
-            const sampleRate = this.context.sampleRate;
-            const length = sampleRate * 2.5;
-            const impulse = this.context.createBuffer(2, length, sampleRate);
-            for (let channel = 0; channel < 2; channel++) {
-                const channelData = impulse.getChannelData(channel);
-                for (let i = 0; i < length; i++) {
-                    channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
-                }
+async setupReverb() {
+        this.reverbNode = this.context.createConvolver();
+        const sampleRate = this.context.sampleRate;
+        const length = sampleRate * 2.5;
+        const impulse = this.context.createBuffer(2, length, sampleRate);
+        for (let channel = 0; channel < 2; channel++) {
+            const channelData = impulse.getChannelData(channel);
+            for (let i = 0; i < length; i++) {
+                channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
             }
-            this.reverbNode.buffer = impulse;
-            this.reverbNode.connect(this.context.destination);
         }
-    }
-};
+        this.reverbNode.buffer = impulse;
+        this.reverbNode.connect(this.context.destination);
+    },
+    
 async function ensureAudioInitialized() {
     if (!AudioContextManager.context || AudioContextManager.context.state === 'suspended') {
         try {
@@ -1596,41 +1603,39 @@ function playNote(noteName, volume = 1.0, duration = 1000) {
 }
 
 
-async function playChord(root, quality, startTime = AudioContextManager.context.currentTime, duration = 2, isContinuation = false) {
-  await ensureAudioInitialized();
-  if (!AudioContextManager.samplesLoaded) {
-    console.warn('Piano samples not loaded yet');
-    return;
-  }
-  if (!UI.elements.chordsEnabled.classList.contains('active')) return;
-  const chordNotes = getChordNotes(root, quality);
-  const chordVolume = parseFloat(UI.elements.chordVolume.value);
-  if (chordVolume <= 0) return;
-  const gainNode = AudioContextManager.context.createGain();
-  gainNode.gain.value = chordVolume;
-  if (!isContinuation && AudioContextManager.currentChordGain) {
-    AudioContextManager.currentChordGain.gain.setValueAtTime(AudioContextManager.currentChordGain.gain.value, startTime);
-    AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.05);
-  }
-  AudioContextManager.currentChordGain = gainNode;
-  for (let i = 0; i < chordNotes.length; i++) {
-    const note = chordNotes[i];
-    const octave = i === 0 ? 3 : 4;
-    const { sampleKey, semitoneDiff } = getPitchShiftedNote(note, octave);
-    const playbackRate = Math.pow(2, semitoneDiff / 12);
-    const source = AudioContextManager.context.createBufferSource();
-    source.buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
-    source.playbackRate.value = playbackRate;
-    source.connect(gainNode);
-    gainNode.connect(AudioContextManager.context.destination);
-    const reverbGain = AudioContextManager.context.createGain();
-    reverbGain.gain.value = 0.2;
-    source.connect(reverbGain);
-    reverbGain.connect(AudioContextManager.reverbNode);
-    source.start(startTime);
-    source.stop(startTime + duration);
-    log(`[playChord] ${note}${octave} → ${sampleKey} @ ${playbackRate.toFixed(3)}x`);
-  }
+async function playChord(root, quality, startTime = 0, duration = 1, isSecondHalf = false) {
+    await AudioContextManager.initialize();
+    const chordNotes = getChordNotes(root, quality);
+    const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
+
+    if (UI.elements.chordsEnabled.classList.contains('active')) {
+        chordNotes.forEach((note, i) => {
+            const octave = i === 0 ? 3 : 4;
+            const sampleKey = `${note}${octave}`;
+            const buffer = AudioContextManager.pianoSamples[sampleKey];
+            if (!buffer) {
+                console.error(`No sample for ${sampleKey}`);
+                return;
+            }
+
+            const source = AudioContextManager.context.createBufferSource();
+            source.buffer = buffer;
+            const gainNode = AudioContextManager.context.createGain();
+            gainNode.gain.value = chordVolume;
+            source.connect(gainNode);
+
+            if (AudioContextManager.reverbNode) {
+                const reverbGain = AudioContextManager.context.createGain();
+                reverbGain.gain.value = 0.1;
+                source.connect(reverbGain);
+                reverbGain.connect(AudioContextManager.reverbNode);
+            }
+
+            gainNode.connect(AudioContextManager.context.destination);
+            source.start(startTime);
+            source.stop(startTime + duration);
+        });
+    }
 }
 
 function getChordNotes(root, quality) {
