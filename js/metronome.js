@@ -1,9 +1,9 @@
 // js/metronome.js
-import { AudioContextManager } from '../core/audio-context.js';
-import { UI } from '../core/ui-manager.js';
+import { AudioContextManager } from './core/audio-context.js';
+import { UI } from './core/ui-manager.js';
 import { AppState } from './app-state.js';
-import { drumSoundSets } from '../utils/constants.js';
-import { log } from '../utils/helpers.js';
+import { drumSoundSets } from './utils/constants.js';
+import { log } from './utils/helpers.js';
 
 let currentDrumSetIndex = 0;
 
