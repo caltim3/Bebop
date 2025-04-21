@@ -1956,6 +1956,26 @@ function getChordFromFunction(chordFunction, key) {
           }
           return letter;
         }  
+
+        function createKeyOptions(selected = 'C') {
+            return NOTES.map(note =>
+                `<option value="${note}"${note === selected ? ' selected' : ''}>${note}</option>`
+            ).join('');
+        }
+
+        function createQualityOptions(selected = 'major') {
+            const qualities = [
+                { value: 'major', label: 'Major' },
+                { value: 'minor', label: 'Minor' },
+                { value: 'dom7', label: '7' },
+                { value: 'maj7', label: 'Maj7' },
+                { value: 'min7', label: 'Min7' },
+                { value: 'min7b5', label: 'Min7b5 (Half Diminished)' }
+            ];
+            return qualities.map(q =>
+                `<option value="${q.value}"${q.value === selected ? ' selected' : ''}>${q.label}</option>`
+            ).join('');
+        }
 // Chord Progression Management
 function loadProgression(progressionName, overrideKey = null) {
     if (!progressionName || !progressions[progressionName]) {
