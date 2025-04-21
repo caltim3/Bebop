@@ -1,21 +1,16 @@
-// js/utils/music-theory.js
-import { NOTES, SCALES, SCALE_DEGREES } from './constants.js';
-import { standardizeNoteName, isMinorKeyName } from './helpers.js';
+// js/music-theory.js
+import { NOTES } from '../utils/constants.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { UI } from '../core/ui-manager.js';
+import { standardizeNoteName, getQualityValue } from '../utils/helpers.js';
 
 export function getChordNotes(root, quality) {
-    const standardizeNoteName = (note) => {
-        if (!note) return null;
-        const normalized = note.toLowerCase().replace('♯', '#').replace('♭', 'b');
-        const enharmonicMap = {
-            'cb': 'B', 'db': 'C#', 'eb': 'D#', 'fb': 'E', 'gb': 'F#',
-            'ab': 'G#', 'bb': 'A#', 'e#': 'F', 'b#': 'C', 'c##': 'D',
-            'd##': 'E', 'f##': 'G', 'g##': 'A', 'a##': 'B'
-        };
-        const baseNote = enharmonicMap[normalized] || normalized.toUpperCase();
-        return NOTES.includes(baseNote) ? baseNote : null;
-    };
+    // Use uppercase NOTES to match fretboard logic
+    const standardizedRoot = standardizeNoteName(root);
+    if (!standardizedRoot) {
+        console.error(`Invalid root note: ${root}`);
+        return [];
+    }
 
     const CHORD_INTERVALS = {
         'major': [0, 4, 7],
@@ -34,12 +29,6 @@ export function getChordNotes(root, quality) {
         'sus4': [0, 5, 7],
         'add9': [0, 4, 7, 14]
     };
-
-    const standardizedRoot = standardizeNoteName(root);
-    if (!standardizedRoot) {
-        console.error(`Invalid root note: ${root}`);
-        return [];
-    }
 
     const normalizedQuality = quality ? quality.toLowerCase().replace('m7', 'min7') : 'major';
     const intervals = CHORD_INTERVALS[normalizedQuality] || CHORD_INTERVALS['major'];
@@ -108,114 +97,60 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
     }
 }
 
-export function getDropVoicing(notes, type) {
-    // notes: array of note names, e.g. ["C", "E", "G", "B"]
-    // type: "drop2", "drop3", "drop2and4"
-    let root = notes[0];
-    let upper = notes.slice(1);
-
-    // We'll assign octaves later, just shuffle the order here
-    switch(type) {
-        case "drop2":
-            if (upper.length >= 2) {
-                // Move 2nd highest down
-                let idx = upper.length - 2;
-                let note = upper.splice(idx, 1)[0];
-                upper.unshift(note); // Will assign lower octave later
-            }
-            break;
-        case "drop3":
-            if (upper.length >= 3) {
-                let idx = upper.length - 3;
-                let note = upper.splice(idx, 1)[0];
-                upper.unshift(note);
-            }
-            break;
-        case "drop2and4":
-            if (upper.length >= 4) {
-                let idx2 = upper.length - 2;
-                let idx4 = upper.length - 4;
-                let note2 = upper.splice(idx2, 1)[0];
-                let note4 = upper.splice(idx4, 1)[0];
-                upper.unshift(note4, note2);
-            }
-            break;
-        default:
-            break;
+export function getChordFromFunction(chordFunction, key) {
+    // Determine if the key is minor
+    const isMinor = key && (key.endsWith('m') || key.endsWith('min'));
+    // Remove 'm' or 'min' from key to get the root
+    const keyRoot = key.replace(/m(in)?$/, '');
+    
+    // Standardize key name (handle flats)
+    let keyIndex = NOTES.indexOf(keyRoot);
+    if (keyIndex === -1) {
+        // Try enharmonic equivalents
+        const enharmonic = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
+        keyIndex = NOTES.indexOf(enharmonic[keyRoot] || keyRoot);
     }
-    return [root, ...upper];
-}
+    if (keyIndex === -1) keyIndex = 0; // Default to C if not found
 
-export function getQualityValue(quality) {
-    const qualityMap = {
-        '': 'major',
-        'm': 'minor',
-        '7': 'dom7',
-        'dom7': 'dom7',
-        'maj7': 'maj7',
-        'm7': 'min7',
-        'min7': 'min7',
-        'dim': 'dim',
-        'min7b5': 'min7b5'
-    };
-    return qualityMap[quality] || 'major';
-}
+    // Import scaleDegrees from constants
+    const { scaleDegrees } = await import('../utils/constants.js');
 
-export function suggestScaleForQuality(quality) {
-    const scaleMap = {
-        '': 'major',
-        'maj7': 'major',
-        'maj9': 'major',
-        'maj13': 'major',
-        'maj7#11': 'lydian',
-        'm': 'dorian',
-        'm7': 'dorian',
-        'm9': 'dorian',
-        'm11': 'dorian',
-        'm13': 'dorian',
-        'dom7': 'mixolydian',
-        '7': 'mixolydian',
-        '9': 'mixolydian',
-        '13': 'mixolydian',
-        '7b9': 'bebopPhrygian',
-        '7#9': 'mixolydian',
-        '7#11': 'lydian',
-        '7b13': 'mixolydian',
-        '7#5': 'wholeHalf',
-        '7b5': 'mixolydian',
-        'dim7': 'diminished',
-        'dim': 'diminished',
-        'm7b5': 'locrian',
-        'aug7': 'wholeHalf',
-        'aug': 'wholeHalf',
-        '6': 'major',
-        'm6': 'melodicMinor',
-        'sus4': 'mixolydian',
-        'sus2': 'mixolydian',
-        'add9': 'major',
-        '7sus4': 'mixolydian',
-        'minMaj7': 'melodicMinor',
-        '7alt': 'altered'
-    };
-    return scaleMap[quality] || 'major';
-}
+    // Choose the correct scaleDegrees mapping
+    const degreeMap = isMinor ? scaleDegrees.minor : scaleDegrees.major;
 
-export function getCompatibleScales(chord, quality) {
-    const scaleChoices = {
-        'major': ['major', 'lydian', 'mixolydian'],
-        'minor': ['dorian', 'phrygian', 'aeolian'],
-        'dominant': ['mixolydian', 'lydianDominant', 'altered', 'bebopDominant'],
-        'halfDiminished': ['locrian', 'locrian#2'],
-        'diminished': ['diminishedWH', 'diminishedHW'],
-        'altered': ['altered', 'diminishedWH']
-    };
-    return scaleChoices[quality] || [];
+    // Try to find the degree and quality
+    let degree = null;
+    let quality = '';
+    // Try to match the full chordFunction (e.g., "iim7b5")
+    if (degreeMap[chordFunction]) {
+        degree = degreeMap[chordFunction];
+        // Extract quality (e.g., "m7b5" from "iim7b5")
+        quality = chordFunction.replace(/^[b#]?[ivIV]+/, '');
+    } else {
+        // Try to match the root (e.g., "ii" from "iim7b5")
+        const match = chordFunction.match(/^([b#]?[ivIV]+)(.*)$/);
+        if (match) {
+            const roman = match[1];
+            quality = match[2] || '';
+            if (degreeMap[roman]) {
+                degree = degreeMap[roman];
+            }
+        }
+    }
+    if (degree === null) {
+        // Fallback: just return the function as-is
+        return chordFunction;
+    }
+    // Calculate the note index
+    let noteIndex = (keyIndex + degree) % 12;
+    let note = NOTES[noteIndex];
+    return note + quality;
 }
 
 export function parseChord(chord) {
     if (!chord) return ['C', 'maj'];
     
-    // Updated regex to catch more qualities
+    // Updated regex to catch more qualities, including dom7, m7b5, and alt chords
     const regex = /^([A-Ga-g][b#]?)(maj7|m7b5|min7|m7|maj|min|dim7|dim|aug|sus2|sus4|add9|7b9|7#9|7b13|7#11|7|6|9|11|13|°|ø)?$/;
     const match = chord.match(regex);
     
@@ -254,54 +189,8 @@ export function parseChord(chord) {
             quality = '7';
             break;
         default:
-            break; // leave as-is
+            break; // leave as-is (e.g., add9, 9, 13, etc.)
     }
     
     return [root, quality];
-}
-
-export function getChordFromFunction(chordFunction, key) {
-    // Determine if the key is minor
-    const isMinor = isMinorKeyName(key);
-    // Remove 'm' or 'min' from key to get the root
-    const keyRoot = key.replace(/m(in)?$/, '');
-    // Standardize key name (handle flats)
-    let keyIndex = NOTES.indexOf(keyRoot);
-    if (keyIndex === -1) {
-        // Try enharmonic equivalents
-        const enharmonic = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
-        keyIndex = NOTES.indexOf(enharmonic[keyRoot] || keyRoot);
-    }
-    if (keyIndex === -1) keyIndex = 0; // Default to C if not found
-
-    // Choose the correct scaleDegrees mapping
-    const degreeMap = isMinor ? SCALE_DEGREES.minor : SCALE_DEGREES.major;
-
-    // Try to find the degree and quality
-    let degree = null;
-    let quality = '';
-    // Try to match the full chordFunction (e.g., "iim7b5")
-    if (degreeMap[chordFunction]) {
-        degree = degreeMap[chordFunction];
-        // Extract quality (e.g., "m7b5" from "iim7b5")
-        quality = chordFunction.replace(/^[b#]?[ivIV]+/, '');
-    } else {
-        // Try to match the root (e.g., "ii" from "iim7b5")
-        const match = chordFunction.match(/^([b#]?[ivIV]+)(.*)$/);
-        if (match) {
-            const roman = match[1];
-            quality = match[2] || '';
-            if (degreeMap[roman]) {
-                degree = degreeMap[roman];
-            }
-        }
-    }
-    if (degree === null) {
-        // Fallback: just return the function as-is
-        return chordFunction;
-    }
-    // Calculate the note index
-    let noteIndex = (keyIndex + degree) % 12;
-    let note = NOTES[noteIndex];
-    return note + quality;
 }
