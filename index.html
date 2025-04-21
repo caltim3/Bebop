@@ -9,7 +9,6 @@
     <style>
         body {
             font-family: 'Lato', sans-serif;
-            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             background-color: #1f618d;
@@ -532,6 +531,59 @@
         </div>
     </div>
 
+<div class="app-section" id="static-fretboards-section">
+  <h2>Static Fretboards</h2>
+  <h3>Practice multiple scales simultaneously</h3>
+  <div class="controls">
+    <select id="static-key-select">
+      <option value="C">C</option>
+      <option value="Db">Db</option>
+      <option value="D">D</option>
+      <option value="Eb">Eb</option>
+      <option value="E">E</option>
+      <option value="F">F</option>
+      <option value="Gb">Gb</option>
+      <option value="G">G</option>
+      <option value="Ab">Ab</option>
+      <option value="A">A</option>
+      <option value="Bb">Bb</option>
+      <option value="B">B</option>
+    </select>
+    <select id="static-scale-select">
+      <option value="major">Major</option>
+      <option value="minor">Minor</option>
+      <option value="dorian">Dorian</option>
+      <option value="phrygian">Phrygian</option>
+      <option value="lydian">Lydian</option>
+      <option value="mixolydian">Mixolydian</option>
+      <option value="locrian">Locrian</option>
+      <option value="harmonicMinor">Harmonic Minor</option>
+      <option value="melodicMinor">Melodic Minor</option>
+      <option value="bebopDominant">Bebop Dominant</option>
+      <option value="bebopMajor">Bebop Major</option>
+      <option value="altered">Altered</option>
+      <option value="diminishedWH">Diminished (WH)</option>
+      <option value="diminishedHW">Diminished (HW)</option>
+      <option value="wholeHalf">Whole Tone</option>
+      <option value="blues">Blues</option>
+    </select>
+  </div>
+  <div class="fretboards-grid">
+    <div class="fretboard-container">
+      <div class="fretboard" id="static-fretboard-1"></div>
+    </div>
+    <div class="fretboard-container">
+      <div class="fretboard" id="static-fretboard-2"></div>
+    </div>
+    <div class="fretboard-container">
+      <div class="fretboard" id="static-fretboard-3"></div>
+    </div>
+    <div class="fretboard-container">
+      <div class="fretboard" id="static-fretboard-4"></div>
+    </div>
+  </div>
+</div>
+    
     <div class="app-section" id="metronome-section">
         <h2>BeatForge Metronome</h2>
         <h3>Click to accent strong beats</h3>
@@ -1312,6 +1364,33 @@ function getNoteFromScaleDegree(degree, key, scale) {
     return flattenNote(note);                    // keep everything flat‑friendly
 }
 // ------------------------------------------------------------------
+
+// Add to your initialization code
+function initStaticFretboards() {
+  const keySelect = document.getElementById('static-key-select');
+  const scaleSelect = document.getElementById('static-scale-select');
+  const tuning = TUNINGS['standard'];
+  
+  function updateStaticFretboards() {
+    const key = keySelect.value;
+    const scale = scaleSelect.value;
+    
+    for (let i = 1; i <= 4; i++) {
+      const fretboard = document.getElementById(`static-fretboard-${i}`);
+      updateFretboardNotes(fretboard, key, scale, tuning);
+    }
+  }
+  
+  keySelect.addEventListener('change', updateStaticFretboards);
+  scaleSelect.addEventListener('change', updateStaticFretboards);
+  
+  // Initial update
+  updateStaticFretboards();
+}
+
+// Call this in your initialization
+initStaticFretboards();
+
         
 function standardizeNoteName(note) {
   if (!note) return 'C';
