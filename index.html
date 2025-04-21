@@ -1976,6 +1976,12 @@ function getChordFromFunction(chordFunction, key) {
                 `<option value="${q.value}"${q.value === selected ? ' selected' : ''}>${q.label}</option>`
             ).join('');
         }
+
+        function createScaleOptions(selected = 'major') {
+            return Object.keys(SCALES).map(scale =>
+                `<option value="${scale}"${scale === selected ? ' selected' : ''}>${scale.charAt(0).toUpperCase() + scale.slice(1)}</option>`
+            ).join('');
+        }
 // Chord Progression Management
 function loadProgression(progressionName, overrideKey = null) {
     if (!progressionName || !progressions[progressionName]) {
