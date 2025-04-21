@@ -604,8 +604,8 @@
             </select>
                   <button 
                     id="drumSetToggleBtn" 
-                    className="control-button"
-                    onClick={() => {
+                  class="control-button"
+                  onclick="cycleDrumSet()"
                       // Cycle through the drum sets
                       const drumSets = ['ginger', 'clyde', 'philly'];
                       const currentIndex = drumSets.indexOf(drumSet);
@@ -1391,6 +1391,26 @@ function initStaticFretboards() {
 // Call this in your initialization
 initStaticFretboards();
 
+   // Add to your initialization code
+let currentDrumSetIndex = 0;
+const drumSetNames = ['Ginger', 'Clyde', 'Philly Joe'];
+
+function cycleDrumSet() {
+  currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSetNames.length;
+  document.getElementById('drumSetToggleBtn').textContent = 
+    `Drums: ${drumSetNames[currentDrumSetIndex]}`;
+  log(`Switched to drum set: ${drumSetNames[currentDrumSetIndex]}`);
+}
+
+// Update the playMetronomeSound function to use currentDrumSetIndex
+async function playMetronomeSound(baseVolume) {
+  // ... existing code ...
+  
+  // Get the current drum set
+  const currentSet = drumSoundSets[currentDrumSetIndex];
+  
+  // ... rest of the function remains the same ...
+}     
         
 function standardizeNoteName(note) {
   if (!note) return 'C';
@@ -1895,26 +1915,45 @@ function playNote(noteName, volume = 1.0, duration = 1000) {
 }
 
 
-async function playChord(root, quality, startTime = AudioContextManager.context.currentTime, duration = 2, isContinuation = false) {
+async function playChord(root, quality, inversionType = 'root', startTime = AudioContextManager.context.currentTime, duration = 2, isContinuation = false) {
   await ensureAudioInitialized();
   if (!AudioContextManager.samplesLoaded) {
     console.warn('Piano samples not loaded yet');
     return;
   }
   if (!UI.elements.chordsEnabled.classList.contains('active')) return;
-  const chordNotes = getChordNotes(root, quality);
+  
+  // Get and invert chord notes
+  const originalChordNotes = getChordNotes(root, quality);
+  const chordNotes = applyInversion(originalChordNotes, inversionType);
+  
   const chordVolume = parseFloat(UI.elements.chordVolume.value);
   if (chordVolume <= 0) return;
   const gainNode = AudioContextManager.context.createGain();
   gainNode.gain.value = chordVolume;
+  
   if (!isContinuation && AudioContextManager.currentChordGain) {
     AudioContextManager.currentChordGain.gain.setValueAtTime(AudioContextManager.currentChordGain.gain.value, startTime);
     AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.05);
   }
   AudioContextManager.currentChordGain = gainNode;
+  
+  // Process each note with inversion-aware octave handling
+  const baseOctave = 3;
   for (let i = 0; i < chordNotes.length; i++) {
     const note = chordNotes[i];
-    const octave = i === 0 ? 3 : 4;
+    let octave = baseOctave;
+    
+    // Octave adjustment logic
+    const midiValue = noteToMidi(note) + (baseOctave * 12);
+    if (midiValue > 60 + 12) { // C5 is 60 + 12 = 72 MIDI
+      octave = 3;
+    } else if (i === 0) {
+      octave = 3; // Root stays in lowest octave
+    } else {
+      octave = 4; // Upper notes in higher octave
+    }
+    
     const { sampleKey, semitoneDiff } = getPitchShiftedNote(note, octave);
     const playbackRate = Math.pow(2, semitoneDiff / 12);
     const source = AudioContextManager.context.createBufferSource();
@@ -1922,69 +1961,16 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
     source.playbackRate.value = playbackRate;
     source.connect(gainNode);
     gainNode.connect(AudioContextManager.context.destination);
+    
     const reverbGain = AudioContextManager.context.createGain();
     reverbGain.gain.value = 0.2;
     source.connect(reverbGain);
     reverbGain.connect(AudioContextManager.reverbNode);
+    
     source.start(startTime);
     source.stop(startTime + duration);
     log(`[playChord] ${note}${octave} → ${sampleKey} @ ${playbackRate.toFixed(3)}x`);
   }
-}
-
-// 1. Create inversion helper function
-const applyInversion = (originalNotes, inversionType) => {
-  const notes = [...originalNotes]; // Make copy to avoid mutation
-  switch(inversionType) {
-    case 'drop2':
-      return [notes[0], notes[2], notes[3], notes[1]];
-    case 'drop3':
-      return [notes[0], notes[3], notes[1], notes[2]];
-    case 'drop2and4':
-      return [notes[0], notes[2], notes[1], notes[3]];
-    default:
-      return notes;
-  }
-};
-
-// 2. Create new playNotes function (similar to playChord but takes notes directly)
-async function playNotes(notes, startTime, duration = 2, isContinuation = false) {
-  await ensureAudioInitialized();
-  if (!AudioContextManager.samplesLoaded) return;
-  if (!UI.elements.chordsEnabled.classList.contains('active')) return;
-  const chordVolume = parseFloat(UI.elements.chordVolume.value);
-  if (chordVolume <= 0) return;
-  const gainNode = AudioContextManager.context.createGain();
-  gainNode.gain.value = chordVolume;
-  if (!isContinuation && AudioContextManager.currentChordGain) {
-    AudioContextManager.currentChordGain.gain.setValueAtTime(
-      AudioContextManager.currentChordGain.gain.value, 
-      startTime
-    );
-    AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(
-      0.001, 
-      startTime + 0.05
-    );
-  }
-  AudioContextManager.currentChordGain = gainNode;
-  
-  notes.forEach((note, i) => {
-    const octave = i === 0 ? 3 : 4; // Keep bass in lower octave
-    const { sampleKey, semitoneDiff } = getPitchShiftedNote(note, octave);
-    const playbackRate = Math.pow(2, semitoneDiff / 12);
-    const source = AudioContextManager.context.createBufferSource();
-    source.buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
-    source.playbackRate.value = playbackRate;
-    source.connect(gainNode);
-    gainNode.connect(AudioContextManager.context.destination);
-    const reverbGain = AudioContextManager.context.createGain();
-    reverbGain.gain.value = 0.2;
-    source.connect(reverbGain);
-    reverbGain.connect(AudioContextManager.reverbNode);
-    source.start(startTime);
-    source.stop(startTime + duration);
-    log(`[playNotes] ${note}${octave} → ${sampleKey} @ ${playbackRate.toFixed(3)}x`);
-  });
 }
 
 // 3. Modify your chord playback loop (example implementation):
