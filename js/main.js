@@ -1,11 +1,11 @@
 // js/main.js
-import { AppState } from './js/app-state.js';
+import { AppState } from './app-state.js';
 import { UI } from '../core/ui-manager.js';
 import { AudioContextManager } from '../core/audio-context.js';
-import { createFretboard, updateFretboardNotes } from './js/fretboard.js';
-import { createBeats, onMetronomeInstrumentChange } from './js/metronome.js';
-import { loadProgression, updateProgressionKey, addMeasure, removeMeasure } from './js/chord-progression.js';
-import { initializeFretFlow } from './js/fretflow.js';
+import { createFretboard, updateFretboardNotes } from './fretboard.js';
+import { createBeats, onMetronomeInstrumentChange } from './metronome.js';
+import { loadProgression, updateProgressionKey, addMeasure, removeMeasure } from './chord-progression.js';
+import { initializeFretFlow } from './fretflow.js';
 import { log, ensureAudioInitialized } from '../utils/helpers.js';
 import { TUNINGS } from '../utils/constants.js';
 
