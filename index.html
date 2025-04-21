@@ -758,7 +758,8 @@ function debounce(func, wait) {
 
 // Musical Constants
 const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        
+
+       
 const ENHARMONIC_MAP = {
     'C#': 'Db', 'Db': 'Db',
     'D#': 'Eb', 'Eb': 'Eb',
@@ -1434,60 +1435,29 @@ async function playMetronomeSound(baseVolume) {
         
 function standardizeNoteName(note) {
   if (!note) return 'C';
+  
+  // Handle simple case for uppercase conversion
   const match = note.match(/^([A-G])([b#])?(\d)?$/);
   if (!match) return note.toUpperCase();
-  let [, letter, accidental, octave] = match;
+  
+  let [, letter, accidental] = match;
   letter = letter.toUpperCase();
-  const CHROMATIC = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  
+  // Define chromatic scale consistently
+  const chromatic = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  
+  // Handle accidentals properly
   if (accidental === 'b') {
     const index = chromatic.indexOf(letter);
+    if (index === -1) return letter;
     return chromatic[(index - 1 + 12) % 12];
   } else if (accidental === '#') {
     const index = chromatic.indexOf(letter);
+    if (index === -1) return letter;
     return chromatic[(index + 1) % 12];
   }
+  
   return letter;
-}
-
-       
-function getNoteIndex(note) {
-    const standardizedNote = standardizeNoteName(note);
-    return NOTES.indexOf(standardizedNote);
-}
-
-const MIN_OCTAVE = 2;
-const MAX_OCTAVE = 4;
-
-function findNearestSampledNote(note, targetOctave = 3) {
-    const cleanNote = standardizeNoteName(note).replace('m', '');
-    const mappedNote = ENHARMONIC_MAP[cleanNote] || cleanNote;
-    const targetIndex = NOTES.indexOf(mappedNote);
-    if (targetIndex === -1) {
-        console.warn(`Note ${note} not found in NOTES.`);
-        return { sampleKey: 'C3v12', semitoneDiff: 0 };
-    }
-
-    let bestMatch = null;
-    let minDistance = Infinity;
-
-    for (let sampleNote of SAMPLED_NOTES) {
-        const sampleMapped = SAMPLE_NOTE_MAP[sampleNote] || sampleNote;
-        const sampleIndex = NOTES.indexOf(ENHARMONIC_MAP[sampleMapped] || sampleMapped);
-        for (let octave = MIN_OCTAVE; octave <= MAX_OCTAVE; octave++) {
-            const noteMidi = targetIndex + targetOctave * 12;
-            const sampleMidi = sampleIndex + octave * 12;
-            const distance = Math.abs(noteMidi - sampleMidi);
-            if (distance < minDistance) {
-                minDistance = distance;
-                bestMatch = {
-                    sampleKey: `${sampleNote}${octave}v12`,
-                    semitoneDiff: noteMidi - sampleMidi
-                };
-            }
-        }
-    }
-
-    return bestMatch;
 }
 
 
@@ -1935,61 +1905,112 @@ function playNote(noteName, volume = 1.0, duration = 1000) {
 }
 
 
-async function playChord(root, quality, inversionType = 'root', startTime = AudioContextManager.context.currentTime, duration = 2, isContinuation = false) {
+async function playChord(root, quality, inversionType = 'root', duration = 2) {
+  // Make sure audio is initialized
   await ensureAudioInitialized();
+  
+  // Check if samples are loaded
   if (!AudioContextManager.samplesLoaded) {
-    console.warn('Piano samples not loaded yet');
-    return;
+    console.warn('Piano samples not loaded yet, attempting to load...');
+    try {
+      await AudioContextManager.loadPianoSamples();
+    } catch (error) {
+      console.error('Failed to load piano samples:', error);
+      return;
+    }
   }
+  
+  // Check if chords are enabled
   if (!UI.elements.chordsEnabled.classList.contains('active')) return;
   
-  // Get and invert chord notes
-  const originalChordNotes = getChordNotes(root, quality);
-  const chordNotes = applyInversion(originalChordNotes, inversionType);
+  // Get chord notes
+  const chordNotes = getChordNotes(root, quality);
+  console.log(`Playing chord: ${root} ${quality}`, chordNotes);
   
+  // Apply inversion if specified
+  let notesToPlay = [...chordNotes];
+  if (inversionType === 'first' && notesToPlay.length > 1) {
+    notesToPlay.push(notesToPlay.shift());
+  } else if (inversionType === 'second' && notesToPlay.length > 2) {
+    notesToPlay.push(notesToPlay.shift());
+    notesToPlay.push(notesToPlay.shift());
+  }
+  
+  // Get chord volume
   const chordVolume = parseFloat(UI.elements.chordVolume.value);
   if (chordVolume <= 0) return;
+  
+  // Create gain node for the chord
   const gainNode = AudioContextManager.context.createGain();
   gainNode.gain.value = chordVolume;
   
-  if (!isContinuation && AudioContextManager.currentChordGain) {
-    AudioContextManager.currentChordGain.gain.setValueAtTime(AudioContextManager.currentChordGain.gain.value, startTime);
-    AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.05);
+  // Stop previous chord if playing
+  if (AudioContextManager.currentChordGain) {
+    AudioContextManager.currentChordGain.gain.setValueAtTime(
+      AudioContextManager.currentChordGain.gain.value, 
+      AudioContextManager.context.currentTime
+    );
+    AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(
+      0.001, 
+      AudioContextManager.context.currentTime + 0.05
+    );
   }
+  
+  // Set current chord gain
   AudioContextManager.currentChordGain = gainNode;
   
-  // Process each note with inversion-aware octave handling
+  // Play each note in the chord
+  const startTime = AudioContextManager.context.currentTime;
   const baseOctave = 3;
-  for (let i = 0; i < chordNotes.length; i++) {
-    const note = chordNotes[i];
+  
+  for (let i = 0; i < notesToPlay.length; i++) {
+    const note = notesToPlay[i];
     let octave = baseOctave;
     
-    // Octave adjustment logic
-    const midiValue = noteToMidi(note) + (baseOctave * 12);
-    if (midiValue > 60 + 12) { // C5 is 60 + 12 = 72 MIDI
-      octave = 3;
-    } else if (i === 0) {
-      octave = 3; // Root stays in lowest octave
-    } else {
-      octave = 4; // Upper notes in higher octave
+    // Adjust octave for inversions to prevent them from being too high
+    if (inversionType === 'first' && i === notesToPlay.length - 1) {
+      octave = baseOctave + 1;
+    } else if (inversionType === 'second' && i >= notesToPlay.length - 2) {
+      octave = baseOctave + 1;
     }
     
-    const { sampleKey, semitoneDiff } = getPitchShiftedNote(note, octave);
+    // Find the nearest sample
+    const standardizedNote = standardizeNoteName(note);
+    const { sampleKey, semitoneDiff } = findNearestSampledNote(standardizedNote, octave);
+    
+    // Get the buffer
+    const buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
+    
+    if (!buffer) {
+      console.warn(`No piano sample found for ${sampleKey}, skipping note ${note}`);
+      continue;
+    }
+    
+    // Calculate playback rate for pitch shifting
     const playbackRate = Math.pow(2, semitoneDiff / 12);
+    
+    // Create source
     const source = AudioContextManager.context.createBufferSource();
-    source.buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
+    source.buffer = buffer;
     source.playbackRate.value = playbackRate;
+    
+    // Connect to gain node
     source.connect(gainNode);
     gainNode.connect(AudioContextManager.context.destination);
     
-    const reverbGain = AudioContextManager.context.createGain();
-    reverbGain.gain.value = 0.2;
-    source.connect(reverbGain);
-    reverbGain.connect(AudioContextManager.reverbNode);
+    // Add reverb
+    if (AudioContextManager.reverbNode) {
+      const reverbGain = AudioContextManager.context.createGain();
+      reverbGain.gain.value = 0.2;
+      source.connect(reverbGain);
+      reverbGain.connect(AudioContextManager.reverbNode);
+    }
     
+    // Play the note
     source.start(startTime);
     source.stop(startTime + duration);
-    log(`[playChord] ${note}${octave} → ${sampleKey} @ ${playbackRate.toFixed(3)}x`);
+    
+    console.log(`Playing note: ${note}${octave} using sample ${sampleKey} at rate ${playbackRate.toFixed(3)}`);
   }
 }
 
