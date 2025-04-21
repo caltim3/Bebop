@@ -1095,37 +1095,65 @@ function getChordNotes(root, quality) {
 }
 
 async function playChord(root, quality, startTime = 0, duration = 1, isSecondHalf = false) {
-    await AudioContextManager.initialize();
-    const chordNotes = getChordNotes(root, quality);
-    const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
+    try {
+        // Ensure the AudioContext is initialized
+        await AudioContextManager.ensureAudioContext();
 
-    if (UI.elements.chordsEnabled.classList.contains('active')) {
+        // Get the chord notes based on the root and quality
+        const chordNotes = getChordNotes(root, quality);
+        if (!chordNotes.length) {
+            console.error(`No valid notes found for chord: ${root} ${quality}`);
+            return;
+        }
+
+        // Get the chord volume from the UI
+        const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
+
+        // Check if chords are enabled
+        if (!UI.elements.chordsEnabled.classList.contains('active')) {
+            console.warn("Chords are disabled. Skipping chord playback.");
+            return;
+        }
+
+        // Play each note in the chord
         chordNotes.forEach((note, i) => {
-            const octave = i === 0 ? 3 : 4;
+            const octave = i === 0 ? 3 : 4; // Use a lower octave for the root note
             const sampleKey = `${note.toLowerCase().replace('b', '#')}${octave}`; // Convert Db to c#, etc.
             const buffer = AudioContextManager.pianoSamples[sampleKey];
+
             if (!buffer) {
-                console.error(`No sample for ${sampleKey}`);
+                console.error(`No sample found for note: ${sampleKey}`);
                 return;
             }
 
+            // Create audio nodes for playback
             const source = AudioContextManager.context.createBufferSource();
             source.buffer = buffer;
+
             const gainNode = AudioContextManager.context.createGain();
             gainNode.gain.value = chordVolume;
+
+            // Connect nodes
             source.connect(gainNode);
 
+            // Add reverb if available
             if (AudioContextManager.reverbNode) {
                 const reverbGain = AudioContextManager.context.createGain();
-                reverbGain.gain.value = 0.1;
+                reverbGain.gain.value = 0.1; // Subtle reverb
                 source.connect(reverbGain);
                 reverbGain.connect(AudioContextManager.reverbNode);
             }
 
             gainNode.connect(AudioContextManager.context.destination);
+
+            // Schedule playback
             source.start(startTime);
             source.stop(startTime + duration);
         });
+
+        console.log(`Playing chord: ${root} ${quality}`);
+    } catch (error) {
+        console.error(`Error playing chord: ${root} ${quality}`, error);
     }
 }
 
