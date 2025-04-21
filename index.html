@@ -1373,80 +1373,87 @@ function onMetronomeInstrumentChange(selectedInstrument) {
 }
 
 async function playDrumSample(type) {
-    if (!AudioContextManager.context) return;
-    
+    if (!AudioContextManager.context) {
+        console.error("AudioContext is not initialized.");
+        return;
+    }
+
     const set = drumSoundSets[currentDrumSetIndex];
     let sampleFile;
-    
+
     // Map the type to the current set's sample file
-    switch(type) {
-    case 'snare': sampleFile = set.snare; break;
-    case 'hihat': sampleFile = set.hihat; break;
-    case 'kick': sampleFile = set.kick; break;
-    default: sampleFile = null;
+    switch (type) {
+        case 'snare':
+            sampleFile = set.snare;
+            break;
+        case 'hihat':
+            sampleFile = set.hihat;
+            break;
+        case 'kick':
+            sampleFile = set.kick;
+            break;
+        default:
+            console.error(`Invalid drum type: ${type}`);
+            return;
     }
-    
+
     try {
-        let buffer;
-        // Try to load the current set's sample
+        // Attempt to load the drum sample
         const response = await fetch(`./${sampleFile}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const arrayBuffer = await response.arrayBuffer();
-        buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
-        
-        const source = AudioContextManager.context.createBufferSource();
-        source.buffer = buffer;
-        
-        const gainNode = AudioContextManager.context.createGain();
-        // Get the metronome volume
-        const metronomeVolume = parseFloat(UI.elements.metronomeVolume.value);
-        
-        // Apply sound-specific volume adjustments
-        let finalVolume = metronomeVolume;
-        if (type === 'kick') {
-            finalVolume *= 1.2; // Slightly boost kick
-        } else if (type === 'snare') {
-            finalVolume *= 1.1; // Slightly boost snare
-        } else if (type === 'hihat') {
-            finalVolume *= 0.8; // Slightly reduce hihat
-        }
-        
-        // Ensure volume doesn't exceed 1.0
-        finalVolume = Math.min(finalVolume, 1.0);
-        gainNode.gain.value = finalVolume;
-        
-        source.connect(gainNode);
-        gainNode.connect(AudioContextManager.context.destination);
-        
-        // Add slight reverb for more depth
-        if (AudioContextManager.reverbNode) {
-            const reverbGain = AudioContextManager.context.createGain();
-            reverbGain.gain.value = 0.1; // Subtle reverb
-            source.connect(reverbGain);
-            reverbGain.connect(AudioContextManager.reverbNode);
-        }
-        
-        source.start(0);
+        const buffer = await AudioContextManager.context.decodeAudioData(arrayBuffer);
+
+        // Play the loaded sample
+        playBuffer(buffer, type);
     } catch (error) {
-        console.error(`Failed to play drum sample: ${type}`, error);
+        console.error(`Failed to load drum sample: ${sampleFile}`, error);
+
+        // Fallback to default drum sounds or synthetic sound
         try {
-            // Fall back to default drum sounds if loading fails
-            const fallbackBuffer = AudioContextManager.soundBuffers[type] || 
-                await AudioContextManager.createDrumSound(type);
-            const source = AudioContextManager.context.createBufferSource();
-            source.buffer = fallbackBuffer;
-            
-            const gainNode = AudioContextManager.context.createGain();
-            gainNode.gain.value = parseFloat(UI.elements.metronomeVolume.value);
-            
-            source.connect(gainNode);
-            gainNode.connect(AudioContextManager.context.destination);
-            
-            source.start(0);
+            const fallbackBuffer = AudioContextManager.soundBuffers[type] || await AudioContextManager.createDrumSound(type);
+            playBuffer(fallbackBuffer, type);
         } catch (fallbackError) {
-            console.error('Failed to play fallback sound:', fallbackError);
+            console.error(`Failed to play fallback sound for type: ${type}`, fallbackError);
         }
     }
+}
+
+function playBuffer(buffer, type) {
+    const source = AudioContextManager.context.createBufferSource();
+    source.buffer = buffer;
+
+    const gainNode = AudioContextManager.context.createGain();
+    const metronomeVolume = parseFloat(UI.elements.metronomeVolume.value) || 0.5;
+
+    // Adjust volume based on drum type
+    let finalVolume = metronomeVolume;
+    if (type === 'kick') {
+        finalVolume *= 1.2; // Slightly boost kick
+    } else if (type === 'snare') {
+        finalVolume *= 1.1; // Slightly boost snare
+    } else if (type === 'hihat') {
+        finalVolume *= 0.8; // Slightly reduce hi-hat
+    }
+
+    // Ensure volume doesn't exceed 1.0
+    finalVolume = Math.min(finalVolume, 1.0);
+    gainNode.gain.value = finalVolume;
+
+    // Connect nodes
+    source.connect(gainNode);
+    gainNode.connect(AudioContextManager.context.destination);
+
+    // Add subtle reverb for depth
+    if (AudioContextManager.reverbNode) {
+        const reverbGain = AudioContextManager.context.createGain();
+        reverbGain.gain.value = 0.1; // Subtle reverb
+        source.connect(reverbGain);
+        reverbGain.connect(AudioContextManager.reverbNode);
+    }
+
+    // Start playback
+    source.start(0);
 }
         
 function createFretboard(container, tuning) {
