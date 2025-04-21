@@ -1,10 +1,10 @@
-import { NOTES, SCALES, TUNINGS, progressions, scaleDegrees } from './constants.js';
-import { log, standardizeNoteName } from './helpers.js';
-import { AppState } from './app-state.js';
-import { UI } from './ui-manager.js';
-import { AudioContextManager } from './audio-context.js';
-import { getChordNotes, playChord, suggestScaleForQuality } from './music-theory.js';
-import { updateFretboardNotes } from './fretboard.js';
+import { NOTES, SCALES, TUNINGS, progressions, scaleDegrees } from './utils/constants.js';
+import { log, standardizeNoteName } from './utils/helpers.js';
+import { AppState } from './js/app-state.js';
+import { UI } from './core/ui-manager.js';
+import { AudioContextManager } from './core/audio-context.js';
+import { getChordNotes, playChord, suggestScaleForQuality } from './js/music-theory.js';
+import { updateFretboardNotes } from './js/fretboard.js';
 
 // Chord Progression Management
 export function loadProgression(progressionName, overrideKey = null) {
