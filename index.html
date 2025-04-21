@@ -861,7 +861,18 @@ const drumSoundSets = [
     }
 ];
 
+// Keep only the first declaration (remove the second one)
+// Keep only the first declaration (remove the second one)
 let currentDrumSetIndex = 0;
+const drumSetNames = ['Ginger', 'Clyde', 'Philly Joe'];
+
+function cycleDrumSet() {
+  currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSetNames.length;
+  document.getElementById('drumSetToggleBtn').textContent = 
+    `Drums: ${drumSetNames[currentDrumSetIndex]}`;
+  log(`Switched to drum set: ${drumSetNames[currentDrumSetIndex]}`);
+}
+        
 const progressions = {
   "I V7": {
     defaultKey: "C",
@@ -1392,24 +1403,11 @@ function initStaticFretboards() {
 initStaticFretboards();
 
    // Add to your initialization code
-let currentDrumSetIndex = 0;
-const drumSetNames = ['Ginger', 'Clyde', 'Philly Joe'];
 
-function cycleDrumSet() {
-  currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSetNames.length;
-  document.getElementById('drumSetToggleBtn').textContent = 
-    `Drums: ${drumSetNames[currentDrumSetIndex]}`;
-  log(`Switched to drum set: ${drumSetNames[currentDrumSetIndex]}`);
-}
 
-// Update the playMetronomeSound function to use currentDrumSetIndex
 async function playMetronomeSound(baseVolume) {
   // ... existing code ...
   
-  // Get the current drum set
-  const currentSet = drumSoundSets[currentDrumSetIndex];
-  
-  // ... rest of the function remains the same ...
 }     
         
 function standardizeNoteName(note) {
