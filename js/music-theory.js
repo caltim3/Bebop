@@ -1,8 +1,8 @@
 // js/music-theory.js
-import { NOTES } from '../utils/constants.js';
-import { AudioContextManager } from '../core/audio-context.js';
-import { UI } from '../core/ui-manager.js';
-import { standardizeNoteName, getQualityValue } from '../utils/helpers.js';
+import { NOTES } from './utils/constants.js';
+import { AudioContextManager } from './core/audio-context.js';
+import { UI } from './core/ui-manager.js';
+import { standardizeNoteName, getQualityValue } from './utils/helpers.js';
 
 export function getChordNotes(root, quality) {
     // Use uppercase NOTES to match fretboard logic
