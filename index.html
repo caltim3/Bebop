@@ -1998,22 +1998,23 @@ function getChordFromFunction(chordFunction, key) {
         
             return [root, quality];
         }
-      function standardizeNoteName(note) {
-          if (!note) return 'C';
-          const match = note.match(/^([A-G])([b#])?(\d)?$/);
-          if (!match) return note.toUpperCase();
-          let [, letter, accidental, octave] = match;
-          letter = letter.toUpperCase();
-          const CHROMATIC = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-          if (accidental === 'b') {
-            const index = chromatic.indexOf(letter);
-            return chromatic[(index - 1 + 12) % 12];
-          } else if (accidental === '#') {
-            const index = chromatic.indexOf(letter);
-            return chromatic[(index + 1) % 12];
-          }
-          return letter;
-        }  
+    
+        function standardizeNoteName(note) {
+            if (!note) return 'C';
+            const match = note.match(/^([A-G])([b#])?(\d)?$/);
+            if (!match) return note.toUpperCase();
+            let [, letter, accidental, octave] = match;
+            letter = letter.toUpperCase();
+            const CHROMATIC = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+            if (accidental === 'b') {
+                const index = CHROMATIC.indexOf(letter);
+                return CHROMATIC[(index - 1 + 12) % 12];
+            } else if (accidental === '#') {
+                const index = CHROMATIC.indexOf(letter);
+                return CHROMATIC[(index + 1) % 12];
+            }
+            return letter;
+        }
 
         function createKeyOptions(selected = 'C') {
             return NOTES.map(note =>
