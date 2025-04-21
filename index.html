@@ -550,7 +550,22 @@
                 <option value="woodblock">Woodblock</option>
                 <option value="drums">Drums</option>
             </select>
-            <button id="drumSetToggleBtn" class="control-button">Drums</button>
+                  <button 
+                    id="drumSetToggleBtn" 
+                    className="control-button"
+                    onClick={() => {
+                      // Cycle through the drum sets
+                      const drumSets = ['ginger', 'clyde', 'philly'];
+                      const currentIndex = drumSets.indexOf(drumSet);
+                      const nextIndex = (currentIndex + 1) % drumSets.length;
+                      setDrumSet(drumSets[nextIndex]);
+                    }}
+                  >
+                    {drumSet === 'ginger' && 'Ginger'}
+                    {drumSet === 'clyde' && 'Clyde'}
+                    {drumSet === 'philly' && 'Philly Joe'}
+                  </button>
+                </div>
             <div class="volume-control">
                 <span>Metronome Volume:</span>
                 <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" aria-label="Metronome volume">
@@ -796,36 +811,241 @@ const drumSoundSets = [
 
 let currentDrumSetIndex = 0;
 const progressions = {
-    "I V7": { defaultKey: "C", progression: ["I", "V7"] },
-    "jazz_blues": { defaultKey: "Bb", progression: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "IIm7", "V7", "I7", "V7"] },
-    "minor_blues": { defaultKey: "Am", progression: ["im7", "ivm7", "im7", "im7", "ivm7", "ivm7", "im7", "im7", "V7", "V7", "im7", "V7"] },
-    "rhythm_changes": { defaultKey: "Bb", progression: ["I6", "vim7", "iim7", "V7", "I6", "vim7", "iim7", "V7", "I6", "IV7", "I6", "I6", "iim7", "V7", "I6", "V7"] },
-    "2_5_1": { defaultKey: "C", progression: ["iim7", "V7", "Imaj7", "Imaj7"] },
-    "6_2_5_1": { defaultKey: "C", progression: ["vim7", "iim7", "V7", "Imaj7", "Imaj7"] },
-    "minor_2_5_1": { defaultKey: "Am", progression: ["iim7b5", "V7b9", "im7", "im7"] },
-    "dark_eyes": { defaultKey: "Dm", progression: ["V7", "V7", "im7", "im7", "V7", "V7", "VI6", "VI6", "ivm6", "ivm6", "im7", "im7", "V7", "V7", "im7", "im7"] },    
-    "ill_see_you_in_my_dreams": { defaultKey: "F", progression: ["IV6", "IV6", "ivm6", "ivm6", "Imaj7", "VII7", "Imaj7", "Imaj7", "VI7", "VI7", "VI7", "VI7", "II7", "II7", "iim7", "V7", "Imaj7"] },
-    "rose_room": {defaultKey: "Ab", progression: ["II7", "V7", "I6", "I7", "IV6", "ivm7", "bVII7", "I6", "VI7", "V7", "V7", "II7", "V7", "I6", "I7", "IV6", "ivm7", "bVII7", "I6", "VI7", "IV7", "V7", "I6", "VI7"] },
-    "black_orpheus": { defaultKey: "Am", progression: ["im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7", "bIIImaj7", "bVImaj7", "iim7b5", "V7b9", "im7", "iim7b5", "V7b9", "im7", "ivm7", "VII7"] },
-    "all_the_things_you_are": { defaultKey: "Ab", progression: ["vim7", "iim7", "V7", "Imaj7", "IVmaj7", "iiim7", "VI7", "IImaj7", "iim7", "vm7", "I7", "IVmaj7", "Imaj7", "iim7", "V7", "Imaj7", "iim7", "V7", "Imaj7", "iim7", "vm7", "I7", "IVmaj7", "Imaj7"] },
-    "all_of_me": { defaultKey: "C", progression: ["Imaj7", "III7", "VI7", "iim7", "III7", "vim7", "II7", "iim7", "V7", "Imaj7", "III7", "VI7", "iim7", "IV", "iv", "Imaj7", "V7"] },
-    "stella_by_starlight": { defaultKey: "Bb", progression: ["iim7b5", "V7b9", "im7", "IV7", "vm7", "I7", "IVmaj7", "bVIImaj7", "iiim7b5", "VI7b9", "iim7", "V7", "im7", "IV7", "IVmaj7", "V7"] },
-    "autumn_leaves": { defaultKey: "Em", progression: ["ivm7", "VII7", "bIIImaj7", "bVImaj7", "iim7b5", "V7b9", "im7", "im7"] },
-    "summertime": { defaultKey: "Am", progression: ["im7", "V7", "im7", "V7", "im7", "V7", "im7", "V7", "iv7", "im7", "V7", "im7", "iv7", "im7", "V7", "im7"] },
-    "girl_from_ipanema": { defaultKey: "F", progression: ["Imaj7", "II7", "iim7", "V7", "Imaj7", "II7", "iim7", "V7", "Imaj7", "bII7", "IV#maj7", "vim7", "iim7", "V7", "Imaj7", "vim7", "iim7", "V7"] },
-    "coltrane_changes": { defaultKey: "C", progression: ["Imaj7", "bIII7", "bVImaj7", "VII7", "IIImaj7", "V7", "Imaj7", "bIII7", "bVImaj7", "VII7", "IIImaj7", "V7"] },
-    "bird_blues": { defaultKey: "F", progression: ["I7", "IV7", "I7", "vim7", "iim7", "V7", "IV7", "ivm7", "I7", "vim7", "iim7", "V7"] },
-    "just_friends": { defaultKey: "G", progression: ["Imaj7", "VI7", "iim7", "V7", "Imaj7", "VI7", "iim7", "V7", "iim7", "V7", "Imaj7", "VI7", "iim7", "V7", "Imaj7", "VI7"] },
-    "blue_bossa": { defaultKey: "Cm", progression: ["im7", "im7", "bVII7", "bVII7", "im7", "im7", "ivm7", "bVII7", "im7", "V7", "im7", "im7"] },
-    "on_green_dolphin_street": { defaultKey: "C", progression: ["Imaj7", "bIII7", "bVImaj7", "iim7", "V7", "Imaj7", "bIII7", "bVImaj7", "iim7", "V7", "Imaj7"] },
-    "solar": { defaultKey: "C", progression: ["im7", "im7", "bIIImaj7", "bIIImaj7", "bVImaj7", "bVImaj7", "bII7", "bII7", "im7", "im7"] },
-    "misty": { defaultKey: "Eb", progression: ["Imaj7", "I7", "IVmaj7", "ivm7", "Imaj7", "V7", "Imaj7", "vim7", "iim7", "V7", "Imaj7"] },
-    "days_of_wine_and_roses": { defaultKey: "F", progression: ["Imaj7", "vim7", "iim7", "V7", "Imaj7", "vim7", "iim7", "V7", "Imaj7", "vim7", "iim7", "V7", "Imaj7"] },
-    "cherokee": { defaultKey: "Bb", progression: ["Imaj7", "Imaj7", "iim7", "V7", "Imaj7", "Imaj7", "iim7", "V7","bVI7", "bVI7", "V7", "V7", "Imaj7", "Imaj7", "iim7", "V7"] },
-    "caravan": { defaultKey: "Eb", progression: ["im7", "IV7", "im7", "IV7", "im7", "IV7", "im7", "IV7", "bVII7", "bVII7", "Imaj7", "Imaj7", "V7", "V7", "im7", "im7"] },
-    "nows_the_time": { defaultKey: "F", progression: ["I7", "I7", "I7", "I7", "IV7", "IV7", "I7", "I7", "V7", "IV7", "I7", "I7"] },
-    "tenor_madness": { defaultKey: "Bb", progression: ["I7", "I7", "I7", "I7", "IV7", "IV7", "I7", "I7", "iim7", "V7", "I7", "I7"] }
-};        
+  "I V7": {
+    defaultKey: "C",
+    progression: ["I", "V7"]
+  },
+  "jazz_blues": {
+    defaultKey: "Bb",
+    progression: [
+      "I7", "IV7", "I7", "I7",
+      "IV7", "IV7", "I7", "VI7",
+      "IIm7", "V7", "I7", "V7"
+    ]
+  },
+  "minor_blues": {
+    defaultKey: "Am",
+    progression: [
+      "im7", "ivm7", "im7", "im7",
+      "ivm7", "ivm7", "im7", "V7",
+      "V7", "im7", "V7"
+    ]
+  },
+  "rhythm_changes": {
+    defaultKey: "Bb",
+    progression: [
+      "I6", "vim7", "iim7", "V7",
+      "I6", "vim7", "iim7", "V7",
+      "I6", "IV7", "I6", "I6",
+      "iim7", "V7", "I6", "V7"
+    ]
+  },
+  "2_5_1": {
+    defaultKey: "C",
+    progression: ["iim7", "V7", "Imaj7", "Imaj7"]
+  },
+  "6_2_5_1": {
+    defaultKey: "C",
+    progression: ["vim7", "iim7", "V7", "Imaj7", "Imaj7"]
+  },
+  "minor_2_5_1": {
+    defaultKey: "Am",
+    progression: ["iim7b5", "V7b9", "im7", "im7"]
+  },
+  "dark_eyes": {
+    defaultKey: "Dm",
+    progression: [
+      "V7", "V7", "im7", "im7",
+      "V7", "V7", "VI6", "VI6",
+      "ivm6", "ivm6", "im7", "im7",
+      "V7", "V7", "im7", "im7"
+    ]
+  },
+  "ill_see_you_in_my_dreams": {
+    defaultKey: "F",
+    progression: [
+      "IV6", "IV6", "ivm6", "ivm6",
+      "Imaj7", "VII7", "Imaj7", "Imaj7",
+      "VI7", "VI7", "VI7", "VI7",
+      "II7", "II7", "iim7", "V7", "Imaj7"
+    ]
+  },
+  "rose_room": {
+    defaultKey: "Ab",
+    progression: [
+      "II7", "V7", "I6", "I7",
+      "IV6", "ivm7", "bVII7", "I6",
+      "VI7", "V7", "V7", "II7",
+      "V7", "I6", "I7", "IV6",
+      "ivm7", "bVII7", "I6", "VI7",
+      "IV7", "V7", "I6", "VI7"
+    ]
+  },
+  "black_orpheus": {
+    defaultKey: "Am",
+    progression: [
+      "im7", "iim7b5", "V7b9", "im7",
+      "ivm7", "VII7", "bIIImaj7", "bVImaj7",
+      "iim7b5", "V7b9", "im7", "iim7b5",
+      "V7b9", "im7", "ivm7", "VII7"
+    ]
+  },
+  "all_the_things_you_are": {
+    defaultKey: "Ab",
+    progression: [
+      "vim7", "iim7", "V7", "Imaj7",
+      "IVmaj7", "iiim7", "VI7", "IImaj7",
+      "iim7", "vm7", "I7", "IVmaj7",
+      "Imaj7", "iim7", "V7", "Imaj7",
+      "iim7", "V7", "Imaj7", "iim7",
+      "vm7", "I7", "IVmaj7", "Imaj7"
+    ]
+  },
+  "all_of_me": {
+    defaultKey: "C",
+    progression: [
+      "Imaj7", "III7", "VI7", "iim7",
+      "III7", "vim7", "II7", "iim7",
+      "V7", "Imaj7", "III7", "VI7",
+      "iim7", "IV", "iv", "Imaj7", "V7"
+    ]
+  },
+  "stella_by_starlight": {
+    defaultKey: "Bb",
+    progression: [
+      "iim7b5", "V7b9", "im7", "IV7",
+      "vm7", "I7", "IVmaj7", "bVIImaj7",
+      "iiim7b5", "VI7b9", "iim7", "V7",
+      "im7", "IV7", "IVmaj7", "V7"
+    ]
+  },
+  "autumn_leaves": {
+    defaultKey: "Em",
+    progression: [
+      "ivm7", "VII7", "bIIImaj7", "bVImaj7",
+      "iim7b5", "V7b9", "im7", "im7"
+    ]
+  },
+  "summertime": {
+    defaultKey: "Am",
+    progression: [
+      "im7", "V7", "im7", "V7",
+      "im7", "V7", "im7", "V7",
+      "iv7", "im7", "V7", "im7",
+      "iv7", "im7", "V7", "im7"
+    ]
+  },
+  "girl_from_ipanema": {
+    defaultKey: "F",
+    progression: [
+      "Imaj7", "II7", "iim7", "V7",
+      "Imaj7", "II7", "iim7", "V7",
+      "Imaj7", "bII7", "IV#maj7", "vim7",
+      "iim7", "V7", "Imaj7", "vim7",
+      "iim7", "V7"
+    ]
+  },
+  "coltrane_changes": {
+    defaultKey: "C",
+    progression: [
+      "Imaj7", "bIII7", "bVImaj7", "VII7",
+      "IIImaj7", "V7", "Imaj7", "bIII7",
+      "bVImaj7", "VII7", "IIImaj7", "V7"
+    ]
+  },
+  "bird_blues": {
+    defaultKey: "F",
+    progression: [
+      "I7", "IV7", "I7", "vim7",
+      "iim7", "V7", "IV7", "ivm7",
+      "I7", "vim7", "iim7", "V7"
+    ]
+  },
+  "just_friends": {
+    defaultKey: "G",
+    progression: [
+      "Imaj7", "VI7", "iim7", "V7",
+      "Imaj7", "VI7", "iim7", "V7",
+      "iim7", "V7", "Imaj7", "VI7",
+      "iim7", "V7", "Imaj7", "VI7"
+    ]
+  },
+  "blue_bossa": {
+    defaultKey: "Cm",
+    progression: [
+      "im7", "im7", "bVII7", "bVII7",
+      "im7", "im7", "ivm7", "bVII7",
+      "im7", "V7", "im7", "im7"
+    ]
+  },
+  "on_green_dolphin_street": {
+    defaultKey: "C",
+    progression: [
+      "Imaj7", "bIII7", "bVImaj7", "iim7",
+      "V7", "Imaj7", "bIII7", "bVImaj7",
+      "iim7", "V7", "Imaj7"
+    ]
+  },
+  "solar": {
+    defaultKey: "C",
+    progression: [
+      "im7", "im7", "bIIImaj7", "bIIImaj7",
+      "bVImaj7", "bVImaj7", "bII7", "bII7",
+      "im7", "im7"
+    ]
+  },
+  "misty": {
+    defaultKey: "Eb",
+    progression: [
+      "Imaj7", "I7", "IVmaj7", "ivm7",
+      "Imaj7", "V7", "Imaj7", "vim7",
+      "iim7", "V7", "Imaj7"
+    ]
+  },
+  "days_of_wine_and_roses": {
+    defaultKey: "F",
+    progression: [
+      "Imaj7", "vim7", "iim7", "V7",
+      "Imaj7", "vim7", "iim7", "V7",
+      "Imaj7", "vim7", "iim7", "V7",
+      "Imaj7"
+    ]
+  },
+  "cherokee": {
+    defaultKey: "Bb",
+    progression: [
+      "Imaj7", "Imaj7", "iim7", "V7",
+      "Imaj7", "Imaj7", "iim7", "V7",
+      "bVI7", "bVI7", "V7", "V7",
+      "Imaj7", "Imaj7", "iim7", "V7"
+    ]
+  },
+  "caravan": {
+    defaultKey: "Eb",
+    progression: [
+      "im7", "IV7", "im7", "IV7",
+      "im7", "IV7", "im7", "IV7",
+      "bVII7", "bVII7", "Imaj7", "Imaj7",
+      "V7", "V7", "im7", "im7"
+    ]
+  },
+  "nows_the_time": {
+    defaultKey: "F",
+    progression: [
+      "I7", "I7", "I7", "I7",
+      "IV7", "IV7", "I7", "I7",
+      "V7", "IV7", "I7", "I7"
+    ]
+  },
+  "tenor_madness": {
+    defaultKey: "Bb",
+    progression: [
+      "I7", "I7", "I7", "I7",
+      "IV7", "IV7", "I7", "I7",
+      "iim7", "V7", "I7", "I7"
+    ]
+  }
+};
 const scaleDegrees = {
     major: {
         // Basic triads (uppercase = major, lowercase = minor)
@@ -1633,6 +1853,129 @@ async function playChord(root, quality, startTime = AudioContextManager.context.
   }
 }
 
+// 1. Create inversion helper function
+const applyInversion = (originalNotes, inversionType) => {
+  const notes = [...originalNotes]; // Make copy to avoid mutation
+  switch(inversionType) {
+    case 'drop2':
+      return [notes[0], notes[2], notes[3], notes[1]];
+    case 'drop3':
+      return [notes[0], notes[3], notes[1], notes[2]];
+    case 'drop2and4':
+      return [notes[0], notes[2], notes[1], notes[3]];
+    default:
+      return notes;
+  }
+};
+
+// 2. Create new playNotes function (similar to playChord but takes notes directly)
+async function playNotes(notes, startTime, duration = 2, isContinuation = false) {
+  await ensureAudioInitialized();
+  if (!AudioContextManager.samplesLoaded) return;
+  if (!UI.elements.chordsEnabled.classList.contains('active')) return;
+  const chordVolume = parseFloat(UI.elements.chordVolume.value);
+  if (chordVolume <= 0) return;
+  const gainNode = AudioContextManager.context.createGain();
+  gainNode.gain.value = chordVolume;
+  if (!isContinuation && AudioContextManager.currentChordGain) {
+    AudioContextManager.currentChordGain.gain.setValueAtTime(
+      AudioContextManager.currentChordGain.gain.value, 
+      startTime
+    );
+    AudioContextManager.currentChordGain.gain.exponentialRampToValueAtTime(
+      0.001, 
+      startTime + 0.05
+    );
+  }
+  AudioContextManager.currentChordGain = gainNode;
+  
+  notes.forEach((note, i) => {
+    const octave = i === 0 ? 3 : 4; // Keep bass in lower octave
+    const { sampleKey, semitoneDiff } = getPitchShiftedNote(note, octave);
+    const playbackRate = Math.pow(2, semitoneDiff / 12);
+    const source = AudioContextManager.context.createBufferSource();
+    source.buffer = AudioContextManager.pianoSampleBuffers[sampleKey];
+    source.playbackRate.value = playbackRate;
+    source.connect(gainNode);
+    gainNode.connect(AudioContextManager.context.destination);
+    const reverbGain = AudioContextManager.context.createGain();
+    reverbGain.gain.value = 0.2;
+    source.connect(reverbGain);
+    reverbGain.connect(AudioContextManager.reverbNode);
+    source.start(startTime);
+    source.stop(startTime + duration);
+    log(`[playNotes] ${note}${octave} → ${sampleKey} @ ${playbackRate.toFixed(3)}x`);
+  });
+}
+
+// 3. Modify your chord playback loop (example implementation):
+async function playProgressionChords(chords, tempo) {
+  const beatDuration = 60 / tempo;
+  let startTime = AudioContextManager.context.currentTime;
+
+  for (let measure = 0; measure < chords.length; measure++) {
+    const currentChord = chords[measure];
+    const root = getRootNote(currentChord);
+    const quality = getChordQuality(currentChord);
+    const originalNotes = getChordNotes(root, quality);
+
+    // Play root position on beat 1
+    await playChord(root, quality, startTime);
+    log(`[Progression] Root Position: ${originalNotes.join(', ')}`);
+
+    // Play inversion on beat 3
+    const inversionTypes = ['drop2', 'drop3', 'drop2and4'];
+    const inversionType = inversionTypes[Math.floor(Math.random() * inversionTypes.length)];
+    let invertedNotes = applyInversion(originalNotes, inversionType);
+
+    // Ensure notes stay within C2-F4 (MIDI 48-65)
+    invertedNotes = invertedNotes
+      .filter(note => note >= 48 && note <= 65)
+      .sort((a, b) => a - b); // Sort to keep bass first
+
+    // Force root to be first note (safety check)
+    const rootMidi = originalNotes[0];
+    const rootIndex = invertedNotes.indexOf(rootMidi);
+    if (rootIndex > 0 && rootIndex !== -1) {
+      invertedNotes.unshift(...invertedNotes.splice(rootIndex, 1));
+    }
+
+    // Play inversion and log details
+    await playNotes(invertedNotes, startTime + beatDuration * 1.5);
+    log(`[Inversion] ${inversionType}: ${invertedNotes.join(', ')}`);
+
+    startTime += beatDuration * 4; // 4/4 measure
+  }
+}
+
+// Extract root note from chord string (e.g., "C#m7" → "C#")
+function getRootNote(chord) {
+  const rootMatch = chord.match(/^([A-G][#b]?)/);
+  return rootMatch ? rootMatch[1] : '';
+}
+
+// Extract chord quality (e.g., "C#m7" → "m7")
+function getChordQuality(chord) {
+  const root = getRootNote(chord);
+  return chord.slice(root.length).trim() || 'major'; // Default to major if no quality
+}
+
+        const applyInversion = (originalNotes, inversionType) => {
+              const notes = [...originalNotes]; // Make copy to avoid mutation
+              const bassNote = notes[0]; // Ensure root stays in bass
+            
+              switch (inversionType) {
+                case 'drop2':
+                  return [bassNote, notes[2], notes[3], notes[1]];
+                case 'drop3':
+                  return [bassNote, notes[3], notes[1], notes[2]];
+                case 'drop2and4':
+                  return [bassNote, notes[2], notes[1], notes[3]];
+                default:
+                  return notes;
+              }
+};
+        
 function getChordNotes(root, quality) {
   const CHORD_INTERVALS = {
     'maj': [0, 4, 7],
