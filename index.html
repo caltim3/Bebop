@@ -637,7 +637,21 @@
     </div>
 
     <script>
-        
+  // Utility Functions
+function log(message) {
+    console.log(`[FretFlow Debug] ${message}`);
+}
+
+// Place updateLoadingStatus here:
+function updateLoadingStatus(message) {
+    let indicator = document.getElementById('loading-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'loading-indicator';
+        document.body.appendChild(indicator);
+    }
+    indicator.textContent = message;
+}      
 // Musical Constants
 const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         
@@ -1845,6 +1859,40 @@ function stopPlayback() {
     log("Playback stopped");
 }
 
+function getChordFromFunction(chordFunction, key) {
+    // This is a basic implementation for major keys.
+    // You may want to expand it for minor keys and more advanced progressions.
+    const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11];
+    const keyIndex = NOTES.indexOf(key.replace('b', '#'));
+    let degree = 0;
+    let quality = '';
+
+    // Extract degree and quality from chordFunction
+    const match = chordFunction.match(/^([b#]?\w+)(.*)$/);
+    if (match) {
+        let roman = match[1];
+        quality = match[2] || '';
+        // Map roman numerals to scale degrees
+        const romanMap = {
+            'I': 0, 'II': 1, 'III': 2, 'IV': 3, 'V': 4, 'VI': 5, 'VII': 6,
+            'i': 0, 'ii': 1, 'iii': 2, 'iv': 3, 'v': 4, 'vi': 5, 'vii': 6,
+        };
+        // Handle flats and sharps
+        let accidental = 0;
+        if (roman.startsWith('b')) { accidental = -1; roman = roman.slice(1); }
+        if (roman.startsWith('#')) { accidental = 1; roman = roman.slice(1); }
+        if (romanMap[roman] !== undefined) {
+            degree = romanMap[roman];
+            let noteIndex = (keyIndex + MAJOR_SCALE[degree] + accidental + 12) % 12;
+            let note = NOTES[noteIndex];
+            return note + quality;
+        }
+    }
+    // Fallback: just return the function as-is
+    return chordFunction;
+}
+        
 // Chord Progression Management
 function loadProgression(progressionName, overrideKey = null) {
     if (!progressionName || !progressions[progressionName]) {
