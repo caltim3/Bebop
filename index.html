@@ -624,21 +624,13 @@ function initStaticFretboards() {
                 <option value="woodblock">Woodblock</option>
                 <option value="drums">Drums</option>
             </select>
-                  <button 
-                    id="drumSetToggleBtn" 
+                <button 
+                  id="drumSetToggleBtn" 
                   class="control-button"
                   onclick="cycleDrumSet()"
-                      // Cycle through the drum sets
-                      const drumSets = ['ginger', 'clyde', 'philly'];
-                      const currentIndex = drumSets.indexOf(drumSet);
-                      const nextIndex = (currentIndex + 1) % drumSets.length;
-                      setDrumSet(drumSets[nextIndex]);
-                    }}
-                  >
-                    {drumSet === 'ginger' && 'Ginger'}
-                    {drumSet === 'clyde' && 'Clyde'}
-                    {drumSet === 'philly' && 'Philly Joe'}
-                  </button>
+                >
+                  Drum Set: <span id="currentDrumSetLabel">Ginger</span>
+                </button>
                 </div>
             <div class="volume-control">
                 <span>Metronome Volume:</span>
@@ -890,10 +882,18 @@ let currentDrumSetIndex = 0;
 const drumSetNames = ['Ginger', 'Clyde', 'Philly Joe'];
 
 function cycleDrumSet() {
-  currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSetNames.length;
-  document.getElementById('drumSetToggleBtn').textContent = 
-    `Drums: ${drumSetNames[currentDrumSetIndex]}`;
-  log(`Switched to drum set: ${drumSetNames[currentDrumSetIndex]}`);
+  const drumSets = ['ginger', 'clyde', 'philly'];
+  const drumSetLabels = ['Ginger', 'Clyde', 'Philly Joe'];
+  
+  // Get current index
+  const currentIndex = drumSets.indexOf(drumSet);
+  const nextIndex = (currentIndex + 1) % drumSets.length;
+  
+  // Update drum set
+  drumSet = drumSets[nextIndex];
+  
+  // Update label
+  document.getElementById('currentDrumSetLabel').textContent = drumSetLabels[nextIndex];
 }
         
 const progressions = {
@@ -3148,12 +3148,157 @@ async function initializeApp() {
 }
 
 // Start the app
-document.addEventListener('DOMContentLoaded', () => {
-    initializeApp().catch(error => {
-        console.error("Initialization failed:", error);
-        updateLoadingStatus("Initialization failed");
-        initStaticFretboards();
-});
-            </script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize UI elements
+  UI.init();
+  
+  // Create fretboards
+  createFretboard(UI.elements.chordFretboard, TUNINGS['standard']);
+  
+  // Initialize static fretboards
+  initStaticFretboards();
+  
+  // Initialize audio context on user interaction
+  document.body.addEventListener('click', async function() {
+    if (!AppState.audioInitialized) {
+      try {
+        await AudioContextManager.initialize();
+        AppState.updateState({ audioInitialized: true });
+      } catch (error) {
+        console.error('Failed to initialize audio:', error);
+      }
+    }
+  });
+  
+  // Set up metronome controls
+  UI.elements.startStopButton.addEventListener('click', function() {
+    if (AppState.isPlaying) {
+      stopMetronome();
+    } else {
+      startMetronome();
+    }
+  });
+  
+  UI.elements.tempo.addEventListener('input', function() {
+    const tempo = parseInt(this.value);
+    UI.elements.tempoDisplay.textContent = `${tempo} BPM`;
+    AppState.updateState({ tempo });
+  });
+  
+  UI.elements.timeSignature.addEventListener('change', function() {
+    createBeats();
+  });
+  
+  UI.elements.soundType.addEventListener('change', function() {
+    createBeats();
+    onMetronomeInstrumentChange(this.value);
+  });
+  
+  // Initialize drum set button
+  document.getElementById('drumSetToggleBtn').innerHTML = 'Drum Set: <span id="currentDrumSetLabel">Ginger</span>';
+  
+  // Show/hide drum set button based on initial sound type
+  onMetronomeInstrumentChange(UI.elements.soundType.value);
+  
+  // Set up chord progression controls
+  UI.elements.progressionSelect.addEventListener('change', function() {
+    loadProgression(this.value);
+  });
+  
+  UI.elements.keySelect.addEventListener('change', function() {
+    const selectedProgression = UI.elements.progressionSelect.value;
+    loadProgression(selectedProgression, this.value);
+  });
+  
+  UI.elements.chordTuning.addEventListener('change', function() {
+    const tuning = TUNINGS[this.value];
+    createFretboard(UI.elements.chordFretboard, tuning);
+    
+    // Update notes on the fretboard
+    const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
+    if (currentMeasure) {
+      const scaleRoot = currentMeasure.querySelector('.scale-controls .second-key').value;
+      const scaleType = currentMeasure.querySelector('.scale-controls .scale-select').value;
+      updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
+    }
+  });
+  
+  // Set up chord toggle button
+  UI.elements.chordsEnabled.addEventListener('click', function() {
+    this.classList.toggle('active');
+  });
+  
+  // Set up dark mode toggle
+  UI.elements.darkModeToggle.addEventListener('click', function() {
+    const body = document.body;
+    if (body.classList.contains('dark-mode')) {
+      body.classList.remove('dark-mode');
+      body.classList.add('dark-mode-2');
+      this.classList.remove('active');
+      this.classList.add('active-2');
+    } else if (body.classList.contains('dark-mode-2')) {
+      body.classList.remove('dark-mode-2');
+      body.classList.add('dark-mode-3');
+      this.classList.remove('active-2');
+      this.classList.add('active-3');
+    } else if (body.classList.contains('dark-mode-3')) {
+      body.classList.remove('dark-mode-3');
+      this.classList.remove('active-3');
+    } else {
+      body.classList.add('dark-mode');
+      this.classList.add('active');
+    }
+  });
+  
+  // Create initial beats
+  createBeats();
+  
+  // Load default progression
+  loadProgression('I V7');
+  
+  // Set up tap tempo
+  let tapTimes = [];
+  UI.elements.tapTempo.addEventListener('click', function() {
+    const now = Date.now();
+    
+    // Remove taps older than 2 seconds
+    tapTimes = tapTimes.filter(time => now - time < 2000);
+    
+    // Add current tap
+    tapTimes.push(now);
+    
+    if (tapTimes.length > 1) {
+      // Calculate average time between taps
+      let sum = 0;
+      for (let i = 1; i < tapTimes.length; i++) {
+        sum += tapTimes[i] - tapTimes[i-1];
+      }
+      const avgTime = sum / (tapTimes.length - 1);
+      
+      // Convert to BPM
+      const bpm = Math.round(60000 / avgTime);
+      
+      // Limit to reasonable range
+      const limitedBpm = Math.max(40, Math.min(220, bpm));
+      
+      // Update UI and state
+      UI.elements.tempo.value = limitedBpm;
+      UI.elements.tempoDisplay.textContent = `${limitedBpm} BPM`;
+      AppState.updateState({ tempo: limitedBpm });
+    }
+  });
+  
+  // Initialize app state listeners
+  AppState.addListener(function(state) {
+    if (state.isPlaying) {
+      UI.elements.startStopButton.textContent = 'Stop';
+    } else {
+      UI.elements.startStopButton.textContent = 'Start';
+    }
+  });
+  
+  console.log('Application initialized');
+}); 
+    </script>
         </body>
         </html>
