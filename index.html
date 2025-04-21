@@ -1526,48 +1526,26 @@ async function playMetronomeSound(baseVolume) {
   
 }     
 
-        function renderFretboard(containerId, key, scale) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = `<strong>Key:</strong> ${key} <br> <strong>Scale:</strong> ${scale}`;
-    // Replace with your actual fretboard rendering logic
-  }
-
-  function initStaticFretboards() {
-    for (let i = 1; i <= 4; i++) {
-      const key = document.getElementById(`static-key-select-${i}`).value;
-      const scale = document.getElementById(`static-scale-select-${i}`).value;
-      renderFretboard(`static-fretboard-${i}`, key, scale);
-    }
-  }
-
-  // This is the code you asked about:
-  for (let i = 1; i <= 4; i++) {
-    document.getElementById(`static-key-select-${i}`).addEventListener('change', function() {
-      const key = this.value;
-      const scale = document.getElementById(`static-scale-select-${i}`).value;
-      renderFretboard(`static-fretboard-${i}`, key, scale);
-    });
-    document.getElementById(`static-scale-select-${i}`).addEventListener('change', function() {
-      const scale = this.value;
-      const key = document.getElementById(`static-key-select-${i}`).value;
-      renderFretboard(`static-fretboard-${i}`, key, scale);
-    });
-  }
-        
 function renderFretboard(containerId, key, scale) {
   const container = document.getElementById(containerId);
-  // For demonstration, just show the key and scale
-  container.innerHTML = `<strong>Key:</strong> ${key} <br> <strong>Scale:</strong> ${scale}`;
-  // Replace this with your actual fretboard drawing logic!
+  // Replace this with your actual fretboard rendering logic:
+  updateFretboardNotes(container, key, scale, TUNINGS['standard']);
 }
-        
-        function initStaticFretboards() {
+
+function initStaticFretboards() {
   for (let i = 1; i <= 4; i++) {
-    const key = document.getElementById(`static-key-select-${i}`).value;
-    const scale = document.getElementById(`static-scale-select-${i}`).value;
-    renderFretboard(`static-fretboard-${i}`, key, scale);
+    const keySelect = document.getElementById(`static-key-select-${i}`);
+    const scaleSelect = document.getElementById(`static-scale-select-${i}`);
+    const containerId = `static-fretboard-${i}`;
+    function update() {
+      renderFretboard(containerId, keySelect.value, scaleSelect.value);
+    }
+    keySelect.addEventListener('change', update);
+    scaleSelect.addEventListener('change', update);
+    update(); // Initial render
   }
 }
+
         
 function standardizeNoteName(note) {
   if (!note) return 'C';
