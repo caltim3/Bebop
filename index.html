@@ -107,9 +107,6 @@
             transform: translate(-50%, -50%);
             transition: transform 0.1s ease;
         }
-        .note:hover {
-            transform: translate(-50%, -50%) scale(1.2);
-        }
         .beat {
             width: 40px;
             height: 80px;
@@ -1961,16 +1958,17 @@ function addMeasure(chord = 'C', quality = 'major', scaleRoot = 'C', scaleType =
     measure.draggable = true;
     const measureCount = UI.elements.measures.children.length + 1;
     measure.innerHTML = `
-        <span class="measure-number">${measureCount}</span>
-        <div class="chord-controls">
-            <select class="root-note">${createKeyOptions(chord)}</select>
-            <select class="chord-quality">${createQualityOptions(quality)}</select>
-        </div>
-        <div class="scale-controls">
-            <select class="second-key">${createKeyOptions(scaleRoot)}</select>
-            <select class="scale-select">${createScaleOptions(scaleType)}</select>
-        </div>
+    <span class="measure-number">${measureCount}</span>
+    <div class="chord-controls">
+    <select class="root-note">${createKeyOptions(chord)}</select>
+    <select class="chord-quality">${createQualityOptions(quality)}</select>
+    </div>
+    <div class="scale-controls">
+    <select class="second-key">${createKeyOptions(scaleRoot)}</select>
+    <select class="scale-select">${createScaleOptions(scaleType)}</select>
+    </div>
     `;
+    UI.elements.measures.appendChild(measure); // <-- Add this line if you want to actually add the measure
 }
 
 function removeMeasure() {
