@@ -1,10 +1,11 @@
 // core/audio-context.js
 import { log, updateLoadingStatus } from '../utils/helpers.js';
+import { AppState } from '../js/app-state.js';
 
 export const AudioContextManager = {
     context: null,
-    soundBuffers: {}, // For drum sounds (click, hihat, etc.)
-    pianoSamples: {}, // Replaces pianoSampleBuffers for WAVs
+    soundBuffers: {}, // Drum sounds (click, hihat, etc.)
+    pianoSamples: {}, // Piano note samples
     reverbNode: null,
     samplesLoaded: false,
     currentChordGain: null,
@@ -20,7 +21,7 @@ export const AudioContextManager = {
             await this.context.resume();
         }
         AppState.updateState({ audioInitialized: true });
-        this.samplesLoaded = true; // Update flag
+        this.samplesLoaded = true;
         return this.context;
     },
 
@@ -28,6 +29,7 @@ export const AudioContextManager = {
         return await this.initialize();
     },
 
+    // --- Drum Sample Loading (with fallback) ---
     async loadSounds() {
         const soundFiles = {
             'click': 'Click.wav',
@@ -59,40 +61,30 @@ export const AudioContextManager = {
         updateLoadingStatus("Drum sounds loaded");
     },
 
+    // --- Piano Sample Loading (from remote) ---
     async loadPianoSamples() {
         const octaves = [2, 3, 4, 5];
         const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
-    
-        function getSampleFileName(note, octave) {
-            if (!note || !octave) {
-                console.error('Invalid note or octave:', note, octave);
-                return null;
-            }
-            let base = note.toLowerCase();
-            if (base.includes('#')) {
-                base = base.replace('#', 's');
-            }
-            return `${base}${octave}.wav`;
-        }
 
-    for (const octave of octaves) {
-        for (const note of notes) {
-            const sampleName = `${note}${octave}.wav`;
-            try {
-                const response = await fetch(`https://raw.githubusercontent.com/caltim3/bebop/main/${sampleName}`);
-                if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
-                const arrayBuffer = await response.arrayBuffer();
-                const sampleKey = `${note}${octave}`; // already correct format
-                this.pianoSamples[sampleKey] = await this.context.decodeAudioData(arrayBuffer);
-                log(`Loaded ${sampleName} as key ${sampleKey}`);
-            } catch (error) {
-                console.error(`Error loading ${sampleName}:`, error);
+        for (const octave of octaves) {
+            for (const note of notes) {
+                const sampleName = `${note}${octave}.wav`;
+                try {
+                    const response = await fetch(`https://raw.githubusercontent.com/caltim3/bebop/main/${sampleName}`);
+                    if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const sampleKey = `${note}${octave}`;
+                    this.pianoSamples[sampleKey] = await this.context.decodeAudioData(arrayBuffer);
+                    log(`Loaded ${sampleName} as key ${sampleKey}`);
+                } catch (error) {
+                    console.error(`Error loading ${sampleName}:`, error);
+                }
             }
         }
-    }
-    updateLoadingStatus("Piano samples loaded");
-},
+        updateLoadingStatus("Piano samples loaded");
+    },
 
+    // --- Reverb Setup ---
     async setupReverb() {
         this.reverbNode = this.context.createConvolver();
         const sampleRate = this.context.sampleRate;
@@ -107,9 +99,10 @@ export const AudioContextManager = {
         }
 
         this.reverbNode.buffer = impulse;
-        this.reverbNode.connect(this.context.destination);
+        // Do not connect reverbNode directly to destination; connect in playback methods
     },
 
+    // --- Fallback Drum Sound Synthesis ---
     async createDrumSound(type) {
         const sampleRate = this.context.sampleRate;
         const duration = type.includes('hihat') ? 0.05 : 0.2;
@@ -158,8 +151,66 @@ export const AudioContextManager = {
         }
 
         return buffer;
+    },
+
+    // --- Drum Playback (with gain & reverb) ---
+    playDrumSample(type, velocity = 1) {
+        const buffer = this.soundBuffers[type];
+        if (!buffer) return;
+        const source = this.context.createBufferSource();
+        source.buffer = buffer;
+        const gain = this.context.createGain();
+        gain.gain.value = velocity;
+        source.connect(gain);
+        gain.connect(this.context.destination);
+
+        // Subtle reverb
+        if (this.reverbNode) {
+            const reverbGain = this.context.createGain();
+            reverbGain.gain.value = 0.2;
+            source.connect(this.reverbNode);
+            this.reverbNode.connect(reverbGain);
+            reverbGain.connect(this.context.destination);
+        }
+
+        source.start();
+    },
+
+    // --- Piano Chord Playback (with gain, reverb, and smooth transitions) ---
+    playChord(noteNames, duration = 1.5, velocity = 1) {
+        // Fade out previous chord
+        if (this.currentChordGain) {
+            this.currentChordGain.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.1);
+        }
+
+        const chordGain = this.context.createGain();
+        chordGain.gain.value = velocity;
+        chordGain.connect(this.context.destination);
+
+        // Reverb
+        let reverbGain = null;
+        if (this.reverbNode) {
+            reverbGain = this.context.createGain();
+            reverbGain.gain.value = 0.25;
+            this.reverbNode.connect(reverbGain);
+            reverbGain.connect(this.context.destination);
+        }
+
+        noteNames.forEach(note => {
+            const buffer = this.pianoSamples[note];
+            if (!buffer) return;
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(chordGain);
+            if (this.reverbNode) source.connect(this.reverbNode);
+            source.start();
+            source.stop(this.context.currentTime + duration);
+        });
+
+        this.currentChordGain = chordGain;
+        setTimeout(() => {
+            chordGain.disconnect();
+            if (reverbGain) reverbGain.disconnect();
+        }, duration * 1000 + 200);
     }
 };
-
-// Import AppState at the end to avoid circular dependencies
-import { AppState } from '../js/app-state.js';
