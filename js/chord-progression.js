@@ -1,8 +1,8 @@
 import { UI } from '../core/ui-manager.js';
 import { getChordFromFunction, parseChord } from './music-theory.js';
-import { log, suggestScaleForQuality } from '../utils/helpers.js';
+import { suggestScaleForQuality } from '../utils/helpers.js';
 import { progressions, TUNINGS } from '../utils/constants.js';
-import { updateFretboardNotes } from './fretboard.js';
+import { updateFretboardNotes } from './fretboard.js'; //check 
 
 export function loadProgression(progressionName) {
     const progression = progressions[progressionName];
@@ -42,39 +42,64 @@ export function parseProgression(progText, key) {
     return result;
 }
 
-export function updateProgressionKey(key) {
-    const measures = UI.elements.measures.children;
-    
-    for (let i = 0; i < measures.length; i++) {
-        const measure = measures[i];
-        const chordFunctionElement = measure.querySelector('.chord-function');
-        const rootNoteElement = measure.querySelector('.root-note');
-        const chordQualityElement = measure.querySelector('.chord-quality');
-        const secondKeyElement = measure.querySelector('.second-key');
-        
-        if (chordFunctionElement && rootNoteElement && chordQualityElement) {
-            const chordFunction = chordFunctionElement.value;
-            const chord = getChordFromFunction(chordFunction, key);
-            const [root, quality] = parseChord(chord);
-            
-            rootNoteElement.value = root;
-            chordQualityElement.value = quality;
-            
-            // Update scale suggestion
-            if (secondKeyElement) {
-                secondKeyElement.value = root;
-            }
-
-            // Update fretboard for this chord
-            const tuning = TUNINGS[UI.elements.chordTuning.value];
-            if (UI.elements.chordFretboard) {
-                updateFretboardNotes(UI.elements.chordFretboard, root, quality, tuning);
-                console.log(`[updateProgressionKey] Updated fretboard for chord: ${root} ${quality}`);
-            }
-        }
+export function loadProgression(progressionName) {
+    const progression = progressions[progressionName];
+    if (!progression) {
+        console.error(`Progression ${progressionName} not found`);
+        return;
     }
-    
-    log(`Updated progression to key: ${key}`);
+
+    // Clear existing measures
+    UI.elements.measures.innerHTML = '';
+
+    // Add new measures based on the progression
+    progression.measures.forEach((measure, index) => {
+        const measureElement = document.createElement('div');
+        measureElement.className = 'measure';
+        measureElement.dataset.index = index;
+
+        // Add chord controls (root, quality)
+        const chordControls = document.createElement('div');
+        chordControls.className = 'chord-controls';
+        chordControls.innerHTML = `
+            <label>Root:</label>
+            <select class="root-note">${NOTES.map(note => `<option>${note}</option>`).join('')}</select>
+            <label>Quality:</label>
+            <select class="chord-quality">${CHORD_QUALITIES.map(q => `<option>${q}</option>`).join('')}</select>
+        `;
+        measureElement.appendChild(chordControls);
+
+        // Add scale controls (root and scale type)
+        const scaleControls = document.createElement('div');
+        scaleControls.className = 'scale-controls';
+        scaleControls.innerHTML = `
+            <label>Scale Root:</label>
+            <select class="second-key">${NOTES.map(note => `<option>${note}</option>`).join('')}</select>
+            <label>Scale Type:</label>
+            <select class="scale-select">${SCALE_NAMES.map(s => `<option>${s}</option>`).join('')}</select>
+        `;
+        measureElement.appendChild(scaleControls);
+
+        UI.elements.measures.appendChild(measureElement);
+    });
+
+    // Initialize fretboard with first measure's data
+    if (progression.measures.length > 0) {
+        const firstMeasure = progression.measures[0];
+        const rootNote = firstMeasure.root || 'C';
+        const chordQuality = firstMeasure.quality || 'maj7';
+        const scale = suggestScaleForQuality(chordQuality); // Map quality to scale
+        const tuning = TUNINGS[UI.elements.chordTuning.value];
+
+        updateFretboardNotes(
+            UI.elements.chordFretboard,
+            rootNote,
+            scale,
+            tuning
+        );
+    }
+
+    log(`Loaded progression: ${progressionName}`);
 }
 
 export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuality = null) {
