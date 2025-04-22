@@ -118,29 +118,50 @@ export function getChordFromFunction(chordFunction, key) {
     // Try to find the degree and quality
     let degree = null;
     let quality = '';
-    // Try to match the full chordFunction (e.g., "iim7b5")
-    if (degreeMap[chordFunction]) {
-        degree = degreeMap[chordFunction];
-        // Extract quality (e.g., "m7b5" from "iim7b5")
-        quality = chordFunction.replace(/^[b#]?[ivIV]+/, '');
-    } else {
-        // Try to match the root (e.g., "ii" from "iim7b5")
-        const match = chordFunction.match(/^([b#]?[ivIV]+)(.*)$/);
-        if (match) {
-            const roman = match[1];
-            quality = match[2] || '';
-            if (degreeMap[roman]) {
-                degree = degreeMap[roman];
-            }
+    
+    // Extract the Roman numeral and quality
+    const match = chordFunction.match(/^([b#]?[ivIV]+)(.*)$/);
+    if (match) {
+        const roman = match[1];
+        quality = match[2] || '';
+        
+        // Look up the degree in the scale degrees map
+        if (degreeMap[roman]) {
+            degree = degreeMap[roman];
         }
     }
+    
     if (degree === null) {
         // Fallback: just return the function as-is
         return chordFunction;
     }
+    
     // Calculate the note index
     let noteIndex = (keyIndex + degree) % 12;
     let note = NOTES[noteIndex];
+    
+    // Map Roman numeral qualities to actual chord qualities
+    if (quality === '7' && roman.toUpperCase() === roman) {
+        // Major chord with dominant 7th (e.g., V7)
+        return note + '7';
+    } else if (quality === '7' && roman.toLowerCase() === roman) {
+        // Minor chord with minor 7th (e.g., ii7)
+        return note + 'm7';
+    } else if (quality === 'maj7' || quality === 'M7') {
+        // Major chord with major 7th
+        return note + 'maj7';
+    } else if (quality === 'dim' || quality === '°') {
+        return note + 'dim';
+    } else if (quality === 'dim7' || quality === '°7') {
+        return note + 'dim7';
+    } else if (quality === 'm7b5' || quality === 'ø') {
+        return note + 'm7b5';
+    } else if (roman.toLowerCase() === roman && !quality) {
+        // Lowercase Roman numeral with no quality = minor chord
+        return note + 'm';
+    }
+    
+    // Default: return the note with the quality
     return note + quality;
 }
 
@@ -156,7 +177,51 @@ export function parseChord(chord) {
         // Default to C if no key is set
         const currentKey = UI.elements.keySelector ? UI.elements.keySelector.value : 'C';
         const actualChord = getChordFromFunction(chord, currentKey);
-        return parseChord(actualChord); // Recursively parse the actual chord
+        
+        // Direct parsing of the actual chord without recursion
+        const regex = /^([A-Ga-g][b#]?)(maj7|m7b5|min7|m7|maj|min|dim7|dim|aug|sus2|sus4|add9|7b9|7#9|7b13|7#11|7|6|9|11|13|°|ø)?$/;
+        const match = actualChord.match(regex);
+        
+        if (!match) {
+            console.warn(`Unable to parse converted chord: ${actualChord} (from ${chord})`);
+            return [standardizeNoteName(actualChord), 'maj'];
+        }
+        
+        let [, root, quality] = match;
+        root = standardizeNoteName(root);
+        
+        if (!quality) quality = 'maj';
+        
+        // Normalize quality
+        switch (quality.toLowerCase()) {
+            case 'min':
+            case 'm':
+                quality = 'min';
+                break;
+            case 'min7':
+            case 'm7':
+                quality = 'min7';
+                break;
+            case 'maj7':
+            case 'maj':
+                quality = 'maj7';
+                break;
+            case 'dim7':
+            case '°':
+                quality = 'dim7';
+                break;
+            case 'ø':
+            case 'm7b5':
+                quality = 'm7b5';
+                break;
+            case '7':
+                quality = '7';
+                break;
+            default:
+                break; // leave as-is (e.g., add9, 9, 13, etc.)
+        }
+        
+        return [root, quality];
     }
     
     // Regular chord parsing for letter-based chords (C, Am7, etc.)
