@@ -1,6 +1,4 @@
-// UI Management
-import { TUNINGS } from '../utils/constants.js';
-
+// core/ui-manager.js
 export const UI = {
     elements: {
         chordFretboard: document.getElementById('chord-fretboard'),
@@ -24,11 +22,10 @@ export const UI = {
         darkModeToggle: document.getElementById('dark-mode-toggle'),
         accentIntensity: document.getElementById('accent-intensity')
     },
+
     init() {
         Object.entries(this.elements).forEach(([key, el]) => {
             if (!el) console.warn(`Missing DOM element: ${key}`);
         });
     }
 };
-
-export default UI;
