@@ -1,12 +1,11 @@
 // js/metronome.js
-export function playMetronomeSound(baseVolume) {
-    console.log('[Metronome] playMetronomeSound called with baseVolume:', baseVolume);
-
 import { UI } from '../core/ui-manager.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { DRUM_PATTERNS } from '../utils/constants.js';
 import { log } from '../utils/helpers.js';
 
+export function playMetronomeSound(baseVolume) {
+    console.log('[Metronome] playMetronomeSound called with baseVolume:', baseVolume);
 // These are only for UI display and mapping, not for playback
 export let currentDrumSetIndex = 0;
 export const drumSoundSets = [
