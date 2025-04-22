@@ -3,7 +3,7 @@ import { AppState } from './app-state.js';
 import { UI } from '../core/ui-manager.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
-import { createBeats, onMetronomeInstrumentChange, changeDrumSet } from './metronome.js';
+import { createBeats, onMetronomeInstrumentChange, currentDrumSetIndex, changeDrumSet } from './metronome.js';
 import { loadProgression, updateProgressionKey, addMeasure, removeMeasure } from './chord-progression.js';
 import { initializeFretFlow } from './fretflow.js';
 import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatus } from '../utils/helpers.js';
@@ -153,11 +153,11 @@ function setupEventListeners() {
     onMetronomeInstrumentChange(e.target.value);
     });
 
-    // Add the drum set toggle button event listener - UPDATED
+    // Add the drum set toggle button event listener
     document.getElementById('drumSetToggleBtn').addEventListener('click', () => {
-        const newIndex = changeDrumSet();
-        document.getElementById('drumSetToggleBtn').textContent = `Drum Set ${newIndex + 1}`;
-        log(`Switched to drum set ${newIndex + 1}`);
+        changeDrumSet();
+        document.getElementById('drumSetToggleBtn').textContent = `Drum Set ${currentDrumSetIndex + 1}`;
+        log(`Switched to drum set ${currentDrumSetIndex + 1}`);
     });
 
     // Initially hide the drum set toggle button if drums aren't selected
@@ -203,4 +203,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Remove the duplicate imports at the bottom
+// Remove these duplicate imports
+// import { startPlayback, stopPlayback } from './playback.js';
+// import { suggestScaleForQuality } from '../utils/helpers.js';
+// import { updateLoadingStatus } from '../utils/helpers.js';
+// import { currentDrumSetIndex, drumSoundSets } from './metronome.js';
