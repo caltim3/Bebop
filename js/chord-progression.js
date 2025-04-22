@@ -42,16 +42,6 @@ export function parseProgression(progText, key) {
     return result;
 }
 
-export function loadProgression(progressionName) {
-    const progression = progressions[progressionName];
-    if (!progression) {
-        console.error(`Progression ${progressionName} not found`);
-        return;
-    }
-
-    // Clear existing measures
-    UI.elements.measures.innerHTML = '';
-
     // Add new measures based on the progression
     progression.measures.forEach((measure, index) => {
         const measureElement = document.createElement('div');
