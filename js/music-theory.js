@@ -57,53 +57,67 @@ export function getChordNotes(root, quality) {
 export async function playChord(root, quality, startTime = 0, duration = 1, isSecondHalf = false, voicingType = null) {
     try {
         await AudioContextManager.ensureAudioContext();
+        console.log(`[playChord] Called with root: ${root}, quality: ${quality}, startTime: ${startTime}, duration: ${duration}, isSecondHalf: ${isSecondHalf}, voicingType: ${voicingType}`);
         let chordNotes = getChordNotes(root, quality);
+        console.log(`[playChord] Chord notes:`, chordNotes);
+
         if (!chordNotes.length) {
-            console.error(`No valid notes found for chord: ${root} ${quality}`);
+            console.error(`[playChord] No valid notes found for chord: ${root} ${quality}`);
             return;
         }
 
         if (isSecondHalf && voicingType) {
             chordNotes = getDropVoicing(chordNotes, voicingType);
+            console.log(`[playChord] Using drop voicing (${voicingType}):`, chordNotes);
         }
 
-        const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
+        // For debugging, hardcode gain to 1.0
+        // const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
+        const chordVolume = 1.0;
         if (!UI.elements.chordsEnabled.classList.contains('active')) {
-            console.warn("Chords are disabled. Skipping chord playback.");
+            console.warn("[playChord] Chords are disabled. Skipping chord playback.");
             return;
         }
+
+        // Log audio context state
+        console.log(`[playChord] AudioContext state:`, AudioContextManager.context.state);
 
         chordNotes.forEach((note, i) => {
             const octave = i === 0 ? 3 : 4;
             const sampleKey = `${note.toLowerCase().replace('#', 's')}${octave}`;
-            if (!/^[a-g](s)?[2-5]$/.test(sampleKey)) {
-                console.warn(`Invalid sample key: ${sampleKey}`);
-                return;
-            }
+            console.log(`[playChord] Attempting to play sampleKey: ${sampleKey}`);
+
             const buffer = AudioContextManager.pianoSamples[sampleKey];
             if (!buffer) {
-                console.error(`No sample found for note: ${sampleKey}`);
+                console.error(`[playChord] No sample found for note: ${sampleKey}`);
                 return;
             }
+            console.log(`[playChord] Buffer found for ${sampleKey}:`, buffer);
+
             const source = AudioContextManager.context.createBufferSource();
             source.buffer = buffer;
             const gainNode = AudioContextManager.context.createGain();
             gainNode.gain.value = chordVolume;
             source.connect(gainNode);
+
             if (AudioContextManager.reverbNode) {
                 const reverbGain = AudioContextManager.context.createGain();
                 reverbGain.gain.value = 0.1;
                 source.connect(reverbGain);
                 reverbGain.connect(AudioContextManager.reverbNode);
+                console.log(`[playChord] Connected to reverb node.`);
             }
+
             gainNode.connect(AudioContextManager.context.destination);
+
+            console.log(`[playChord] Starting source for ${sampleKey} at ${startTime} for ${duration} seconds`);
             source.start(startTime);
             source.stop(startTime + duration);
         });
 
-        console.log(`Playing chord: ${root} ${quality} ${isSecondHalf && voicingType ? '(' + voicingType + ')' : ''}`);
+        console.log(`[playChord] Playing chord: ${root} ${quality} ${isSecondHalf && voicingType ? '(' + voicingType + ')' : ''}`);
     } catch (error) {
-        console.error(`Error playing chord: ${root} ${quality}`, error);
+        console.error(`[playChord] Error playing chord: ${root} ${quality}`, error);
     }
 }
 
