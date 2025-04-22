@@ -1,10 +1,10 @@
 // core/audio-context.js
-playDrumSample(type, volume = 1) {
-    console.log('[AudioContextManager] playDrumSample', type, volume);
-
 import { log, updateLoadingStatus } from '../utils/helpers.js';
 import { AppState } from '../js/app-state.js';
 
+playDrumSample(type, volume = 1) {
+    console.log('[AudioContextManager] playDrumSample', type, volume);
+}
 // --- Drum Kit Definitions ---
 const drumKits = [
     {
