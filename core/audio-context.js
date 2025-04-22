@@ -59,15 +59,15 @@ export const AudioContextManager = {
         updateLoadingStatus("Drum sounds loaded");
     },
 
-    async loadPianoSamples() {
+        async loadPianoSamples() {
         const octaves = [2, 3, 4, 5];
         const notes = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
-
+    
         for (const octave of octaves) {
             for (const note of notes) {
                 const sampleName = `${note}${octave}.wav`; // e.g., 'c#3.wav'
                 try {
-                    const response = await fetch(`./${sampleName}`);
+                    const response = await fetch(`https://raw.githubusercontent.com/caltim3/bebop/main/${sampleName}`);
                     if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
                     const arrayBuffer = await response.arrayBuffer();
                     this.pianoSamples[`${note}${octave}`] = await this.context.decodeAudioData(arrayBuffer);
