@@ -59,32 +59,30 @@ export const AudioContextManager = {
         updateLoadingStatus("Drum sounds loaded");
     },
 
-async loadPianoSamples() {
-    const octaves = [2, 3, 4, 5];
-    const notes = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
-
-    function getSampleFileName(note, octave) {
-        if (!note || !octave) {
-            console.error('Invalid note or octave:', note, octave);
-            return null;
+    async loadPianoSamples() {
+        const octaves = [2, 3, 4, 5];
+        const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
+    
+        function getSampleFileName(note, octave) {
+            if (!note || !octave) {
+                console.error('Invalid note or octave:', note, octave);
+                return null;
+            }
+            let base = note.toLowerCase();
+            if (base.includes('#')) {
+                base = base.replace('#', 's');
+            }
+            return `${base}${octave}.wav`;
         }
-        let base = note.toLowerCase();
-        if (base.includes('#')) {
-            base = base.replace('#', 's');
-        }
-        return `${base}${octave}.wav`;
-    }
 
     for (const octave of octaves) {
         for (const note of notes) {
-            const sampleName = getSampleFileName(note, octave);
-            if (!sampleName) continue;
+            const sampleName = `${note}${octave}.wav`;
             try {
                 const response = await fetch(`https://raw.githubusercontent.com/caltim3/bebop/main/${sampleName}`);
                 if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
                 const arrayBuffer = await response.arrayBuffer();
-                // Store with 's' for sharps, all lowercase
-                const sampleKey = `${note.toLowerCase().replace('#', 's')}${octave}`;
+                const sampleKey = `${note}${octave}`; // already correct format
                 this.pianoSamples[sampleKey] = await this.context.decodeAudioData(arrayBuffer);
                 log(`Loaded ${sampleName} as key ${sampleKey}`);
             } catch (error) {
