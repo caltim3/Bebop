@@ -2,14 +2,14 @@
 import { UI } from '../core/ui-manager.js';
 import { getChordFromFunction, parseChord } from './music-theory.js';
 import { log, suggestScaleForQuality } from '../utils/helpers.js';
-import { progressions, TUNINGS } from '../utils/constants.js';
+import { progressions, TUNINGS } from '../utils/constants.js';  // Changed PROGRESSIONS to progressions
 import { updateFretboardNotes } from './fretboard.js';
 
 export function loadProgression(progressionName) {
-    const progression = PROGRESSIONS[progressionName];
+    const progression = progressions[progressionName];  // Changed PROGRESSIONS to progressions
     if (!progression) {
-        console.error(`Progression ${progressionName} not found`);
-        return;
+    console.error(`Progression ${progressionName} not found`);
+    return;
     }
     
     // Clear existing measures
@@ -17,7 +17,7 @@ export function loadProgression(progressionName) {
     
     // Add measures for each chord in the progression
     progression.forEach(chordFunction => {
-        addMeasure(chordFunction);
+    addMeasure(chordFunction);
     });
     
     // Update the progression with the current key
@@ -30,35 +30,35 @@ export function updateProgressionKey(key) {
     const measures = UI.elements.measures.children;
     
     for (let i = 0; i < measures.length; i++) {
-        const measure = measures[i];
-        const chordFunctionElement = measure.querySelector('.chord-function');
-        const rootNoteElement = measure.querySelector('.root-note');
-        const chordQualityElement = measure.querySelector('.chord-quality');
-        const secondKeyElement = measure.querySelector('.second-key');
-        
-        if (chordFunctionElement && rootNoteElement && chordQualityElement) {
-            const chordFunction = chordFunctionElement.value;
-            const chord = getChordFromFunction(chordFunction, key);
-            const [root, quality] = parseChord(chord);
-            
-            rootNoteElement.value = root;
-            chordQualityElement.value = quality;
-            
-            // Update scale suggestion
-            if (secondKeyElement) {
-                secondKeyElement.value = root;
-            }
-        }
+    const measure = measures[i];
+    const chordFunctionElement = measure.querySelector('.chord-function');
+    const rootNoteElement = measure.querySelector('.root-note');
+    const chordQualityElement = measure.querySelector('.chord-quality');
+    const secondKeyElement = measure.querySelector('.second-key');
+    
+    if (chordFunctionElement && rootNoteElement && chordQualityElement) {
+    const chordFunction = chordFunctionElement.value;
+    const chord = getChordFromFunction(chordFunction, key);
+    const [root, quality] = parseChord(chord);
+    
+    rootNoteElement.value = root;
+    chordQualityElement.value = quality;
+    
+    // Update scale suggestion
+    if (secondKeyElement) {
+    secondKeyElement.value = root;
+    }
+    }
     }
     
     // Update the first measure's scale on the fretboard
     const firstMeasure = measures[0];
     if (firstMeasure) {
-        const scaleRoot = firstMeasure.querySelector('.second-key').value;
-        const scaleType = firstMeasure.querySelector('.scale-select').value;
-        const tuning = TUNINGS[UI.elements.chordTuning.value];
-        
-        updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
+    const scaleRoot = firstMeasure.querySelector('.second-key').value;
+    const scaleType = firstMeasure.querySelector('.scale-select').value;
+    const tuning = TUNINGS[UI.elements.chordTuning.value];
+    
+    updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
     }
     
     log(`Updated progression to key: ${key}`);
@@ -81,10 +81,10 @@ export function addMeasure(chordFunction = 'I') {
     // Add chord function options
     const chordFunctions = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°', 'I7', 'ii7', 'iii7', 'IV7', 'V7', 'vi7', 'vii°7'];
     chordFunctions.forEach(func => {
-        const option = document.createElement('option');
-        option.value = func;
-        option.textContent = func;
-        chordFunctionSelect.appendChild(option);
+    const option = document.createElement('option');
+    option.value = func;
+    option.textContent = func;
+    chordFunctionSelect.appendChild(option);
     });
     chordFunctionSelect.value = chordFunction;
     
@@ -97,10 +97,10 @@ export function addMeasure(chordFunction = 'I') {
     // Add root note options
     const rootNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     rootNotes.forEach(note => {
-        const option = document.createElement('option');
-        option.value = note;
-        option.textContent = note;
-        rootNoteSelect.appendChild(option);
+    const option = document.createElement('option');
+    option.value = note;
+    option.textContent = note;
+    rootNoteSelect.appendChild(option);
     });
     
     const chordQualityLabel = document.createElement('label');
@@ -112,10 +112,10 @@ export function addMeasure(chordFunction = 'I') {
     // Add chord quality options
     const chordQualities = ['major', 'minor', 'dim', 'aug', 'dom7', 'maj7', 'min7', 'dim7', 'min7b5', 'sus2', 'sus4'];
     chordQualities.forEach(quality => {
-        const option = document.createElement('option');
-        option.value = quality;
-        option.textContent = quality;
-        chordQualitySelect.appendChild(option);
+    const option = document.createElement('option');
+    option.value = quality;
+    option.textContent = quality;
+    chordQualitySelect.appendChild(option);
     });
     
     // Scale controls
@@ -130,10 +130,10 @@ export function addMeasure(chordFunction = 'I') {
     
     // Add scale root options (same as chord roots)
     rootNotes.forEach(note => {
-        const option = document.createElement('option');
-        option.value = note;
-        option.textContent = note;
-        secondKeySelect.appendChild(option);
+    const option = document.createElement('option');
+    option.value = note;
+    option.textContent = note;
+    secondKeySelect.appendChild(option);
     });
     
     const scaleSelectLabel = document.createElement('label');
@@ -145,10 +145,10 @@ export function addMeasure(chordFunction = 'I') {
     // Add scale options
     const scales = ['major', 'minor', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian', 'blues', 'minorPentatonic', 'majorPentatonic', 'harmonicMinor', 'melodicMinor', 'diminished', 'wholeTone', 'alteredDominant', 'lydianDominant'];
     scales.forEach(scale => {
-        const option = document.createElement('option');
-        option.value = scale;
-        option.textContent = scale.replace(/([A-Z])/g, ' $1').trim();
-        scaleSelect.appendChild(option);
+    const option = document.createElement('option');
+    option.value = scale;
+    option.textContent = scale.replace(/([A-Z])/g, ' $1').trim();
+    scaleSelect.appendChild(option);
     });
     
     // Remove button
@@ -156,9 +156,9 @@ export function addMeasure(chordFunction = 'I') {
     removeButton.className = 'remove-measure';
     removeButton.textContent = 'X';
     removeButton.addEventListener('click', () => {
-        if (UI.elements.measures.children.length > 1) {
-            removeMeasure(measure);
-        }
+    if (UI.elements.measures.children.length > 1) {
+    removeMeasure(measure);
+    }
     });
     
     // Assemble the measure
