@@ -1,9 +1,8 @@
 // Fix imports to use relative paths
-import { NOTES, SCALES, TUNINGS } from './utils/constants.js';
-import { log } from './utils/helpers.js';
-import { UI } from './core/ui-manager.js';
-import { AudioContextManager } from './core/audio-context.js';
-
+import { NOTES, SCALES, TUNINGS } from '../utils/constants.js';
+import { log, standardizeNoteName } from '../utils/helpers.js';
+import { UI } from '../core/ui-manager.js';
+import { AudioContextManager } from '../core/audio-context.js';
 export function createFretboard(container, tuning) {
     container.innerHTML = '';
 
