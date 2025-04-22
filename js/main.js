@@ -10,6 +10,7 @@ import { initializeFretFlow } from './fretflow.js';
 import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatus } from '../utils/helpers.js';
 import { TUNINGS, drumSoundSets } from '../utils/constants.js';
 import { startPlayback, stopPlayback } from './playback.js';
+import { suggestScaleForQuality } from '../utils/helpers.js';
 
 let currentDrumSetIndex = 0;
 
@@ -100,7 +101,25 @@ function setupEventListeners() {
     const tuningSelect = document.getElementById('chord-tuning');
     if (tuningSelect) {
         tuningSelect.addEventListener('change', (e) => {
-            updateFretboardNotes(e.target.value);
+            const container = UI.elements.chordFretboard;
+            const rootNote = UI.elements.keySelect.value;
+            // Try to get a global scaleSelect, otherwise use 'major'
+            let scaleInput = 'major';
+            if (UI.elements.scaleSelect && UI.elements.scaleSelect.value) {
+                scaleInput = UI.elements.scaleSelect.value;
+            } else {
+                // Try to get from the current measure if available
+                const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
+                if (currentMeasure) {
+                    const scaleSelect = currentMeasure.querySelector('.scale-controls .scale-select');
+                    if (scaleSelect && scaleSelect.value) {
+                        scaleInput = scaleSelect.value;
+                    }
+                }
+            }
+            const scale = suggestScaleForQuality(scaleInput);
+            const tuning = TUNINGS[e.target.value];
+            updateFretboardNotes(container, rootNote, scale, tuning);
         });
     }
 }
