@@ -59,34 +59,39 @@ export const AudioContextManager = {
         updateLoadingStatus("Drum sounds loaded");
     },
 
-    async loadPianoSamples() {
-        const octaves = [2, 3, 4, 5];
-        const notes = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
+async loadPianoSamples() {
+    const octaves = [2, 3, 4, 5];
+    const notes = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
 
-        function getSampleFileName(note, octave) {
-            let base = note.toLowerCase();
-            if (base.includes('#')) {
-                base = base.replace('#', 's');
-            }
-            return `${base}${octave}.wav`;
+    function getSampleFileName(note, octave) {
+        if (!note || !octave) {
+            console.error('Invalid note or octave:', note, octave);
+            return null;
         }
+        let base = note.toLowerCase();
+        if (base.includes('#')) {
+            base = base.replace('#', 's');
+        }
+        return `${base}${octave}.wav`;
+    }
 
-        for (const octave of octaves) {
-            for (const note of notes) {
-                const sampleName = getSampleFileName(note, octave); // e.g., 'cs3.wav'
-                try {
-                    const response = await fetch(`https://raw.githubusercontent.com/caltim3/bebop/main/${sampleName}`);
-                    if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
-                    const arrayBuffer = await response.arrayBuffer();
-                    this.pianoSamples[`${note}${octave}`] = await this.context.decodeAudioData(arrayBuffer);
-                    log(`Loaded ${sampleName}`);
-                } catch (error) {
-                    console.error(`Error loading ${sampleName}:`, error);
-                }
+    for (const octave of octaves) {
+        for (const note of notes) {
+            const sampleName = getSampleFileName(note, octave);
+            if (!sampleName) continue;
+            try {
+                const response = await fetch(`https://raw.githubusercontent.com/caltim3/bebop/main/${sampleName}`);
+                if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
+                const arrayBuffer = await response.arrayBuffer();
+                this.pianoSamples[`${note}${octave}`] = await this.context.decodeAudioData(arrayBuffer);
+                log(`Loaded ${sampleName}`);
+            } catch (error) {
+                console.error(`Error loading ${sampleName}:`, error);
             }
         }
-        updateLoadingStatus("Piano samples loaded");
-    },
+    }
+    updateLoadingStatus("Piano samples loaded");
+}
 
     async setupReverb() {
         this.reverbNode = this.context.createConvolver();
