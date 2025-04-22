@@ -75,7 +75,11 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
 
         chordNotes.forEach((note, i) => {
             const octave = i === 0 ? 3 : 4;
-            const sampleKey = `${note.toLowerCase().replace('b', '#')}${octave}`;
+            const sampleKey = `${note.toLowerCase().replace('#', 's')}${octave}`;
+            if (!/^[a-g](s)?[2-5]$/.test(sampleKey)) {
+                console.warn(`Invalid sample key: ${sampleKey}`);
+                return;
+            }
             const buffer = AudioContextManager.pianoSamples[sampleKey];
             if (!buffer) {
                 console.error(`No sample found for note: ${sampleKey}`);
