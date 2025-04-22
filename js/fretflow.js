@@ -3,6 +3,7 @@ import { UI } from '../core/ui-manager.js';
 import { TUNINGS } from '../utils/constants.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
 import { log } from '../utils/helpers.js';
+import { suggestScaleForQuality } from '../utils/helpers.js';
 
 export function initializeFretFlow() {
     const fretboardsGrid = UI.elements.fretboardsGrid;
@@ -30,14 +31,17 @@ export function initializeFretFlow() {
 
         const fretboard = container.querySelector(`#fretflow-fretboard-${index}`);
         createFretboard(fretboard, tuning);
-        updateFretboardNotes(fretboard, UI.elements.keySelect.value, scale, tuning);
+        const mappedScale = suggestScaleForQuality(scale);
+        updateFretboardNotes(fretboard, UI.elements.keySelect.value, mappedScale, tuning);
 
         // Add tuning change handler
         const tuningSelect = container.querySelector(`#fretflow-tuning-${index}`);
         tuningSelect.addEventListener('change', () => {
             const newTuning = TUNINGS[tuningSelect.value];
             createFretboard(fretboard, newTuning);
-            updateFretboardNotes(fretboard, UI.elements.keySelect.value, scale, newTuning);
+            const mappedScale = suggestScaleForQuality(scale);
+            updateFretboardNotes(fretboard, UI.elements.keySelect.value, mappedScale, newTuning);
+        });
 
             // Reattach note click handlers
             const updatedNotes = fretboard.getElementsByClassName('note');
