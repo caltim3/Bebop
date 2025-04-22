@@ -2,8 +2,7 @@
 import { UI } from '../core/ui-manager.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { DRUM_PATTERNS } from '../utils/constants.js';
-import { log } from '../utils/helpers.js'
-
+import { log } from '../utils/helpers.js';
 
 // These are only for UI display and mapping, not for playback
 export let currentDrumSetIndex = 0;
@@ -152,13 +151,13 @@ export function toggleBeatState(beat, timeSignature, soundType) {
     beat.style.backgroundColor = nextState.color;
 }
 
-export function playMetronomeSound(baseVolume) {
-    console.log('[Metronome] playMetronomeSound called with baseVolume:', baseVolume);
+export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
+    console.log(`[Metronome] playMetronomeSound called with baseVolume: ${baseVolume}, drumSound: ${drumSound}`);
     if (!AudioContextManager.context) return;
-    
+
     // Get the metronome volume slider value and combine it with base volume
     const metronomeVolumeControl = document.getElementById('metronome-volume');
-    const metronomeVolume = parseFloat(metronomeVolumeControl.value);
+    const metronomeVolume = parseFloat(metronomeVolumeControl.value) || 1;
     const combinedVolume = baseVolume * metronomeVolume;
 
     if (combinedVolume <= 0) return;
@@ -185,26 +184,27 @@ export function playMetronomeSound(baseVolume) {
         // Skip if it's a silent beat
         if (soundKey === 'silent') continue;
 
-        // --- Use AudioContextManager for all playback ---
+        // Use AudioContextManager for all playback
+        let mappedType = drumSound; // Default to passed drumSound (e.g., 'hihat')
+        const kitIndex = AudioContextManager.currentDrumKitIndex;
         if (soundType === 'drums' && soundKey !== 'default') {
             // Map drum type to current kit
-            let kitIndex = AudioContextManager.currentDrumKitIndex;
-            let mappedType = soundKey;
-            if (kitIndex === 1) { // makaya
+            if (kitIndex === 1) { // Makaya
                 if (soundKey === 'kick') mappedType = 'kick2';
-                if (soundKey === 'snare') mappedType = 'snare2';
-                if (soundKey === 'hihat') mappedType = 'hihat2';
-            } else if (kitIndex === 2) { // philly joe
+                else if (soundKey === 'snare') mappedType = 'snare2';
+                else if (soundKey === 'hihat') mappedType = 'hihat2';
+            } else if (kitIndex === 2) { // Philly Joe
                 if (soundKey === 'kick') mappedType = 'jazzkick';
-                if (soundKey === 'snare') mappedType = 'jazzsnare';
-                if (soundKey === 'hihat') mappedType = 'jazzhat';
+                else if (soundKey === 'snare') mappedType = 'jazzsnare';
+                else if (soundKey === 'hihat') mappedType = 'jazzhat';
             }
-            AudioContextManager.playDrumSample(mappedType, adjustedVolume);
         } else {
-            // Use click or woodblock sounds
-            const fallbackType = (soundType === 'click' || soundType === 'woodblock') ? soundType : 'click';
-            AudioContextManager.playDrumSample(fallbackType, adjustedVolume);
+            // For click or woodblock, use hihat as fallback
+            mappedType = kitIndex === 1 ? 'hihat2' : kitIndex === 2 ? 'jazzhat' : 'hihat';
         }
+
+        console.log(`[Metronome] Playing drum sample: ${mappedType} with volume: ${adjustedVolume}`);
+        AudioContextManager.playDrumSample(mappedType, adjustedVolume);
     }
 }
 
