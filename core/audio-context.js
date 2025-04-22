@@ -67,7 +67,7 @@ export const AudioContextManager = {
             for (const note of notes) {
                 const sampleName = `${note}${octave}.wav`; // e.g., 'c#3.wav'
                 try {
-                    const response = await fetch(`https://raw.githubusercontent.com/caltim3/bebop/main/${sampleName}`);
+                    const response = await fetch(`https://raw.githubusercontent.com/caltim3/bebop/${sampleName}`);
                     if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
                     const arrayBuffer = await response.arrayBuffer();
                     this.pianoSamples[`${note}${octave}`] = await this.context.decodeAudioData(arrayBuffer);
