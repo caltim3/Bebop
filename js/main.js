@@ -3,7 +3,7 @@ import { AppState } from './app-state.js';
 import { UI } from '../core/ui-manager.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
-import { createBeats, onMetronomeInstrumentChange } from './metronome.js';
+import { createBeats, onMetronomeInstrumentChange, currentDrumSetIndex, drumSoundSets } from './metronome.js';
 import { loadProgression, updateProgressionKey, addMeasure, removeMeasure } from './chord-progression.js';
 import { initializeFretFlow } from './fretflow.js';
 import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatus } from '../utils/helpers.js';
@@ -103,7 +103,10 @@ function setupEventListeners() {
         }
     });
 
-    UI.elements.soundType.addEventListener('change', createBeats);
+    UI.elements.soundType.addEventListener('change', (e) => {
+        createBeats();
+        onMetronomeInstrumentChange(e.target.value);
+    });
 
     UI.elements.metronomeVolume.addEventListener('input', () => {
         const volume = parseFloat(UI.elements.metronomeVolume.value);
@@ -145,12 +148,6 @@ function setupEventListeners() {
             }
         }
         AppState.lastTap = now;
-    });
-
-    // Add this to the setupEventListeners function
-    UI.elements.soundType.addEventListener('change', (e) => {
-        createBeats();
-        onMetronomeInstrumentChange(e.target.value);
     });
 
     // Add the drum set toggle button event listener
@@ -202,9 +199,3 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLoadingStatus("Initialization failed");
     });
 });
-
-// Import these functions from their respective modules
-import { startPlayback, stopPlayback } from './playback.js';
-import { suggestScaleForQuality } from '../utils/helpers.js';
-import { updateLoadingStatus } from '../utils/helpers.js';
-import { currentDrumSetIndex, drumSoundSets } from './metronome.js';
