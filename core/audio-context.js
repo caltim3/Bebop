@@ -58,11 +58,7 @@ export const AudioContextManager = {
         return await this.initialize();
     },
 
-playDrumSample(type, volume = 1) {
-        console.log('[AudioContextManager] playDrumSample', type, volume);
-        // ... actual playback code ...
-    },
-    
+   
     // --- Drum Kit Loading ---
     async loadDrumKits() {
         for (let kitIndex = 0; kitIndex < drumKits.length; kitIndex++) {
@@ -95,14 +91,24 @@ playDrumSample(type, volume = 1) {
         return drumKits[this.currentDrumKitIndex];
     },
 
-    // --- Drum Playback (uses selected kit) ---
-    playDrumSample(type, velocity = 1) {
-        const buffer = this.drumKitBuffers[this.currentDrumKitIndex][type];
-        if (!buffer) return;
+playDrumSample(type, volume = 1) {
+    console.log('[AudioContextManager] playDrumSample called with type:', type, 'volume:', volume);
+    if (!this.context) {
+        console.error('[AudioContextManager] AudioContext not initialized');
+        return;
+    }
+
+    const buffer = this.drumKitBuffers[this.currentDrumKitIndex][type];
+    if (!buffer) {
+        console.error(`[AudioContextManager] No buffer found for drum type: ${type} in kit ${this.currentDrumKitIndex}`);
+        return;
+    }
+
+    try {
         const source = this.context.createBufferSource();
         source.buffer = buffer;
         const gain = this.context.createGain();
-        gain.gain.value = velocity;
+        gain.gain.value = Math.min(volume, 1); // Cap at 1 to avoid clipping
         source.connect(gain);
         gain.connect(this.context.destination);
 
@@ -115,8 +121,12 @@ playDrumSample(type, volume = 1) {
             reverbGain.connect(this.context.destination);
         }
 
-        source.start();
-    },
+        source.start(0);
+        log(`[AudioContextManager] Played drum sample: ${type} at volume ${volume}`);
+    } catch (error) {
+        console.error(`[AudioContextManager] Error playing drum sample ${type}:`, error);
+    }
+},
 
     // --- Piano Sample Loading (from remote) ---
         async loadPianoSamples() {
