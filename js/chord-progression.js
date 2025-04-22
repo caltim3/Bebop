@@ -6,8 +6,8 @@ import { progressions, TUNINGS } from '../utils/constants.js';
 import { updateFretboardNotes } from './fretboard.js';
 
 export function loadProgression(progressionName) {
-    const progressionData = progressions[progressionName];
-    if (!progressionData) {
+    const progression = progressions[progressionName];
+    if (!progression) {
         console.error(`Progression ${progressionName} not found`);
         return;
     }
@@ -16,7 +16,7 @@ export function loadProgression(progressionName) {
     UI.elements.measures.innerHTML = '';
     
     // Add measures for each chord in the progression
-    progressionData.progression.forEach(chordFunction => {
+    progression.progression.forEach(chordFunction => {
         addMeasure(chordFunction);
     });
     
