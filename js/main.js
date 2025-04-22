@@ -10,7 +10,6 @@ import { initializeFretFlow } from './fretflow.js';
 import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatus } from '../utils/helpers.js';
 import { TUNINGS, drumSoundSets } from '../utils/constants.js';
 import { startPlayback, stopPlayback } from './playback.js';
-import { suggestScaleForQuality } from '../utils/helpers.js';
 
 let currentDrumSetIndex = 0;
 
