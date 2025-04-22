@@ -2,10 +2,9 @@
 import { UI } from '../core/ui-manager.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { DRUM_PATTERNS } from '../utils/constants.js';
-import { log } from '../utils/helpers.js';
+import { log } from '../utils/helpers.js'
 
-export function playMetronomeSound(baseVolume) {
-    console.log('[Metronome] playMetronomeSound called with baseVolume:', baseVolume);
+
 // These are only for UI display and mapping, not for playback
 export let currentDrumSetIndex = 0;
 export const drumSoundSets = [
@@ -153,10 +152,10 @@ export function toggleBeatState(beat, timeSignature, soundType) {
     beat.style.backgroundColor = nextState.color;
 }
 
-// --- THE ONLY PLACE DRUMS/CLICKS ARE ACTUALLY PLAYED ---
 export function playMetronomeSound(baseVolume) {
+    console.log('[Metronome] playMetronomeSound called with baseVolume:', baseVolume);
     if (!AudioContextManager.context) return;
-
+    
     // Get the metronome volume slider value and combine it with base volume
     const metronomeVolumeControl = document.getElementById('metronome-volume');
     const metronomeVolume = parseFloat(metronomeVolumeControl.value);
