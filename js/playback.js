@@ -31,14 +31,17 @@ export function startPlayback() {
             const beats = document.querySelectorAll('.beat');
             beats.forEach(beat => beat.classList.remove('active'));
 
-            const currentBeatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
-            if (currentBeatElement) {
-                currentBeatElement.classList.add('active');
-                const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
-                if (volume > 0) {
-                    playMetronomeSound(volume);
-                }
+        const currentBeatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
+        if (currentBeatElement) {
+            currentBeatElement.classList.add('active');
+            const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
+            // --- ADD THIS LINE ---
+            console.log('[Playback] Beat', AppState.currentBeat, 'volume:', volume);
+            // ---------------------
+            if (volume > 0) {
+                playMetronomeSound(volume);
             }
+        }
 
             // Chord playback logic (default: 4/4, beats 0 and 4)
             if (measures.length > 0 && AppState.currentMeasure < measures.length) {
