@@ -1,8 +1,9 @@
 // js/music-theory.js
-import { NOTES } from '../utils/constants.js';
+import { NOTES, scaleDegrees } from '../utils/constants.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { UI } from '../core/ui-manager.js';
 import { standardizeNoteName, getQualityValue } from '../utils/helpers.js';
+
 export function getChordNotes(root, quality) {
     // Use uppercase NOTES to match fretboard logic
     const standardizedRoot = standardizeNoteName(root);
@@ -111,10 +112,7 @@ export function getChordFromFunction(chordFunction, key) {
     }
     if (keyIndex === -1) keyIndex = 0; // Default to C if not found
 
-    // Import scaleDegrees from constants
-    const { scaleDegrees } = await import('../utils/constants.js');
-
-    // Choose the correct scaleDegrees mapping
+    // Use the imported scaleDegrees
     const degreeMap = isMinor ? scaleDegrees.minor : scaleDegrees.major;
 
     // Try to find the degree and quality
@@ -192,4 +190,54 @@ export function parseChord(chord) {
     }
     
     return [root, quality];
+}
+
+// Add the getDropVoicing function that was referenced but not defined
+export function getDropVoicing(notes, voicingType = 'drop2') {
+    if (!notes || notes.length < 3) return notes;
+    
+    const voicedNotes = [...notes];
+    
+    switch (voicingType) {
+        case 'drop2':
+            // Drop the second highest note down an octave
+            if (voicedNotes.length >= 4) {
+                const secondHighestIdx = voicedNotes.length - 2;
+                // We don't actually change the note, just its position in the array
+                // In a real implementation, you'd adjust the octave
+                const secondHighest = voicedNotes.splice(secondHighestIdx, 1)[0];
+                voicedNotes.splice(1, 0, secondHighest);
+            }
+            break;
+        case 'drop3':
+            // Drop the third highest note down an octave
+            if (voicedNotes.length >= 4) {
+                const thirdHighestIdx = voicedNotes.length - 3;
+                const thirdHighest = voicedNotes.splice(thirdHighestIdx, 1)[0];
+                voicedNotes.splice(1, 0, thirdHighest);
+            }
+            break;
+        case 'spread':
+            // Spread voicing - root in bass, then 5th, 3rd, 7th (if present)
+            if (voicedNotes.length >= 3) {
+                // This is a simplified version - in a real implementation
+                // you'd need to identify the actual chord tones
+                const root = voicedNotes[0];
+                const third = voicedNotes.find((_, i) => i !== 0 && i !== 2);
+                const fifth = voicedNotes[2];
+                const seventh = voicedNotes[3];
+                
+                voicedNotes.length = 0;
+                voicedNotes.push(root);
+                if (fifth) voicedNotes.push(fifth);
+                if (third) voicedNotes.push(third);
+                if (seventh) voicedNotes.push(seventh);
+            }
+            break;
+        default:
+            // No voicing change
+            break;
+    }
+    
+    return voicedNotes;
 }
