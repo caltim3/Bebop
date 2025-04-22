@@ -8,7 +8,7 @@ export const AudioContextManager = {
     reverbNode: null,
     samplesLoaded: false,
     currentChordGain: null,
-    
+
     async initialize() {
         if (!this.context) {
             this.context = new (window.AudioContext || window.webkitAudioContext)();
@@ -19,14 +19,15 @@ export const AudioContextManager = {
         if (this.context.state === 'suspended') {
             await this.context.resume();
         }
+        AppState.updateState({ audioInitialized: true });
         this.samplesLoaded = true; // Update flag
         return this.context;
     },
-    
+
     async ensureAudioContext() {
         return await this.initialize();
     },
-    
+
     async loadSounds() {
         const soundFiles = {
             'click': 'Click.wav',
@@ -41,7 +42,7 @@ export const AudioContextManager = {
             'jazzsnare': 'jazzsnare.wav',
             'jazzhat': 'jazzhat.wav'
         };
-        
+
         for (let [type, filename] of Object.entries(soundFiles)) {
             try {
                 const response = await fetch(`./${filename}`);
@@ -57,11 +58,11 @@ export const AudioContextManager = {
         }
         updateLoadingStatus("Drum sounds loaded");
     },
-    
+
     async loadPianoSamples() {
         const octaves = [2, 3, 4, 5];
         const notes = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
-        
+
         for (const octave of octaves) {
             for (const note of notes) {
                 const sampleName = `${note}${octave}.wav`; // e.g., 'c#3.wav'
@@ -78,35 +79,35 @@ export const AudioContextManager = {
         }
         updateLoadingStatus("Piano samples loaded");
     },
-    
+
     async setupReverb() {
         this.reverbNode = this.context.createConvolver();
         const sampleRate = this.context.sampleRate;
         const length = sampleRate * 2.5;
         const impulse = this.context.createBuffer(2, length, sampleRate);
-        
+
         for (let channel = 0; channel < 2; channel++) {
             const channelData = impulse.getChannelData(channel);
             for (let i = 0; i < length; i++) {
                 channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
             }
         }
-        
+
         this.reverbNode.buffer = impulse;
         this.reverbNode.connect(this.context.destination);
     },
-    
+
     async createDrumSound(type) {
         const sampleRate = this.context.sampleRate;
         const duration = type.includes('hihat') ? 0.05 : 0.2;
         const buffer = this.context.createBuffer(1, sampleRate * duration, sampleRate);
         const data = buffer.getChannelData(0);
-        
+
         let effectiveType = type;
         if (type === 'hihat2' || type === 'jazzhat') effectiveType = 'hihat';
         if (type === 'kick2' || type === 'jazzkick') effectiveType = 'kick';
         if (type === 'snare2' || type === 'jazzsnare') effectiveType = 'snare';
-        
+
         switch (effectiveType) {
             case 'click':
                 for (let i = 0; i < data.length; i++) {
@@ -142,6 +143,10 @@ export const AudioContextManager = {
                 }
                 break;
         }
+
         return buffer;
     }
 };
+
+// Import AppState at the end to avoid circular dependencies
+import { AppState } from '../js/app-state.js';
