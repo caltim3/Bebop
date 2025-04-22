@@ -3,14 +3,12 @@ import { AppState } from './app-state.js';
 import { UI } from '../core/ui-manager.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
-import { createBeats, onMetronomeInstrumentChange } from './metronome.js';
+import { createBeats, onMetronomeInstrumentChange, currentDrumSetIndex, drumSoundSets } from './metronome.js';
 import { loadProgression, updateProgressionKey, addMeasure, removeMeasure } from './chord-progression.js';
 import { initializeFretFlow } from './fretflow.js';
 import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatus } from '../utils/helpers.js';
 import { TUNINGS } from '../utils/constants.js';
 import { startPlayback, stopPlayback } from './playback.js';
-// Import these variables here instead of at the bottom
-import { currentDrumSetIndex, drumSoundSets } from './metronome.js';
 
 // Initialization
 async function initializeApp() {
@@ -201,9 +199,3 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLoadingStatus("Initialization failed");
     });
 });
-
-// REMOVE ALL THESE IMPORTS - they're already at the top of the file
-// import { startPlayback, stopPlayback } from './playback.js';
-// import { suggestScaleForQuality } from '../utils/helpers.js';
-// import { updateLoadingStatus } from '../utils/helpers.js';
-// import { currentDrumSetIndex, drumSoundSets } from './metronome.js';
