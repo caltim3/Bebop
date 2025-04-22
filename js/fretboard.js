@@ -1,8 +1,8 @@
 // js/fretboard.js
-import { NOTES, SCALES } from '../utils/constants.js';
-import { standardizeNoteName } from '../utils/helpers.js';
-import { UI } from '../core/ui-manager.js';
+import { NOTES, SCALES, TUNINGS } from '../utils/constants.js';
 import { AudioContextManager } from '../core/audio-context.js';
+import { UI } from '../core/ui-manager.js';
+import { standardizeNoteName, log } from '../utils/helpers.js';
 
 export function createFretboard(container, tuning) {
     container.innerHTML = '';
@@ -72,20 +72,20 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
         console.error('Invalid tuning');
         return;
     }
-    
+
     // Remove existing notes
     container.querySelectorAll('.note').forEach(note => note.remove());
-    
+
     // Update scale display if this is the chord fretboard
     if (container.id === 'chord-fretboard') {
         const measures = UI.elements.measures.children;
-        if (measures.length > 0 && UI.elements.measures.children.length > 0) {
-            const currentMeasureElement = measures[UI.elements.measures.children.length > 0 ? UI.elements.measures.children.length - 1 : 0];
+        if (measures.length > 0 && AppState.currentMeasure < measures.length) {
+            const currentMeasureElement = measures[AppState.currentMeasure];
             const chordRoot = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
             const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
             const scaleRoot = currentMeasureElement.querySelector('.scale-controls .second-key')?.value;
             const scaleType = currentMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-            
+
             if (chordRoot && chordQuality && scaleRoot && scaleType) {
                 let displayQuality = chordQuality;
                 switch (chordQuality) {
@@ -101,7 +101,7 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
             }
         }
     }
-    
+
     // Calculate scale notes
     const scaleIntervals = SCALES[scale];
     const standardizedRoot = standardizeNoteName(rootNote);
@@ -110,25 +110,26 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
         const noteIndex = (rootIndex + interval) % 12;
         return NOTES[noteIndex];
     });
-    
-    // Add notes to the fretboard
+
+    // Add notes to fretboard
     for (let string = 0; string < 6; string++) {
         const openNote = tuning[string];
         const openNoteIndex = NOTES.indexOf(openNote);
-        
+
         for (let fret = 0; fret <= 12; fret++) {
             const noteIndex = (openNoteIndex + fret) % 12;
             const currentNote = NOTES[noteIndex];
-            
+
             if (scaleNotes.includes(currentNote)) {
                 const noteElement = document.createElement('div');
                 noteElement.className = 'note';
                 noteElement.textContent = currentNote;
-                
+                noteElement.dataset.note = currentNote;
+
                 const fretOffset = fret === 0 ? 0 : ((fret - 0.5) / 12) * 100;
                 noteElement.style.left = `${fretOffset}%`;
                 noteElement.style.top = `${(string / 5) * 100}%`;
-                
+
                 // Color the note based on its role in the scale
                 const degree = scaleNotes.indexOf(currentNote);
                 if (currentNote === standardizedRoot) {
@@ -136,9 +137,9 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
                 } else if ([2, 4, 6].includes(degree)) {
                     noteElement.style.backgroundColor = '#006400'; // Chord tones
                 } else {
-                    noteElement.style.backgroundColor = '#4CAF50'; // Other scale tones
+                    noteElement.style.backgroundColor = '#4CAF50'; // Scale tones
                 }
-                
+
                 // Add click handler to play the note
                 noteElement.addEventListener('click', async () => {
                     try {
@@ -147,21 +148,23 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
                         const octave = 3; // Default to octave 3 for fretboard clicks
                         const sampleKey = `${noteName}${octave}`;
                         const buffer = AudioContextManager.pianoSamples[sampleKey];
-                        
+
                         if (!buffer) {
                             console.error(`No sample for ${sampleKey}`);
                             return;
                         }
-                        
+
                         const source = AudioContextManager.context.createBufferSource();
                         source.buffer = buffer;
+
                         const gainNode = AudioContextManager.context.createGain();
                         const volume = parseFloat(UI.elements.chordFretboardVolume.value) || 0.3;
                         gainNode.gain.value = volume;
+
                         source.connect(gainNode);
                         gainNode.connect(AudioContextManager.context.destination);
                         source.start(0);
-                        
+
                         // Visual feedback
                         noteElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
                         setTimeout(() => {
@@ -171,18 +174,21 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
                         console.error('Error playing note:', error);
                     }
                 });
-                
+
                 // Hover effects
                 noteElement.addEventListener('mouseenter', () => {
                     noteElement.style.transform = 'translate(-50%, -50%) scale(1.1)';
                 });
-                
+
                 noteElement.addEventListener('mouseleave', () => {
                     noteElement.style.transform = 'translate(-50%, -50%) scale(1)';
                 });
-                
+
                 container.appendChild(noteElement);
             }
         }
     }
 }
+
+// Import AppState at the end to avoid circular dependencies
+import { AppState } from '../js/app-state.js';
