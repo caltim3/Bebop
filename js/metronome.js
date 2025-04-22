@@ -6,7 +6,7 @@ import { drumSoundSets } from '../utils/constants.js';
 import { log } from '../utils/helpers.js';
 
 // Changed to export the variable
-export let currentDrumSetIndex = 0;
+let currentDrumSetIndex = 0;
 
 export function createBeats() {
     const container = document.querySelector('.beats-container');
