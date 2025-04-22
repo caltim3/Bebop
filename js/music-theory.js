@@ -72,7 +72,7 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
         }
 
         // For debugging, hardcode gain to 1.0
-        const chordVolume = 1.0;
+        const chordVolume = 0.5;
         if (!UI.elements.chordsEnabled.classList.contains('active')) {
             console.warn("[playChord] Chords are disabled. Skipping chord playback.");
             return;
