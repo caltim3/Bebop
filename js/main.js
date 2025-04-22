@@ -28,6 +28,10 @@ async function initializeApp() {
     log("Application initialized");
 }
 
+document.getElementById('drum-kit-select').addEventListener('change', (e) => {
+  AudioContextManager.setDrumKit(Number(e.target.value));
+});
+
 function setupEventListeners() {
     // Metronome start/stop
     const startStopBtn = document.getElementById('start-stop');
