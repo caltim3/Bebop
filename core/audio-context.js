@@ -42,12 +42,14 @@ export const AudioContextManager = {
     async initialize() {
         if (!this.context) {
             this.context = new (window.AudioContext || window.webkitAudioContext)();
+            console.log('[AudioContextManager] AudioContext created, state:', this.context.state);
             await this.loadDrumKits();
             await this.loadPianoSamples();
             await this.setupReverb();
         }
         if (this.context.state === 'suspended') {
             await this.context.resume();
+            console.log('[AudioContextManager] AudioContext resumed, state:', this.context.state);
         }
         AppState.updateState({ audioInitialized: true });
         this.samplesLoaded = true;
@@ -58,7 +60,6 @@ export const AudioContextManager = {
         return await this.initialize();
     },
 
-   
     // --- Drum Kit Loading ---
     async loadDrumKits() {
         for (let kitIndex = 0; kitIndex < drumKits.length; kitIndex++) {
@@ -91,65 +92,66 @@ export const AudioContextManager = {
         return drumKits[this.currentDrumKitIndex];
     },
 
-playDrumSample(type, volume = 1) {
-    console.log('[AudioContextManager] playDrumSample called with type:', type, 'volume:', volume);
-    if (!this.context) {
-        console.error('[AudioContextManager] AudioContext not initialized');
-        return;
-    }
-
-    const buffer = this.drumKitBuffers[this.currentDrumKitIndex][type];
-    if (!buffer) {
-        console.error(`[AudioContextManager] No buffer found for drum type: ${type} in kit ${this.currentDrumKitIndex}`);
-        return;
-    }
-
-    try {
-        const source = this.context.createBufferSource();
-        source.buffer = buffer;
-        const gain = this.context.createGain();
-        gain.gain.value = Math.min(volume, 1); // Cap at 1 to avoid clipping
-        source.connect(gain);
-        gain.connect(this.context.destination);
-
-        // Subtle reverb
-        if (this.reverbNode) {
-            const reverbGain = this.context.createGain();
-            reverbGain.gain.value = 0.2;
-            source.connect(this.reverbNode);
-            this.reverbNode.connect(reverbGain);
-            reverbGain.connect(this.context.destination);
+    // --- Drum Playback (uses selected kit) ---
+    playDrumSample(type, volume = 1) {
+        console.log('[AudioContextManager] playDrumSample called with type:', type, 'volume:', volume);
+        if (!this.context) {
+            console.error('[AudioContextManager] AudioContext not initialized');
+            return;
         }
 
-        source.start(0);
-        log(`[AudioContextManager] Played drum sample: ${type} at volume ${volume}`);
-    } catch (error) {
-        console.error(`[AudioContextManager] Error playing drum sample ${type}:`, error);
-    }
-},
+        const buffer = this.drumKitBuffers[this.currentDrumKitIndex][type];
+        if (!buffer) {
+            console.error(`[AudioContextManager] No buffer found for drum type: ${type} in kit ${this.currentDrumKitIndex}`);
+            return;
+        }
 
-    // --- Piano Sample Loading (from remote) ---
-        async loadPianoSamples() {
-            const octaves = [2, 3, 4, 5];
-            const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
-        
-            for (const octave of octaves) {
-                for (const note of notes) {
-                    const sampleName = `${note}${octave}.wav`;
-                    try {
-                        const response = await fetch(`./${sampleName}`);
-                        if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
-                        const arrayBuffer = await response.arrayBuffer();
-                        const sampleKey = `${note}${octave}`;
-                        this.pianoSamples[sampleKey] = await this.context.decodeAudioData(arrayBuffer);
-                        log(`Loaded ${sampleName} as key ${sampleKey}`);
-                    } catch (error) {
-                        console.error(`Error loading ${sampleName}:`, error);
-                    }
+        try {
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+            const gain = this.context.createGain();
+            gain.gain.value = Math.min(volume, 1); // Cap at 1 to avoid clipping
+            source.connect(gain);
+            gain.connect(this.context.destination);
+
+            // Subtle reverb
+            if (this.reverbNode) {
+                const reverbGain = this.context.createGain();
+                reverbGain.gain.value = 0.2;
+                source.connect(this.reverbNode);
+                this.reverbNode.connect(reverbGain);
+                reverbGain.connect(this.context.destination);
+            }
+
+            source.start(0);
+            log(`[AudioContextManager] Played drum sample: ${type} at volume ${volume}`);
+        } catch (error) {
+            console.error(`[AudioContextManager] Error playing drum sample ${type}:`, error);
+        }
+    },
+
+    // --- Piano Sample Loading ---
+    async loadPianoSamples() {
+        const octaves = [2, 3, 4, 5];
+        const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
+    
+        for (const octave of octaves) {
+            for (const note of notes) {
+                const sampleName = `${note}${octave}.wav`;
+                try {
+                    const response = await fetch(`./${sampleName}`);
+                    if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const sampleKey = `${note}${octave}`;
+                    this.pianoSamples[sampleKey] = await this.context.decodeAudioData(arrayBuffer);
+                    log(`Loaded ${sampleName} as key ${sampleKey}`);
+                } catch (error) {
+                    console.error(`Error loading ${sampleName}:`, error);
                 }
             }
-            updateLoadingStatus("Piano samples loaded");
         }
+        updateLoadingStatus("Piano samples loaded");
+    },
 
     // --- Reverb Setup ---
     async setupReverb() {
