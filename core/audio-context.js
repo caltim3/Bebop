@@ -91,7 +91,7 @@ async loadPianoSamples() {
         }
     }
     updateLoadingStatus("Piano samples loaded");
-}
+},
 
     async setupReverb() {
         this.reverbNode = this.context.createConvolver();
