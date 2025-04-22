@@ -83,8 +83,10 @@ async loadPianoSamples() {
                 const response = await fetch(`https://raw.githubusercontent.com/caltim3/bebop/main/${sampleName}`);
                 if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
                 const arrayBuffer = await response.arrayBuffer();
-                this.pianoSamples[`${note}${octave}`] = await this.context.decodeAudioData(arrayBuffer);
-                log(`Loaded ${sampleName}`);
+                // Store with 's' for sharps, all lowercase
+                const sampleKey = `${note.toLowerCase().replace('#', 's')}${octave}`;
+                this.pianoSamples[sampleKey] = await this.context.decodeAudioData(arrayBuffer);
+                log(`Loaded ${sampleName} as key ${sampleKey}`);
             } catch (error) {
                 console.error(`Error loading ${sampleName}:`, error);
             }
