@@ -31,23 +31,24 @@ export function startPlayback() {
             const beats = document.querySelectorAll('.beat');
             beats.forEach(beat => beat.classList.remove('active'));
 
-        const currentBeatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
-        if (currentBeatElement) {
-            currentBeatElement.classList.add('active');
-            const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
-            // --- ADD THIS LINE ---
-            console.log('[Playback] Beat', AppState.currentBeat, 'volume:', volume);
-            // ---------------------
-            if (volume > 0) {
-                playMetronomeSound(volume);
+            const currentBeatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
+            if (currentBeatElement) {
+                currentBeatElement.classList.add('active');
+                const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
+                console.log('[Playback] Beat', AppState.currentBeat, 'volume:', volume);
+                if (volume > 0) {
+                    // Ensure valid drum sound (use hihat instead of click)
+                    const soundType = UI.elements.soundType?.value || 'drums';
+                    const drumSound = soundType === 'click' ? 'hihat' : soundType;
+                    playMetronomeSound(volume, drumSound);
+                }
             }
-        }
 
             // Chord playback logic (default: 4/4, beats 0 and 4)
             if (measures.length > 0 && AppState.currentMeasure < measures.length) {
                 const currentMeasureElement = measures[AppState.currentMeasure];
                 const rootNote = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
-                const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+                const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value || 'maj';
 
                 // Play chord on beat 1 and 3 in 4/4, or on first beat in other signatures
                 if (
@@ -57,8 +58,16 @@ export function startPlayback() {
                     const isSecondHalf = (timeSignature === 4 && AppState.currentBeat === 4);
                     const voicingType = isSecondHalf ? 'drop2' : null;
 
-                    if (UI.elements.chordsEnabled?.classList.contains('active')) {
+                    if (UI.elements.chordsEnabled?.classList.contains('active') && rootNote && chordQuality) {
+                        console.log(`[Playback] Playing chord: ${rootNote} ${chordQuality}, isSecondHalf: ${isSecondHalf}, voicing: ${voicingType}`);
                         playChord(rootNote, chordQuality, 0, 1.8, isSecondHalf, voicingType);
+                        // Update fretboard with chord
+                        if (UI.elements.chordFretboard) {
+                            updateFretboardNotes(UI.elements.chordFretboard, rootNote, chordQuality, TUNINGS[UI.elements.chordTuning.value]);
+                            console.log(`[Playback] Updated fretboard for chord: ${rootNote} ${chordQuality}`);
+                        }
+                    } else {
+                        console.warn('[Playback] Chords disabled or missing root/quality, skipping chord playback');
                     }
                 }
             }
@@ -78,6 +87,7 @@ export function startPlayback() {
 
                     if (UI.elements.chordFretboard && scaleRoot && scaleType && tuning) {
                         updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
+                        console.log(`[Playback] Updated fretboard for scale: ${scaleRoot} ${scaleType}`);
                     }
                 }
             }
@@ -92,6 +102,7 @@ export function startPlayback() {
 export function stopPlayback() {
     if (!AppState.isPlaying) return;
 
+    console.log('[Playback] Stopping playback, reason: manual stop or error');
     clearInterval(AppState.metronomeInterval);
     AppState.isPlaying = false;
     if (UI.elements.startStopButton) {
