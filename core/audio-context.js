@@ -2,10 +2,39 @@
 import { log, updateLoadingStatus } from '../utils/helpers.js';
 import { AppState } from '../js/app-state.js';
 
+// --- Drum Kit Definitions ---
+const drumKits = [
+    {
+        name: "default",
+        samples: {
+            'hihat': 'HiHat.wav',
+            'kick': 'Kick.wav',
+            'snare': 'Snare.wav'
+        }
+    },
+    {
+        name: "makaya",
+        samples: {
+            'hihat2': 'HiHat2.wav',
+            'kick2': 'Kick2.wav',
+            'snare2': 'Snare2.wav'
+        }
+    },
+    {
+        name: "philly joe",
+        samples: {
+            'jazzkick': 'jazzkick.wav',
+            'jazzsnare': 'jazzsnare.wav',
+            'jazzhat': 'jazzhat.wav'
+        }
+    }
+];
+
 export const AudioContextManager = {
     context: null,
-    soundBuffers: {}, // Drum sounds (click, hihat, etc.)
-    pianoSamples: {}, // Piano note samples
+    drumKitBuffers: [{}, {}, {}], // One buffer object per kit
+    currentDrumKitIndex: 0,
+    pianoSamples: {},
     reverbNode: null,
     samplesLoaded: false,
     currentChordGain: null,
@@ -13,7 +42,7 @@ export const AudioContextManager = {
     async initialize() {
         if (!this.context) {
             this.context = new (window.AudioContext || window.webkitAudioContext)();
-            await this.loadSounds();
+            await this.loadDrumKits();
             await this.loadPianoSamples();
             await this.setupReverb();
         }
@@ -29,36 +58,59 @@ export const AudioContextManager = {
         return await this.initialize();
     },
 
-    // --- Drum Sample Loading (with fallback) ---
-    async loadSounds() {
-        const soundFiles = {
-            'click': 'Click.wav',
-            'hihat': 'HiHat.wav',
-            'kick': 'Kick.wav',
-            'snare': 'Snare.wav',
-            'woodblock': 'woodblock.wav',
-            'hihat2': 'HiHat2.wav',
-            'kick2': 'Kick2.wav',
-            'snare2': 'Snare2.wav',
-            'jazzkick': 'jazzkick.wav',
-            'jazzsnare': 'jazzsnare.wav',
-            'jazzhat': 'jazzhat.wav'
-        };
-
-        for (let [type, filename] of Object.entries(soundFiles)) {
-            try {
-                const response = await fetch(`./${filename}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const arrayBuffer = await response.arrayBuffer();
-                this.soundBuffers[type] = await this.context.decodeAudioData(arrayBuffer);
-                log(`Loaded ${type} sound from ${filename}`);
-            } catch (error) {
-                console.error(`Failed to load ${filename}:`, error);
-                this.soundBuffers[type] = await this.createDrumSound(type);
-                log(`Using fallback synthetic sound for ${type}`);
+    // --- Drum Kit Loading ---
+    async loadDrumKits() {
+        for (let kitIndex = 0; kitIndex < drumKits.length; kitIndex++) {
+            const kit = drumKits[kitIndex];
+            for (let [type, filename] of Object.entries(kit.samples)) {
+                try {
+                    const response = await fetch(`./${filename}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const arrayBuffer = await response.arrayBuffer();
+                    this.drumKitBuffers[kitIndex][type] = await this.context.decodeAudioData(arrayBuffer);
+                    log(`Loaded ${type} for kit ${kit.name} from ${filename}`);
+                } catch (error) {
+                    console.error(`Failed to load ${filename}:`, error);
+                    this.drumKitBuffers[kitIndex][type] = await this.createDrumSound(type);
+                    log(`Using fallback synthetic sound for ${type} in kit ${kit.name}`);
+                }
             }
         }
-        updateLoadingStatus("Drum sounds loaded");
+        updateLoadingStatus("All drum kits loaded");
+    },
+
+    // --- Drum Kit Switching ---
+    setDrumKit(index) {
+        if (index >= 0 && index < drumKits.length) {
+            this.currentDrumKitIndex = index;
+            updateLoadingStatus(`Drum kit set to: ${drumKits[index].name}`);
+        }
+    },
+    getCurrentDrumKit() {
+        return drumKits[this.currentDrumKitIndex];
+    },
+
+    // --- Drum Playback (uses selected kit) ---
+    playDrumSample(type, velocity = 1) {
+        const buffer = this.drumKitBuffers[this.currentDrumKitIndex][type];
+        if (!buffer) return;
+        const source = this.context.createBufferSource();
+        source.buffer = buffer;
+        const gain = this.context.createGain();
+        gain.gain.value = velocity;
+        source.connect(gain);
+        gain.connect(this.context.destination);
+
+        // Subtle reverb
+        if (this.reverbNode) {
+            const reverbGain = this.context.createGain();
+            reverbGain.gain.value = 0.2;
+            source.connect(this.reverbNode);
+            this.reverbNode.connect(reverbGain);
+            reverbGain.connect(this.context.destination);
+        }
+
+        source.start();
     },
 
     // --- Piano Sample Loading (from remote) ---
@@ -115,11 +167,6 @@ export const AudioContextManager = {
         if (type === 'snare2' || type === 'jazzsnare') effectiveType = 'snare';
 
         switch (effectiveType) {
-            case 'click':
-                for (let i = 0; i < data.length; i++) {
-                    data[i] = Math.sin(i * 0.05) * Math.exp(-i * 0.01);
-                }
-                break;
             case 'hihat':
                 for (let i = 0; i < data.length; i++) {
                     data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.01));
@@ -137,12 +184,6 @@ export const AudioContextManager = {
                     data[i] = ((Math.random() * 2 - 1) + Math.sin(2 * Math.PI * 200 * t)) * Math.exp(-t * 10) * 2;
                 }
                 break;
-            case 'woodblock':
-                for (let i = 0; i < data.length; i++) {
-                    const t = i / sampleRate;
-                    data[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 20);
-                }
-                break;
             default:
                 for (let i = 0; i < data.length; i++) {
                     data[i] = Math.random() * 2 - 1; // Fallback noise
@@ -151,29 +192,6 @@ export const AudioContextManager = {
         }
 
         return buffer;
-    },
-
-    // --- Drum Playback (with gain & reverb) ---
-    playDrumSample(type, velocity = 1) {
-        const buffer = this.soundBuffers[type];
-        if (!buffer) return;
-        const source = this.context.createBufferSource();
-        source.buffer = buffer;
-        const gain = this.context.createGain();
-        gain.gain.value = velocity;
-        source.connect(gain);
-        gain.connect(this.context.destination);
-
-        // Subtle reverb
-        if (this.reverbNode) {
-            const reverbGain = this.context.createGain();
-            reverbGain.gain.value = 0.2;
-            source.connect(this.reverbNode);
-            this.reverbNode.connect(reverbGain);
-            reverbGain.connect(this.context.destination);
-        }
-
-        source.start();
     },
 
     // --- Piano Chord Playback (with gain, reverb, and smooth transitions) ---
