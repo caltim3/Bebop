@@ -15,7 +15,8 @@
       if (!context) context = new (window.AudioContext || window.webkitAudioContext)();
       try {
         // If running locally, make sure a5.wav is in the same folder as this HTML file
-        const response = await fetch('a5.wav');
+        const response = await 
+        fetch('https://raw.githubusercontent.com/caltim3/bebop/main/a5.wav');
         if (!response.ok) throw new Error('Failed to fetch a5.wav');
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await context.decodeAudioData(arrayBuffer);
