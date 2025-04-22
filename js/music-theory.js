@@ -118,11 +118,12 @@ export function getChordFromFunction(chordFunction, key) {
     // Try to find the degree and quality
     let degree = null;
     let quality = '';
+    let roman = '';
     
     // Extract the Roman numeral and quality
     const match = chordFunction.match(/^([b#]?[ivIV]+)(.*)$/);
     if (match) {
-        const roman = match[1];
+        roman = match[1];
         quality = match[2] || '';
         
         // Look up the degree in the scale degrees map
@@ -177,6 +178,12 @@ export function parseChord(chord) {
         // Default to C if no key is set
         const currentKey = UI.elements.keySelector ? UI.elements.keySelector.value : 'C';
         const actualChord = getChordFromFunction(chord, currentKey);
+        
+        // Check if actualChord is still a Roman numeral (conversion failed)
+        if (actualChord.match(/^[ivIV]+/)) {
+            console.warn(`Unable to convert Roman numeral chord: ${chord}`);
+            return ['C', 'maj']; // Default to C major if conversion fails
+        }
         
         // Direct parsing of the actual chord without recursion
         const regex = /^([A-Ga-g][b#]?)(maj7|m7b5|min7|m7|maj|min|dim7|dim|aug|sus2|sus4|add9|7b9|7#9|7b13|7#11|7|6|9|11|13|°|ø)?$/;
