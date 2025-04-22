@@ -1,12 +1,30 @@
 // js/metronome.js
-import { AudioContextManager } from '../core/audio-context.js';
 import { UI } from '../core/ui-manager.js';
-import { AppState } from './app-state.js';
-import { drumSoundSets } from '../utils/constants.js';
+import { AudioContextManager } from '../core/audio-context.js';
+import { DRUM_PATTERNS } from '../utils/constants.js';
 import { log } from '../utils/helpers.js';
 
-// Changed to export the variable
-let currentDrumSetIndex = 0;
+export let currentDrumSetIndex = 0;
+export const drumSoundSets = [
+    {
+        name: "Drums Drums",
+        snare: "Snare.wav",
+        hihat: "HiHat.wav",
+        kick: "Kick.wav"
+    },
+    {
+        name: "Makaya Drums",
+        snare: "Snare2.wav",
+        hihat: "HiHat2.wav",
+        kick: "Kick2.wav"
+    },
+    {
+        name: "Max Drums",
+        kick: 'jazzkick.wav',
+        snare: 'jazzsnare.wav',
+        hihat: 'jazzhat.wav'
+    }
+];
 
 export function createBeats() {
     const container = document.querySelector('.beats-container');
@@ -121,11 +139,11 @@ export function toggleBeatState(beat, timeSignature, soundType) {
         { volume: '0.3', sound: 'default', color: '#4CAF50' },
         { volume: '0', sound: 'default', color: '#9E9E9E' }
     ];
-    
+
     const currentIndex = states.findIndex(state =>
         state.volume === beat.dataset.volume && state.sound === beat.dataset.sound
     );
-    
+
     const nextState = states[(currentIndex + 1) % states.length];
     beat.dataset.volume = nextState.volume;
     beat.dataset.sound = nextState.sound;
@@ -255,12 +273,6 @@ export function onMetronomeInstrumentChange(selectedInstrument) {
     }
 }
 
-// Added a function to change the drum set
-export function changeDrumSet() {
-    currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
-    return currentDrumSetIndex;
-}
-
 export async function playDrumSample(type) {
     if (!AudioContextManager.context) {
         console.error("AudioContext is not initialized.");
@@ -344,3 +356,6 @@ function playBuffer(buffer, type) {
     // Start playback
     source.start(0);
 }
+
+// Import AppState at the end to avoid circular dependencies
+import { AppState } from './app-state.js';
