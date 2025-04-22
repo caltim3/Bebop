@@ -5,6 +5,7 @@ import { AppState } from './app-state.js';
 import { drumSoundSets } from '../utils/constants.js';
 import { log } from '../utils/helpers.js';
 
+// Changed to export the variable
 export let currentDrumSetIndex = 0;
 
 export function createBeats() {
@@ -252,6 +253,12 @@ export function onMetronomeInstrumentChange(selectedInstrument) {
     } else {
         document.getElementById("drumSetToggleBtn").style.display = "none";
     }
+}
+
+// Added a function to change the drum set
+export function changeDrumSet() {
+    currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
+    return currentDrumSetIndex;
 }
 
 export async function playDrumSample(type) {
