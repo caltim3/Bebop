@@ -6,6 +6,7 @@ import { playMetronomeSound } from './metronome.js';
 import { playChord } from './music-theory.js';
 import { log } from '../utils/helpers.js';
 import { TUNINGS } from '../utils/constants.js';
+import { suggestScaleForQuality } from '../utils/helpers.js';
 
 // Import at the end to avoid circular dependencies
 import { updateFretboardNotes } from './fretboard.js';
@@ -63,8 +64,14 @@ export function startPlayback() {
                         playChord(rootNote, chordQuality, 0, 1.8, isSecondHalf, voicingType);
                         // Update fretboard with chord
                         if (UI.elements.chordFretboard) {
-                            updateFretboardNotes(UI.elements.chordFretboard, rootNote, chordQuality, TUNINGS[UI.elements.chordTuning.value]);
-                            console.log(`[Playback] Updated fretboard for chord: ${rootNote} ${chordQuality}`);
+                            const scale = suggestScaleForQuality(chordQuality);
+                            updateFretboardNotes(
+                                UI.elements.chordFretboard,
+                                rootNote,
+                                scale,
+                                TUNINGS[UI.elements.chordTuning.value]
+                            );
+                            console.log(`[Playback] Updated fretboard for chord: ${rootNote} ${chordQuality} (scale: ${scale})`);
                         }
                     } else {
                         console.warn('[Playback] Chords disabled or missing root/quality, skipping chord playback');
@@ -86,8 +93,14 @@ export function startPlayback() {
                     const tuning = TUNINGS[UI.elements.chordTuning.value];
 
                     if (UI.elements.chordFretboard && scaleRoot && scaleType && tuning) {
-                        updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
-                        console.log(`[Playback] Updated fretboard for scale: ${scaleRoot} ${scaleType}`);
+                        const mappedScale = suggestScaleForQuality(scaleType);
+                        updateFretboardNotes(
+                            UI.elements.chordFretboard,
+                            scaleRoot,
+                            mappedScale,
+                            tuning
+                        );
+                        console.log(`[Playback] Updated fretboard for scale: ${scaleRoot} ${scaleType} (mapped: ${mappedScale})`);
                     }
                 }
             }
