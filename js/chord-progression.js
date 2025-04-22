@@ -2,7 +2,7 @@
 import { UI } from '../core/ui-manager.js';
 import { getChordFromFunction, parseChord } from './music-theory.js';
 import { log, suggestScaleForQuality } from '../utils/helpers.js';
-import { PROGRESSIONS, TUNINGS } from '../utils/constants.js';
+import { progressions, TUNINGS } from '../utils/constants.js';
 import { updateFretboardNotes } from './fretboard.js';
 
 export function loadProgression(progressionName) {
