@@ -1,6 +1,5 @@
-import { AudioContextManager } from './core/audio-context.js';
+import { AudioContextManager } from '../core/audio-context.js';
 import { NOTES } from './constants.js';
-
 // Utility Functions
 export function log(message) {
     console.log(`[FretFlow Debug] ${message}`);
