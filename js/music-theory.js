@@ -72,7 +72,6 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
         }
 
         // For debugging, hardcode gain to 1.0
-        // const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
         const chordVolume = 1.0;
         if (!UI.elements.chordsEnabled.classList.contains('active')) {
             console.warn("[playChord] Chords are disabled. Skipping chord playback.");
@@ -83,7 +82,7 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
         console.log(`[playChord] AudioContext state:`, AudioContextManager.context.state);
 
         chordNotes.forEach((note, i) => {
-            const octave = i === 0 ? 3 : 4;
+            const octave = i === 0 ? 2 : 3; // A2-C4 range
             const sampleKey = `${note.toLowerCase().replace('#', 's')}${octave}`;
             console.log(`[playChord] Attempting to play sampleKey: ${sampleKey}`);
 
@@ -99,9 +98,16 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
             const gainNode = AudioContextManager.context.createGain();
             gainNode.gain.value = chordVolume;
             source.connect(gainNode);
-
-            source.connect(gainNode);
             gainNode.connect(AudioContextManager.context.destination);
+
+            // Subtle reverb
+            if (AudioContextManager.reverbNode) {
+                const reverbGain = AudioContextManager.context.createGain();
+                reverbGain.gain.value = 0.25;
+                source.connect(AudioContextManager.reverbNode);
+                AudioContextManager.reverbNode.connect(reverbGain);
+                reverbGain.connect(AudioContextManager.context.destination);
+            }
 
             console.log(`[playChord] Starting source for ${sampleKey} at ${startTime} for ${duration} seconds`);
             source.start(startTime);
