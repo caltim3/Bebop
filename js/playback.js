@@ -12,79 +12,74 @@ import { updateFretboardNotes } from './fretboard.js';
 
 export function startPlayback() {
     if (AppState.isPlaying) return;
-    
-    // Ensure audio context is running
+
     AudioContextManager.ensureAudioContext().then(() => {
         AppState.isPlaying = true;
-        UI.elements.startStopButton.textContent = 'Stop';
-        UI.elements.startStopButton.classList.add('active');
-        
-        // Reset beat counter
+        if (UI.elements.startStopButton) {
+            UI.elements.startStopButton.textContent = 'Stop';
+            UI.elements.startStopButton.classList.add('active');
+        }
+
         AppState.currentBeat = 0;
         AppState.currentMeasure = 0;
-        
-        // Calculate beat duration in milliseconds
-        const beatDuration = 60000 / AppState.tempo;
 
-        // Get time signature and measures BEFORE setInterval
+        const beatDuration = 60000 / AppState.tempo;
         const timeSignature = parseInt(UI.elements.timeSignature.value) || 4;
         const measures = UI.elements.measures.children;
-        
-        // Start the metronome
+
         AppState.metronomeInterval = setInterval(() => {
             const beats = document.querySelectorAll('.beat');
-            
-            // Remove active class from all beats
             beats.forEach(beat => beat.classList.remove('active'));
-            
-            // Add active class to current beat
+
             const currentBeatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
             if (currentBeatElement) {
                 currentBeatElement.classList.add('active');
-                
-                // Play metronome sound if volume > 0
                 const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
                 if (volume > 0) {
                     playMetronomeSound(volume);
                 }
             }
-            
+
+            // Chord playback logic (default: 4/4, beats 0 and 4)
             if (measures.length > 0 && AppState.currentMeasure < measures.length) {
                 const currentMeasureElement = measures[AppState.currentMeasure];
-                const rootNote = currentMeasureElement.querySelector('.chord-controls .root-note').value;
-                const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality').value;
-            
-                // Play chord on beat 1 and 3 (in 4/4 time)
-                if (timeSignature === 4 && (AppState.currentBeat === 0 || AppState.currentBeat === 4)) {
-                    const isSecondHalf = AppState.currentBeat === 4;
+                const rootNote = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
+                const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value;
+
+                // Play chord on beat 1 and 3 in 4/4, or on first beat in other signatures
+                if (
+                    (timeSignature === 4 && (AppState.currentBeat === 0 || AppState.currentBeat === 4)) ||
+                    (timeSignature !== 4 && AppState.currentBeat === 0)
+                ) {
+                    const isSecondHalf = (timeSignature === 4 && AppState.currentBeat === 4);
                     const voicingType = isSecondHalf ? 'drop2' : null;
-            
-                    // Only play if chords are enabled
-                    if (UI.elements.chordsEnabled.classList.contains('active')) {
+
+                    if (UI.elements.chordsEnabled?.classList.contains('active')) {
                         playChord(rootNote, chordQuality, 0, 1.8, isSecondHalf, voicingType);
                     }
                 }
             }
-            
-            // Update beat counter
+
+            // Advance beat
             AppState.currentBeat = (AppState.currentBeat + 1) % (timeSignature === 4 ? 8 : timeSignature);
-                
-            // Update measure counter when we loop back to beat 0
+
+            // Advance measure and update fretboard at start of each measure
             if (AppState.currentBeat === 0) {
                 AppState.currentMeasure = (AppState.currentMeasure + 1) % Math.max(1, measures.length);
-                
-                // Update fretboard when measure changes
+
                 if (measures.length > 0) {
                     const nextMeasureElement = measures[AppState.currentMeasure];
-                    const scaleRoot = nextMeasureElement.querySelector('.scale-controls .second-key').value;
-                    const scaleType = nextMeasureElement.querySelector('.scale-controls .scale-select').value;
+                    const scaleRoot = nextMeasureElement.querySelector('.scale-controls .second-key')?.value;
+                    const scaleType = nextMeasureElement.querySelector('.scale-controls .scale-select')?.value;
                     const tuning = TUNINGS[UI.elements.chordTuning.value];
-                    
-                    updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
+
+                    if (UI.elements.chordFretboard && scaleRoot && scaleType && tuning) {
+                        updateFretboardNotes(UI.elements.chordFretboard, scaleRoot, scaleType, tuning);
+                    }
                 }
             }
         }, beatDuration / (timeSignature === 4 ? 2 : 1)); // Eighth notes for 4/4, quarter notes for others
-        
+
         log("Playback started");
     }).catch(error => {
         console.error("Failed to start playback:", error);
@@ -93,14 +88,15 @@ export function startPlayback() {
 
 export function stopPlayback() {
     if (!AppState.isPlaying) return;
-    
+
     clearInterval(AppState.metronomeInterval);
     AppState.isPlaying = false;
-    UI.elements.startStopButton.textContent = 'Start';
-    UI.elements.startStopButton.classList.remove('active');
-    
-    // Remove active class from all beats
+    if (UI.elements.startStopButton) {
+        UI.elements.startStopButton.textContent = 'Start';
+        UI.elements.startStopButton.classList.remove('active');
+    }
+
     document.querySelectorAll('.beat').forEach(beat => beat.classList.remove('active'));
-    
+
     log("Playback stopped");
 }
