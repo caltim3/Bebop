@@ -7,6 +7,9 @@ import { playChord } from './music-theory.js';
 import { log } from '../utils/helpers.js';
 import { TUNINGS } from '../utils/constants.js';
 
+// Import at the end to avoid circular dependencies
+import { updateFretboardNotes } from './fretboard.js';
+
 export function startPlayback() {
     if (AppState.isPlaying) return;
     
@@ -22,6 +25,10 @@ export function startPlayback() {
         
         // Calculate beat duration in milliseconds
         const beatDuration = 60000 / AppState.tempo;
+
+        // Get time signature and measures BEFORE setInterval
+        const timeSignature = parseInt(UI.elements.timeSignature.value) || 4;
+        const measures = UI.elements.measures.children;
         
         // Start the metronome
         AppState.metronomeInterval = setInterval(() => {
@@ -42,29 +49,26 @@ export function startPlayback() {
                 }
             }
             
-        const timeSignature = parseInt(UI.elements.timeSignature.value) || 4;
-        const measures = UI.elements.measures.children;
-        
-        if (measures.length > 0 && AppState.currentMeasure < measures.length) {
-            const currentMeasureElement = measures[AppState.currentMeasure];
-            const rootNote = currentMeasureElement.querySelector('.chord-controls .root-note').value;
-            const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality').value;
-        
-            // Play chord on beat 1 and 3 (in 4/4 time)
-            if (timeSignature === 4 && (AppState.currentBeat === 0 || AppState.currentBeat === 4)) {
-                const isSecondHalf = AppState.currentBeat === 4;
-                const voicingType = isSecondHalf ? 'drop2' : null;
-        
-                // Only play if chords are enabled
-                if (UI.elements.chordsEnabled.classList.contains('active')) {
-                    playChord(rootNote, chordQuality, 0, 1.8, isSecondHalf, voicingType);
+            if (measures.length > 0 && AppState.currentMeasure < measures.length) {
+                const currentMeasureElement = measures[AppState.currentMeasure];
+                const rootNote = currentMeasureElement.querySelector('.chord-controls .root-note').value;
+                const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality').value;
+            
+                // Play chord on beat 1 and 3 (in 4/4 time)
+                if (timeSignature === 4 && (AppState.currentBeat === 0 || AppState.currentBeat === 4)) {
+                    const isSecondHalf = AppState.currentBeat === 4;
+                    const voicingType = isSecondHalf ? 'drop2' : null;
+            
+                    // Only play if chords are enabled
+                    if (UI.elements.chordsEnabled.classList.contains('active')) {
+                        playChord(rootNote, chordQuality, 0, 1.8, isSecondHalf, voicingType);
+                    }
                 }
             }
-        }
-        
-        // Update beat counter
-        AppState.currentBeat = (AppState.currentBeat + 1) % (timeSignature === 4 ? 8 : timeSignature);
             
+            // Update beat counter
+            AppState.currentBeat = (AppState.currentBeat + 1) % (timeSignature === 4 ? 8 : timeSignature);
+                
             // Update measure counter when we loop back to beat 0
             if (AppState.currentBeat === 0) {
                 AppState.currentMeasure = (AppState.currentMeasure + 1) % Math.max(1, measures.length);
@@ -100,6 +104,3 @@ export function stopPlayback() {
     
     log("Playback stopped");
 }
-
-// Import at the end to avoid circular dependencies
-import { updateFretboardNotes } from './fretboard.js';
