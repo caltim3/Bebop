@@ -5,7 +5,7 @@ import { AppState } from './app-state.js';
 import { drumSoundSets } from '../utils/constants.js';
 import { log } from '../utils/helpers.js';
 
-let currentDrumSetIndex = 0;
+export let currentDrumSetIndex = 0;
 
 export function createBeats() {
     const container = document.querySelector('.beats-container');
