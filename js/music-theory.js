@@ -8,39 +8,39 @@ export function getChordNotes(root, quality) {
     // Use uppercase NOTES to match fretboard logic
     const standardizedRoot = standardizeNoteName(root);
     if (!standardizedRoot) {
-    console.error(`Invalid root note: ${root}`);
-    return [];
+        console.error(`Invalid root note: ${root}`);
+        return [];
     }
 
     const CHORD_INTERVALS = {
-    'major': [0, 4, 7],
-    'minor': [0, 3, 7],
-    'dim': [0, 3, 6],
-    'aug': [0, 4, 8],
-    '6': [0, 4, 7, 9],
-    'min6': [0, 3, 7, 9],
-    '7': [0, 4, 7, 10],
-    'dom7': [0, 4, 7, 10], // Alias for dominant 7
-    'maj7': [0, 4, 7, 11],
-    'min7': [0, 3, 7, 10],
-    'dim7': [0, 3, 6, 9],
-    'min7b5': [0, 3, 6, 10],
-    'sus2': [0, 2, 7],
-    'sus4': [0, 5, 7],
-    'add9': [0, 4, 7, 14]
+        'major': [0, 4, 7],
+        'minor': [0, 3, 7],
+        'dim': [0, 3, 6],
+        'aug': [0, 4, 8],
+        '6': [0, 4, 7, 9],
+        'min6': [0, 3, 7, 9],
+        '7': [0, 4, 7, 10],
+        'dom7': [0, 4, 7, 10], // Alias for dominant 7
+        'maj7': [0, 4, 7, 11],
+        'min7': [0, 3, 7, 10],
+        'dim7': [0, 3, 6, 9],
+        'min7b5': [0, 3, 6, 10],
+        'sus2': [0, 2, 7],
+        'sus4': [0, 5, 7],
+        'add9': [0, 4, 7, 14]
     };
 
     const normalizedQuality = quality ? quality.toLowerCase().replace('m7', 'min7') : 'major';
     const intervals = CHORD_INTERVALS[normalizedQuality] || CHORD_INTERVALS['major'];
     if (!intervals) {
-    console.error(`Invalid chord quality: ${quality}`);
-    return [];
+        console.error(`Invalid chord quality: ${quality}`);
+        return [];
     }
 
     const rootIndex = NOTES.indexOf(standardizedRoot);
     const chordNotes = intervals.map(interval => {
-    const noteIndex = (rootIndex + interval) % 12;
-    return NOTES[noteIndex];
+        const noteIndex = (rootIndex + interval) % 12;
+        return NOTES[noteIndex];
     });
 
     return chordNotes;
@@ -48,52 +48,52 @@ export function getChordNotes(root, quality) {
 
 export async function playChord(root, quality, startTime = 0, duration = 1, isSecondHalf = false, voicingType = null) {
     try {
-    await AudioContextManager.ensureAudioContext();
-    let chordNotes = getChordNotes(root, quality);
-    if (!chordNotes.length) {
-    console.error(`No valid notes found for chord: ${root} ${quality}`);
-    return;
-    }
+        await AudioContextManager.ensureAudioContext();
+        let chordNotes = getChordNotes(root, quality);
+        if (!chordNotes.length) {
+            console.error(`No valid notes found for chord: ${root} ${quality}`);
+            return;
+        }
 
-    // If this is the second half (beat 3), randomize voicing
-    if (isSecondHalf && voicingType) {
-    chordNotes = getDropVoicing(chordNotes, voicingType);
-    }
+        // If this is the second half (beat 3), randomize voicing
+        if (isSecondHalf && voicingType) {
+            chordNotes = getDropVoicing(chordNotes, voicingType);
+        }
 
-    const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
-    if (!UI.elements.chordsEnabled.classList.contains('active')) {
-    console.warn("Chords are disabled. Skipping chord playback.");
-    return;
-    }
+        const chordVolume = parseFloat(UI.elements.chordVolume.value) || 0.75;
+        if (!UI.elements.chordsEnabled.classList.contains('active')) {
+            console.warn("Chords are disabled. Skipping chord playback.");
+            return;
+        }
 
-    chordNotes.forEach((note, i) => {
-    // Always root in the bass (octave 3), others in octave 4
-    const octave = i === 0 ? 3 : 4;
-    const sampleKey = `${note.toLowerCase().replace('b', '#')}${octave}`;
-    const buffer = AudioContextManager.pianoSamples[sampleKey];
-    if (!buffer) {
-    console.error(`No sample found for note: ${sampleKey}`);
-    return;
-    }
-    const source = AudioContextManager.context.createBufferSource();
-    source.buffer = buffer;
-    const gainNode = AudioContextManager.context.createGain();
-    gainNode.gain.value = chordVolume;
-    source.connect(gainNode);
-    if (AudioContextManager.reverbNode) {
-    const reverbGain = AudioContextManager.context.createGain();
-    reverbGain.gain.value = 0.1;
-    source.connect(reverbGain);
-    reverbGain.connect(AudioContextManager.reverbNode);
-    }
-    gainNode.connect(AudioContextManager.context.destination);
-    source.start(startTime);
-    source.stop(startTime + duration);
-    });
+        chordNotes.forEach((note, i) => {
+            // Always root in the bass (octave 3), others in octave 4
+            const octave = i === 0 ? 3 : 4;
+            const sampleKey = `${note.toLowerCase().replace('b', '#')}${octave}`;
+            const buffer = AudioContextManager.pianoSamples[sampleKey];
+            if (!buffer) {
+                console.error(`No sample found for note: ${sampleKey}`);
+                return;
+            }
+            const source = AudioContextManager.context.createBufferSource();
+            source.buffer = buffer;
+            const gainNode = AudioContextManager.context.createGain();
+            gainNode.gain.value = chordVolume;
+            source.connect(gainNode);
+            if (AudioContextManager.reverbNode) {
+                const reverbGain = AudioContextManager.context.createGain();
+                reverbGain.gain.value = 0.1;
+                source.connect(reverbGain);
+                reverbGain.connect(AudioContextManager.reverbNode);
+            }
+            gainNode.connect(AudioContextManager.context.destination);
+            source.start(startTime);
+            source.stop(startTime + duration);
+        });
 
-    console.log(`Playing chord: ${root} ${quality} ${isSecondHalf && voicingType ? '(' + voicingType + ')' : ''}`);
+        console.log(`Playing chord: ${root} ${quality} ${isSecondHalf && voicingType ? '(' + voicingType + ')' : ''}`);
     } catch (error) {
-    console.error(`Error playing chord: ${root} ${quality}`, error);
+        console.error(`Error playing chord: ${root} ${quality}`, error);
     }
 }
 
@@ -106,9 +106,9 @@ export function getChordFromFunction(chordFunction, key) {
     // Standardize key name (handle flats)
     let keyIndex = NOTES.indexOf(keyRoot);
     if (keyIndex === -1) {
-    // Try enharmonic equivalents
-    const enharmonic = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
-    keyIndex = NOTES.indexOf(enharmonic[keyRoot] || keyRoot);
+        // Try enharmonic equivalents
+        const enharmonic = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
+        keyIndex = NOTES.indexOf(enharmonic[keyRoot] || keyRoot);
     }
     if (keyIndex === -1) keyIndex = 0; // Default to C if not found
 
@@ -120,23 +120,23 @@ export function getChordFromFunction(chordFunction, key) {
     let quality = '';
     // Try to match the full chordFunction (e.g., "iim7b5")
     if (degreeMap[chordFunction]) {
-    degree = degreeMap[chordFunction];
-    // Extract quality (e.g., "m7b5" from "iim7b5")
-    quality = chordFunction.replace(/^[b#]?[ivIV]+/, '');
+        degree = degreeMap[chordFunction];
+        // Extract quality (e.g., "m7b5" from "iim7b5")
+        quality = chordFunction.replace(/^[b#]?[ivIV]+/, '');
     } else {
-    // Try to match the root (e.g., "ii" from "iim7b5")
-    const match = chordFunction.match(/^([b#]?[ivIV]+)(.*)$/);
-    if (match) {
-    const roman = match[1];
-    quality = match[2] || '';
-    if (degreeMap[roman]) {
-    degree = degreeMap[roman];
-    }
-    }
+        // Try to match the root (e.g., "ii" from "iim7b5")
+        const match = chordFunction.match(/^([b#]?[ivIV]+)(.*)$/);
+        if (match) {
+            const roman = match[1];
+            quality = match[2] || '';
+            if (degreeMap[roman]) {
+                degree = degreeMap[roman];
+            }
+        }
     }
     if (degree === null) {
-    // Fallback: just return the function as-is
-    return chordFunction;
+        // Fallback: just return the function as-is
+        return chordFunction;
     }
     // Calculate the note index
     let noteIndex = (keyIndex + degree) % 12;
@@ -164,4 +164,92 @@ export function parseChord(chord) {
     const match = chord.match(regex);
     
     if (!match) {
-        console.warn(`Unable to parse chord: ${
+        console.warn(`Unable to parse chord: ${chord}`);
+        return [standardizeNoteName(chord), 'maj'];
+    }
+    
+    let [, root, quality] = match;
+    root = standardizeNoteName(root);
+    
+    if (!quality) quality = 'maj';
+    
+    switch (quality.toLowerCase()) {
+        case 'min':
+        case 'm':
+            quality = 'min';
+            break;
+        case 'min7':
+        case 'm7':
+            quality = 'min7';
+            break;
+        case 'maj7':
+        case 'maj':
+            quality = 'maj7';
+            break;
+        case 'dim7':
+        case '°':
+            quality = 'dim7';
+            break;
+        case 'ø':
+        case 'm7b5':
+            quality = 'm7b5';
+            break;
+        case '7':
+            quality = '7';
+            break;
+        default:
+            break; // leave as-is (e.g., add9, 9, 13, etc.)
+    }
+    
+    return [root, quality];
+}
+
+// Add the getDropVoicing function that was referenced but not defined
+export function getDropVoicing(notes, voicingType = 'drop2') {
+    if (!notes || notes.length < 3) return notes;
+    
+    const voicedNotes = [...notes];
+    
+    switch (voicingType) {
+        case 'drop2':
+            // Drop the second highest note down an octave
+            if (voicedNotes.length >= 4) {
+                const secondHighestIdx = voicedNotes.length - 2;
+                // We don't actually change the note, just its position in the array
+                // In a real implementation, you'd adjust the octave
+                const secondHighest = voicedNotes.splice(secondHighestIdx, 1)[0];
+                voicedNotes.splice(1, 0, secondHighest);
+            }
+            break;
+        case 'drop3':
+            // Drop the third highest note down an octave
+            if (voicedNotes.length >= 4) {
+                const thirdHighestIdx = voicedNotes.length - 3;
+                const thirdHighest = voicedNotes.splice(thirdHighestIdx, 1)[0];
+                voicedNotes.splice(1, 0, thirdHighest);
+            }
+            break;
+        case 'spread':
+            // Spread voicing - root in bass, then 5th, 3rd, 7th (if present)
+            if (voicedNotes.length >= 3) {
+                // This is a simplified version - in a real implementation
+                // you'd need to identify the actual chord tones
+                const root = voicedNotes[0];
+                const third = voicedNotes.find((_, i) => i !== 0 && i !== 2);
+                const fifth = voicedNotes[2];
+                const seventh = voicedNotes[3];
+                
+                voicedNotes.length = 0;
+                voicedNotes.push(root);
+                if (fifth) voicedNotes.push(fifth);
+                if (third) voicedNotes.push(third);
+                if (seventh) voicedNotes.push(seventh);
+            }
+            break;
+        default:
+            // No voicing change
+            break;
+    }
+    
+    return voicedNotes;
+}
