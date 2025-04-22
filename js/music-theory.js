@@ -100,14 +100,7 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
             gainNode.gain.value = chordVolume;
             source.connect(gainNode);
 
-            if (AudioContextManager.reverbNode) {
-                const reverbGain = AudioContextManager.context.createGain();
-                reverbGain.gain.value = 0.1;
-                source.connect(reverbGain);
-                reverbGain.connect(AudioContextManager.reverbNode);
-                console.log(`[playChord] Connected to reverb node.`);
-            }
-
+            source.connect(gainNode);
             gainNode.connect(AudioContextManager.context.destination);
 
             console.log(`[playChord] Starting source for ${sampleKey} at ${startTime} for ${duration} seconds`);
