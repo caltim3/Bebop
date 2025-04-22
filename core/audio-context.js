@@ -2,9 +2,6 @@
 import { log, updateLoadingStatus } from '../utils/helpers.js';
 import { AppState } from '../js/app-state.js';
 
-playDrumSample(type, volume = 1) {
-    console.log('[AudioContextManager] playDrumSample', type, volume);
-}
 // --- Drum Kit Definitions ---
 const drumKits = [
     {
@@ -61,6 +58,11 @@ export const AudioContextManager = {
         return await this.initialize();
     },
 
+playDrumSample(type, volume = 1) {
+        console.log('[AudioContextManager] playDrumSample', type, volume);
+        // ... actual playback code ...
+    },
+    
     // --- Drum Kit Loading ---
     async loadDrumKits() {
         for (let kitIndex = 0; kitIndex < drumKits.length; kitIndex++) {
