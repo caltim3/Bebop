@@ -1,4 +1,5 @@
 // js/main.js
+
 import { AppState } from './app-state.js';
 import { UI } from '../core/ui-manager.js';
 import { AudioContextManager } from '../core/audio-context.js';
@@ -10,10 +11,8 @@ import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatu
 import { TUNINGS, drumSoundSets } from '../utils/constants.js';
 import { startPlayback, stopPlayback } from './playback.js';
 
-// Define this locally to avoid circular imports
 let currentDrumSetIndex = 0;
 
-// Initialization
 async function initializeApp() {
     UI.init();
     createBeats();
@@ -29,21 +28,79 @@ async function initializeApp() {
     log("Application initialized");
 }
 
-// Event Listeners
 function setupEventListeners() {
-    // ... [rest of your event listeners] ...
+    // Metronome start/stop
+    const startStopBtn = document.getElementById('start-stop');
+    if (startStopBtn) {
+        startStopBtn.addEventListener('click', () => {
+            // You may want to toggle between startPlayback and stopPlayback
+            if (startStopBtn.textContent === 'Start') {
+                startPlayback();
+                startStopBtn.textContent = 'Stop';
+            } else {
+                stopPlayback();
+                startStopBtn.textContent = 'Start';
+            }
+        });
+    }
 
-    // Add the drum set toggle button event listener
-    document.getElementById('drumSetToggleBtn').addEventListener('click', () => {
-        currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
-        document.getElementById('drumSetToggleBtn').textContent = `Drum Set ${currentDrumSetIndex + 1}`;
-        log(`Switched to drum set ${currentDrumSetIndex + 1}`);
-    });
+    // Tap tempo
+    const tapTempoBtn = document.getElementById('tap-tempo');
+    if (tapTempoBtn) {
+        tapTempoBtn.addEventListener('click', () => {
+            // Implement tap tempo logic here
+            log('Tap tempo clicked');
+        });
+    }
 
-    // ... [rest of your code] ...
+    // Drum set toggle
+    const drumSetToggleBtn = document.getElementById('drumSetToggleBtn');
+    if (drumSetToggleBtn) {
+        drumSetToggleBtn.addEventListener('click', () => {
+            currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
+            drumSetToggleBtn.textContent = `Drum Set ${currentDrumSetIndex + 1}`;
+            log(`Switched to drum set ${currentDrumSetIndex + 1}`);
+            // Optionally, update metronome instrument here
+            onMetronomeInstrumentChange(currentDrumSetIndex);
+        });
+    }
+
+    // Progression select
+    const progressionSelect = document.getElementById('progression-select');
+    if (progressionSelect) {
+        progressionSelect.addEventListener('change', (e) => {
+            loadProgression(e.target.value);
+        });
+    }
+
+    // Key select
+    const keySelect = document.getElementById('keySelect');
+    if (keySelect) {
+        keySelect.addEventListener('change', (e) => {
+            updateProgressionKey(e.target.value);
+        });
+    }
+
+    // Add/Remove measure
+    const addMeasureBtn = document.querySelector('button[aria-label="Add measure"]');
+    if (addMeasureBtn) {
+        addMeasureBtn.addEventListener('click', addMeasure);
+    }
+    const removeMeasureBtn = document.querySelector('button[aria-label="Remove measure"]');
+    if (removeMeasureBtn) {
+        removeMeasureBtn.addEventListener('click', removeMeasure);
+    }
+
+    // Chord/scale toggles, volume sliders, etc. (add as needed)
+    // Example: Fretboard tuning select
+    const tuningSelect = document.getElementById('chord-tuning');
+    if (tuningSelect) {
+        tuningSelect.addEventListener('change', (e) => {
+            updateFretboardNotes(e.target.value);
+        });
+    }
 }
 
-// Start the app
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp().catch(error => {
         console.error("Initialization failed:", error);
