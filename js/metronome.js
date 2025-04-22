@@ -153,28 +153,39 @@ export function toggleBeatState(beat, timeSignature, soundType) {
 
 export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
     console.log(`[Metronome] playMetronomeSound called with baseVolume: ${baseVolume}, drumSound: ${drumSound}`);
-    if (!AudioContextManager.context) return;
+    if (!AudioContextManager.context) {
+        console.warn('[Metronome] AudioContext not initialized');
+        return;
+    }
 
     // Get the metronome volume slider value and combine it with base volume
     const metronomeVolumeControl = document.getElementById('metronome-volume');
     const metronomeVolume = parseFloat(metronomeVolumeControl.value) || 1;
     const combinedVolume = baseVolume * metronomeVolume;
 
-    if (combinedVolume <= 0) return;
+    if (combinedVolume <= 0) {
+        console.log('[Metronome] Volume is zero, skipping playback');
+        return;
+    }
 
-    const soundType = UI.elements.soundType.value;
+    const soundType = UI.elements.soundType?.value || 'drums';
     const beatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
-    if (!beatElement) return;
+    if (!beatElement) {
+        console.warn(`[Metronome] Beat element not found for beat: ${AppState.currentBeat}`);
+        return;
+    }
 
-    const drumSounds = beatElement.dataset.sound.split(',');
+    const drumSounds = beatElement.dataset.sound ? beatElement.dataset.sound.split(',') : [drumSound];
     const baseVolumeValue = parseFloat(beatElement.dataset.baseVolume) || 0;
     const isAccent = baseVolumeValue >= 1 && ['kick', 'snare'].includes(drumSounds[0]);
     const accentBoost = parseFloat(UI.elements.accentIntensity?.value || 1);
 
-    // Apply accent boost if applicable
+    // Apply accent boost, cap at 0.7 to prevent clipping
     let adjustedVolume = combinedVolume;
     if (isAccent) {
-        adjustedVolume = Math.min(combinedVolume * accentBoost, 1); // cap at 1.0
+        adjustedVolume = Math.min(combinedVolume * accentBoost, 0.7);
+    } else {
+        adjustedVolume = Math.min(combinedVolume, 0.7);
     }
 
     // Process each sound in the drum pattern
@@ -199,7 +210,7 @@ export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
                 else if (soundKey === 'hihat') mappedType = 'jazzhat';
             }
         } else {
-            // For click or woodblock, use hihat as fallback
+            // For click, woodblock, or default, use hihat based on kit
             mappedType = kitIndex === 1 ? 'hihat2' : kitIndex === 2 ? 'jazzhat' : 'hihat';
         }
 
