@@ -9,23 +9,29 @@ const drumKits = [
         samples: {
             'hihat': 'HiHat.wav',
             'kick': 'Kick.wav',
-            'snare': 'Snare.wav'
+            'snare': 'Snare.wav',
+            'click': 'Click.wav',
+            'woodblock': 'woodblock.wav'
         }
     },
     {
         name: "makaya",
         samples: {
-            'hihat2': 'HiHat2.wav',
-            'kick2': 'Kick2.wav',
-            'snare2': 'Snare2.wav'
+            'hihat': 'HiHat2.wav',
+            'kick': 'Kick2.wav',
+            'snare': 'Snare2.wav',
+            'click': 'Click.wav',         // fallback to default click
+            'woodblock': 'woodblock.wav'  // fallback to default woodblock
         }
     },
     {
         name: "philly joe",
         samples: {
-            'jazzkick': 'jazzkick.wav',
-            'jazzsnare': 'jazzsnare.wav',
-            'jazzhat': 'jazzhat.wav'
+            'hihat': 'jazzhat.wav',
+            'kick': 'jazzkick.wav',
+            'snare': 'jazzsnare.wav',
+            'click': 'Click.wav',         // fallback to default click
+            'woodblock': 'woodblock.wav'  // fallback to default woodblock
         }
     }
 ];
