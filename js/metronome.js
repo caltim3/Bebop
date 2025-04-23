@@ -153,14 +153,16 @@ export function toggleBeatState(beat, timeSignature, soundType) {
 
 export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
     console.log(`[Metronome] playMetronomeSound called with baseVolume: ${baseVolume}, drumSound: ${drumSound}`);
-    if (!AudioContextManager.context) {
-        console.warn('[Metronome] AudioContext not initialized');
+
+    // Ensure audio context and samples are loaded
+    if (!AudioContextManager.context || !AudioContextManager.samplesLoaded) {
+        console.warn('[Metronome] AudioContext or samples not initialized');
         return;
     }
 
     // Get the metronome volume slider value and combine it with base volume
     const metronomeVolumeControl = document.getElementById('metronome-volume');
-    const metronomeVolume = parseFloat(metronomeVolumeControl.value) || 1;
+    const metronomeVolume = metronomeVolumeControl ? parseFloat(metronomeVolumeControl.value) || 1 : 1;
     const combinedVolume = baseVolume * metronomeVolume;
 
     if (combinedVolume <= 0) {
@@ -198,6 +200,7 @@ export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
         // Use AudioContextManager for all playback
         let mappedType = drumSound; // Default to passed drumSound (e.g., 'hihat')
         const kitIndex = AudioContextManager.currentDrumKitIndex;
+
         if (soundType === 'drums' && soundKey !== 'default') {
             // Map drum type to current kit
             if (kitIndex === 1) { // Makaya
@@ -208,6 +211,8 @@ export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
                 if (soundKey === 'kick') mappedType = 'jazzkick';
                 else if (soundKey === 'snare') mappedType = 'jazzsnare';
                 else if (soundKey === 'hihat') mappedType = 'jazzhat';
+            } else {
+                mappedType = soundKey;
             }
         } else {
             // For click, woodblock, or default, use hihat based on kit
