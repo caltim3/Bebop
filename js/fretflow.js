@@ -43,24 +43,23 @@ export function initializeFretFlow() {
             updateFretboardNotes(fretboard, UI.elements.keySelect.value, mappedScale, newTuning);
         });
 
-            // Reattach note click handlers
-            const updatedNotes = fretboard.getElementsByClassName('note');
-            Array.from(updatedNotes).forEach(note => {
-                note.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const noteName = this.dataset.note;
-                    if (noteName) {
-                        const fretboardVolume = parseFloat(UI.elements.fretboardVolume.value) || 1.0;
-                        playNote(noteName, fretboardVolume, 500);
-                        log(`Playing note: ${noteName}`);
-                    }
-                }); 
-            });
+        // Reattach note click handlers
+        const updatedNotes = fretboard.getElementsByClassName('note');
+        Array.from(updatedNotes).forEach(note => {
+            note.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const noteName = this.dataset.note;
+                if (noteName) {
+                    const fretboardVolume = parseFloat(UI.elements.fretboardVolume.value) || 1.0;
+                    playNote(noteName, fretboardVolume, 500);
+                    log(`Playing note: ${noteName}`);
+                }
+            }); 
         });
-    });
-
-    log("FretFlow initialized");
-}
+        }); // Closes the scales.forEach callback
+        });
+        
+        log("FretFlow initialized");
 
 // Function to play a note with the given volume and duration
 function playNote(noteName, volume = 0.3, duration = 500) {
