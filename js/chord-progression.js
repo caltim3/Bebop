@@ -83,10 +83,17 @@ export function loadProgression(progressionName) {
 }
 
 export function parseProgression(progText, key) {
-    const result = [];
-    // Split by space, comma, or semicolon
-    const tokens = progText.split(/[\s,;]+/).filter(Boolean);
+    let tokens = [];
+    if (Array.isArray(progText)) {
+        tokens = progText;
+    } else if (typeof progText === 'string') {
+        tokens = progText.split(/[\s,;]+/).filter(Boolean);
+    } else {
+        console.error('parseProgression: progText is not a string or array:', progText);
+        return [];
+    }
 
+    const result = [];
     tokens.forEach(token => {
         // Extract roman and quality
         const match = token.match(/^([b#]?[IViv]+)(.*)$/);
