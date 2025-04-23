@@ -7,6 +7,33 @@ import { AudioContextManager } from '../core/audio-context.js';
 import { CHORD_QUALITY_INTERVALS } from '../utils/constants.js';
 import { playChord } from './music-theory.js';
 
+// --- FIXED: Robust Roman numeral to root mapping ---
+const MAJOR_SCALE = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+const ROMAN_TO_DEGREE = {
+    'I': 0, 'II': 1, 'III': 2, 'IV': 3, 'V': 4, 'VI': 5, 'VII': 6,
+    'i': 0, 'ii': 1, 'iii': 2, 'iv': 3, 'v': 4, 'vi': 5, 'vii': 6
+};
+
+function getRootFromRoman(roman, key) {
+    // Accepts roman like "V7", "ii", "IV7", etc.
+    const baseRoman = roman.replace(/7|°/g, '');
+    const degree = ROMAN_TO_DEGREE[baseRoman];
+    if (degree === undefined) return key;
+
+    // Find the index of the key in the scale
+    let keyIndex = MAJOR_SCALE.indexOf(key[0].toUpperCase());
+    if (keyIndex === -1) keyIndex = 0; // fallback to C
+
+    // Calculate the root note for the degree
+    let note = MAJOR_SCALE[(keyIndex + degree) % 7];
+
+    // Handle accidentals in key (e.g., F#, Bb)
+    if (key.length > 1 && (key[1] === '#' || key[1] === 'b')) {
+        note += key[1];
+    }
+    return note;
+}
+
 export function updateProgressionKey(newKey) {
     const rootNote = newKey;
     const scale = suggestScaleForQuality('maj7'); // Use default or dynamic scale
@@ -29,6 +56,9 @@ export function loadProgression(progressionName) {
     chords.forEach(chord => {
         addMeasure(chord.function, chord.root, chord.quality);
     });
+
+    // Debug: log number of measures created
+    console.log('Measures created:', UI.elements.measures.children.length);
     
     // Update the progression with the current key
     updateProgressionKey(UI.elements.keySelect.value);
@@ -54,19 +84,32 @@ export function loadProgression(progressionName) {
 
 export function parseProgression(progText, key) {
     const result = [];
-    const chordRegex = /([b#]?\w+|[IViv]+)([^/]*)/g;
-    let match;
+    // Split by space, comma, or semicolon
+    const tokens = progText.split(/[\s,;]+/).filter(Boolean);
 
-    while ((match = chordRegex.exec(progText))) {
-        let [, root, quality] = match;
-        quality = quality.trim() || 'maj';
-        if (root.match(/^[Vv]/) && quality === 'maj') quality = '7';
-        const normalizedRoot = root.match(/^[IViv]+/) 
-            ? getChordFromFunction(root, key)[0] 
-            : root;
-        result.push({ function: root, root: normalizedRoot, quality });
-        console.log(`[parseProgression] Parsed chord: ${normalizedRoot} ${quality}`);
-    }
+    tokens.forEach(token => {
+        // Extract roman and quality
+        const match = token.match(/^([b#]?[IViv]+)(.*)$/);
+        let roman, quality;
+        if (match) {
+            roman = match[1];
+            quality = match[2] ? match[2].trim() : '';
+        } else {
+            roman = token;
+            quality = '';
+        }
+        if (!quality || quality === 'maj') {
+            // Default to 7 for V, dom7 for V7, etc.
+            if (/^[Vv]$/.test(roman)) quality = '7';
+            else quality = 'maj';
+        }
+        // Map roman numeral to root note
+        let root = getRootFromRoman(roman, key);
+        // Fallback: if not found, use the roman as root
+        if (!root) root = roman;
+        result.push({ function: roman, root, quality });
+        console.log(`[parseProgression] Parsed chord: ${root} ${quality}`);
+    });
     return result;
 }
 
@@ -177,17 +220,15 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     
     // Set initial values
     const key = UI.elements.keySelect.value;
-    const chord = getChordFromFunction(chordFunction, key);
-    const [root, quality] = parseChord(chord) || [];
-    
-    rootNoteSelect.value = defaultRoot || root || 'C';
-    chordQualitySelect.value = defaultQuality || quality || 'maj7';
-    secondKeySelect.value = defaultRoot || root || 'C';
+    // Use the provided root and quality, or fallback to parsed
+    rootNoteSelect.value = defaultRoot || 'C';
+    chordQualitySelect.value = defaultQuality || 'maj7';
+    secondKeySelect.value = defaultRoot || 'C';
     
     // Suggest scale based on quality
-    scaleSelect.value = suggestScaleForQuality(defaultQuality || quality) || 'major';
+    scaleSelect.value = suggestScaleForQuality(defaultQuality) || 'major';
     
-    log(`Added measure with chord: ${root} ${quality}`);
+    log(`Added measure with chord: ${defaultRoot} ${defaultQuality}`);
     return measure;
 }
 
