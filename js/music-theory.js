@@ -3,6 +3,7 @@ import { CHORD_QUALITY_INTERVALS, NOTES, scaleDegrees } from '../utils/constants
 import { AudioContextManager } from '../core/audio-context.js';
 import { UI } from '../core/ui-manager.js';
 import { standardizeNoteName, getQualityValue } from '../utils/helpers.js';
+import { playChord } from './music-theory.js';
 
 // Map Roman numerals to scale degrees (0-based, C major as reference)
 function getDegreeFromRoman(roman, degreeMap) {
