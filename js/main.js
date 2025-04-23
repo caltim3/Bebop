@@ -8,13 +8,10 @@ import { createBeats, onMetronomeInstrumentChange } from './metronome.js';
 import { loadProgression, updateProgressionKey, addMeasure, removeMeasure } from './chord-progression.js';
 import { initializeFretFlow } from './fretflow.js';
 import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatus } from '../utils/helpers.js';
-import { TUNINGS, drumSoundSets } from '../utils/constants.js';
+import { TUNINGS } from '../utils/constants.js';
 import { startPlayback, stopPlayback } from './playback.js';
 
-let currentDrumSetIndex = 0;
-
 async function initializeApp() {
-    // Do NOT initialize AudioContext here!
     UI.init();
     createBeats();
     createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
@@ -29,18 +26,12 @@ async function initializeApp() {
     log("Application initialized");
 }
 
-document.getElementById('drum-kit-select').addEventListener('change', (e) => {
-    AudioContextManager.setDrumKit(Number(e.target.value));
-});
-
 function setupEventListeners() {
     // Metronome start/stop
     const startStopBtn = document.getElementById('start-stop');
     if (startStopBtn) {
         startStopBtn.addEventListener('click', async () => {
-            // Ensure AudioContext is initialized/resumed on first user gesture
             await AudioContextManager.initialize();
-
             if (startStopBtn.textContent === 'Start') {
                 startPlayback();
                 startStopBtn.textContent = 'Stop';
@@ -60,15 +51,23 @@ function setupEventListeners() {
         });
     }
 
-    // Drum set toggle
-    const drumSetToggleBtn = document.getElementById('drumSetToggleBtn');
-    if (drumSetToggleBtn) {
-        drumSetToggleBtn.addEventListener('click', () => {
-            currentDrumSetIndex = (currentDrumSetIndex + 1) % drumSoundSets.length;
-            drumSetToggleBtn.textContent = `Drum Set ${currentDrumSetIndex + 1}`;
-            log(`Switched to drum set ${currentDrumSetIndex + 1}`);
+    // Drum kit select
+    const drumKitSelect = document.getElementById('drum-kit-select');
+    if (drumKitSelect) {
+        drumKitSelect.addEventListener('change', (e) => {
+            const kitIndex = Number(e.target.value);
+            if (AudioContextManager) AudioContextManager.currentDrumKitIndex = kitIndex;
             // Optionally, update metronome instrument here
-            onMetronomeInstrumentChange(currentDrumSetIndex);
+            onMetronomeInstrumentChange('drums');
+        });
+    }
+
+    // Metronome sound type select (click/woodblock/drums)
+    const soundTypeSelect = document.getElementById('sound-type');
+    if (soundTypeSelect) {
+        soundTypeSelect.addEventListener('change', (e) => {
+            createBeats();
+            onMetronomeInstrumentChange(e.target.value);
         });
     }
 
@@ -98,8 +97,16 @@ function setupEventListeners() {
         removeMeasureBtn.addEventListener('click', removeMeasure);
     }
 
-    // Chord/scale toggles, volume sliders, etc. (add as needed)
-    // Example: Fretboard tuning select
+    // Chords Enabled button toggle
+    const chordsEnabledBtn = document.getElementById('chordsEnabled');
+    if (chordsEnabledBtn) {
+        chordsEnabledBtn.addEventListener('click', function() {
+            this.classList.toggle('active');
+            this.textContent = this.classList.contains('active') ? 'Chords Enabled' : 'Chords Disabled';
+        });
+    }
+
+    // Fretboard tuning select
     const tuningSelect = document.getElementById('chord-tuning');
     if (tuningSelect) {
         tuningSelect.addEventListener('change', (e) => {
