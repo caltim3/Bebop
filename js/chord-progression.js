@@ -83,6 +83,8 @@ export function loadProgression(progressionName) {
 
 // ... [rest of your existing functions (parseProgression, addMeasure, removeMeasure) remain unchanged]
 
+// ... [rest of your existing functions (parseProgression, addMeasure, removeMeasure) remain unchanged]
+
 export function parseProgression(progText, key) {
     const result = [];
     const chordRegex = /([b#]?\w+|[IViv]+)([^/]*)/g;
