@@ -14,7 +14,7 @@ import { startPlayback, stopPlayback } from './playback.js';
 let currentDrumSetIndex = 0;
 
 async function initializeApp() {
-    await AudioContextManager.initialize(); // <--- Add this line!
+    // Do NOT initialize AudioContext here!
     UI.init();
     createBeats();
     createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
@@ -30,15 +30,17 @@ async function initializeApp() {
 }
 
 document.getElementById('drum-kit-select').addEventListener('change', (e) => {
-  AudioContextManager.setDrumKit(Number(e.target.value));
+    AudioContextManager.setDrumKit(Number(e.target.value));
 });
 
 function setupEventListeners() {
     // Metronome start/stop
     const startStopBtn = document.getElementById('start-stop');
     if (startStopBtn) {
-        startStopBtn.addEventListener('click', () => {
-            // You may want to toggle between startPlayback and stopPlayback
+        startStopBtn.addEventListener('click', async () => {
+            // Ensure AudioContext is initialized/resumed on first user gesture
+            await AudioContextManager.initialize();
+
             if (startStopBtn.textContent === 'Start') {
                 startPlayback();
                 startStopBtn.textContent = 'Stop';
@@ -52,8 +54,8 @@ function setupEventListeners() {
     // Tap tempo
     const tapTempoBtn = document.getElementById('tap-tempo');
     if (tapTempoBtn) {
-        tapTempoBtn.addEventListener('click', () => {
-            // Implement tap tempo logic here
+        tapTempoBtn.addEventListener('click', async () => {
+            await AudioContextManager.initialize();
             log('Tap tempo clicked');
         });
     }
