@@ -4,10 +4,8 @@ import { AudioContextManager } from '../core/audio-context.js';
 import { UI } from '../core/ui-manager.js';
 import { standardizeNoteName, getQualityValue } from '../utils/helpers.js';
 
-
 // Map Roman numerals to scale degrees (0-based, C major as reference)
 function getDegreeFromRoman(roman, degreeMap) {
-    // Try as-is, lowercase, and uppercase
     if (degreeMap[roman] !== undefined) return degreeMap[roman];
     if (degreeMap[roman.toLowerCase()] !== undefined) return degreeMap[roman.toLowerCase()];
     if (degreeMap[roman.toUpperCase()] !== undefined) return degreeMap[roman.toUpperCase()];
@@ -21,40 +19,25 @@ export function getChordNotes(root, quality) {
         return [];
     }
 
-    const CHORD_INTERVALS = {
-        'major': [0, 4, 7],
-        'minor': [0, 3, 7],
-        'dim': [0, 3, 6],
-        'aug': [0, 4, 8],
-        '6': [0, 4, 7, 9],
-        'min6': [0, 3, 7, 9],
-        '7': [0, 4, 7, 10],
-        'dom7': [0, 4, 7, 10],
-        'maj7': [0, 4, 7, 11],
-        'min7': [0, 3, 7, 10],
-        'dim7': [0, 3, 6, 9],
-        'min7b5': [0, 3, 6, 10],
-        'sus2': [0, 2, 7],
-        'sus4': [0, 5, 7],
-        'add9': [0, 4, 7, 14]
-    };
-
-    const normalizedQuality = quality ? quality.toLowerCase().replace('m7', 'min7') : 'major';
-    const intervals = CHORD_INTERVALS[normalizedQuality] || CHORD_INTERVALS['major'];
-    if (!intervals) {
-        console.error(`Invalid chord quality: ${quality}`);
-        return [];
-    }
-
-    const rootIndex = NOTES.indexOf(standardizedRoot);
-    const chordNotes = intervals.map(interval => {
-        const noteIndex = (rootIndex + interval) % 12;
-        return NOTES[noteIndex];
-    });
-
-    return chordNotes;
+const normalizedQuality = quality ? quality.toLowerCase() : 'major';
+const intervals = CHORD_QUALITY_INTERVALS[normalizedQuality] || CHORD_QUALITY_INTERVALS['major'];
+if (!intervals) {
+    console.error(`Invalid chord quality: ${quality}`);
+    return [];
 }
 
+const rootIndex = NOTES.indexOf(standardizedRoot);
+if (rootIndex === -1) {
+    console.error(`Root note not found in NOTES: ${standardizedRoot}`);
+    return [];
+}
+
+// Return note names (no octave)
+return intervals.map(interval => {
+    const noteIndex = (rootIndex + interval) % 12;
+    return NOTES[noteIndex].toLowerCase();
+});
+    
 export async function playChord(root, quality, startTime = 0, duration = 1, isSecondHalf = false, voicingType = null) {
     try {
         await AudioContextManager.ensureAudioContext();
@@ -72,48 +55,19 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
             console.log(`[playChord] Using drop voicing (${voicingType}):`, chordNotes);
         }
 
-        // For debugging, hardcode gain to 1.0
-        const chordVolume = 0.5;
         if (!UI.elements.chordsEnabled.classList.contains('active')) {
             console.warn("[playChord] Chords are disabled. Skipping chord playback.");
             return;
         }
 
+        // Choose octaves for each note (root = 2, others = 3)
+        const noteNamesWithOctave = chordNotes.map((note, i) => `${note}${i === 0 ? 2 : 3}`);
+
         // Log audio context state
         console.log(`[playChord] AudioContext state:`, AudioContextManager.context.state);
 
-        chordNotes.forEach((note, i) => {
-            const octave = i === 0 ? 2 : 3; // A2-C4 range
-            const sampleKey = `${note.toLowerCase().replace('#', 's')}${octave}`;
-            console.log(`[playChord] Attempting to play sampleKey: ${sampleKey}`);
-
-            const buffer = AudioContextManager.pianoSamples[sampleKey];
-            if (!buffer) {
-                console.error(`[playChord] No sample found for note: ${sampleKey}`);
-                return;
-            }
-            console.log(`[playChord] Buffer found for ${sampleKey}:`, buffer);
-
-            const source = AudioContextManager.context.createBufferSource();
-            source.buffer = buffer;
-            const gainNode = AudioContextManager.context.createGain();
-            gainNode.gain.value = chordVolume;
-            source.connect(gainNode);
-            gainNode.connect(AudioContextManager.context.destination);
-
-            // Subtle reverb
-            if (AudioContextManager.reverbNode) {
-                const reverbGain = AudioContextManager.context.createGain();
-                reverbGain.gain.value = 0.25;
-                source.connect(AudioContextManager.reverbNode);
-                AudioContextManager.reverbNode.connect(reverbGain);
-                reverbGain.connect(AudioContextManager.context.destination);
-            }
-
-            console.log(`[playChord] Starting source for ${sampleKey} at ${startTime} for ${duration} seconds`);
-            source.start(startTime);
-            source.stop(startTime + duration);
-        });
+        // Use AudioContextManager to play the chord
+        AudioContextManager.playChord(noteNamesWithOctave, duration, 0.5);
 
         console.log(`[playChord] Playing chord: ${root} ${quality} ${isSecondHalf && voicingType ? '(' + voicingType + ')' : ''}`);
     } catch (error) {
