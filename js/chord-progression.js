@@ -1,6 +1,7 @@
 import { UI } from '../core/ui-manager.js';
 import { getChordFromFunction, parseChord } from './music-theory.js';
-import { suggestScaleForQuality } from '../utils/helpers.js';
+import { log, suggestScaleForQuality } from '../utils/helpers.js';
+import { updateProgressionKey } from './another-file.js'; // Adjust path if needed
 import { progressions, TUNINGS, NOTES, CHORD_QUALITIES, SCALE_NAMES } from '../utils/constants.js';
 import { updateFretboardNotes } from './fretboard.js';
 
@@ -82,7 +83,9 @@ export function parseProgression(progText, key) {
         let [, root, quality] = match;
         quality = quality.trim() || 'maj';
         if (progText.includes('V7') && root.match(/^[Vv]/)) quality = '7';
-        const normalizedRoot = root.match(/^[IViv]+/) ? getChordFromFunction(root, key)[0] : root;
+        const normalizedRoot = root.match(/^[IViv]+/) 
+            ? getChordFromFunction(root, key)[0] 
+            : root;
         result.push({ function: root, root: normalizedRoot, quality });
         console.log(`[parseProgression] Parsed chord: ${normalizedRoot} ${quality}`);
     }
