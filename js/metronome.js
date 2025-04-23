@@ -37,13 +37,12 @@ export function createBeats() {
     let totalBeats = timeSignature === 4 ? 8 : timeSignature; // 8 beats for 4/4 time (eighth notes)
 
     const beatConfigs = {
-        4: { 
-            strongBeats: [0, 4], 
-            drumSounds: { 
+        4: {
+            drumSounds: {
                 0: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },
-                2: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' },
-                4: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },
-                6: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' }
+                2: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },
+                4: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' },
+                6: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' }
             }
         },
         3: { strongBeats: [0, 3, 6] },
@@ -68,15 +67,14 @@ export function createBeats() {
             beat.textContent = `${Math.floor(i / 2 + 1)}${isQuarterNote ? '' : '&'}`;
 
             if (soundType === 'drums') {
-                // Set default hi-hat for all beats
+                // Classic pattern: 0=kick+hihat, 2=hihat, 4=snare+hihat, 6=hihat
                 let volume = '0.7';
                 let sound = 'hihat';
                 let color = '#9E9E9E';
 
-                // Check if this beat should also have kick or snare
                 const drumConfig = config.drumSounds[i];
                 if (drumConfig) {
-                    sound = drumConfig.sound;  // This will be an array ['kick', 'hihat'] or ['snare', 'hihat']
+                    sound = drumConfig.sound;
                     volume = drumConfig.volume;
                     color = drumConfig.color;
                 }
@@ -101,7 +99,7 @@ export function createBeats() {
             }
         } else {
             beat.textContent = i + 1;
-            const isStrong = config.strongBeats.includes(i);
+            const isStrong = config.strongBeats && config.strongBeats.includes(i);
 
             if (soundType === 'drums') {
                 beat.dataset.sound = isStrong ? 'kick' : 'hihat';
