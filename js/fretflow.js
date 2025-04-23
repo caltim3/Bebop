@@ -10,7 +10,7 @@ export function initializeFretFlow() {
     const scales = ['major', 'minor', 'dorian', 'mixolydian'];
     const tuning = TUNINGS[UI.elements.chordTuning.value];
     fretboardsGrid.innerHTML = '';
-
+    
     scales.forEach((scale, index) => {
         const container = document.createElement('div');
         container.className = 'fretboard-container';
@@ -43,8 +43,7 @@ export function initializeFretFlow() {
             updateFretboardNotes(fretboard, UI.elements.keySelect.value, mappedScale, newTuning);
         });
 
-        // Reattach note click handlers
-        const updatedNotes = fretboard.getElementsByClassName('note');
+const updatedNotes = fretboard.getElementsByClassName('note');
         Array.from(updatedNotes).forEach(note => {
             note.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -56,10 +55,10 @@ export function initializeFretFlow() {
                 }
             }); 
         });
-        }); // Closes the scales.forEach callback
-        });
-        
-        log("FretFlow initialized");
+    }); // Closes the scales.forEach callback
+
+    log("FretFlow initialized");
+} // Closes the initializeFretFlow function
 
 // Function to play a note with the given volume and duration
 function playNote(noteName, volume = 0.3, duration = 500) {
