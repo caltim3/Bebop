@@ -65,6 +65,8 @@ export const SCALES = {
     'egyptian': [0, 2, 5, 7, 10]
 };
 
+export const SCALE_NAMES = Object.keys(SCALES);
+
 export const TUNINGS = {
     standard: ['E', 'B', 'G', 'D', 'A', 'E'],  // Note the order change
     dropD: ['E', 'B', 'G', 'D', 'A', 'D'],
