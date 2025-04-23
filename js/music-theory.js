@@ -19,25 +19,26 @@ export function getChordNotes(root, quality) {
         return [];
     }
 
-const normalizedQuality = quality ? quality.toLowerCase() : 'major';
-const intervals = CHORD_QUALITY_INTERVALS[normalizedQuality] || CHORD_QUALITY_INTERVALS['major'];
-if (!intervals) {
-    console.error(`Invalid chord quality: ${quality}`);
-    return [];
+    const normalizedQuality = quality ? quality.toLowerCase() : 'major';
+    const intervals = CHORD_QUALITY_INTERVALS[normalizedQuality] || CHORD_QUALITY_INTERVALS['major'];
+    if (!intervals) {
+        console.error(`Invalid chord quality: ${quality}`);
+        return [];
+    }
+
+    const rootIndex = NOTES.indexOf(standardizedRoot);
+    if (rootIndex === -1) {
+        console.error(`Root note not found in NOTES: ${standardizedRoot}`);
+        return [];
+    }
+
+    // Return note names (no octave)
+    return intervals.map(interval => {
+        const noteIndex = (rootIndex + interval) % 12;
+        return NOTES[noteIndex].toLowerCase();
+    });
 }
 
-const rootIndex = NOTES.indexOf(standardizedRoot);
-if (rootIndex === -1) {
-    console.error(`Root note not found in NOTES: ${standardizedRoot}`);
-    return [];
-}
-
-// Return note names (no octave)
-return intervals.map(interval => {
-    const noteIndex = (rootIndex + interval) % 12;
-    return NOTES[noteIndex].toLowerCase();
-});
-    
 export async function playChord(root, quality, startTime = 0, duration = 1, isSecondHalf = false, voicingType = null) {
     try {
         await AudioContextManager.ensureAudioContext();
