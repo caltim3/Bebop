@@ -3,6 +3,7 @@ import { getChordFromFunction, parseChord } from './music-theory.js';
 import { log, suggestScaleForQuality } from '../utils/helpers.js';
 import { progressions, TUNINGS, NOTES, CHORD_QUALITIES, SCALE_NAMES } from '../utils/constants.js';
 import { updateFretboardNotes } from './fretboard.js';
+import { playChord } from './audio-handler.js';
 
 // Added this function since it was missing
 export function updateProgressionKey(newKey) {
