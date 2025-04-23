@@ -1,9 +1,16 @@
 import { UI } from '../core/ui-manager.js';
 import { getChordFromFunction, parseChord } from './music-theory.js';
 import { log, suggestScaleForQuality } from '../utils/helpers.js';
-import { updateProgressionKey } from './another-file.js'; // Adjust path if needed
 import { progressions, TUNINGS, NOTES, CHORD_QUALITIES, SCALE_NAMES } from '../utils/constants.js';
 import { updateFretboardNotes } from './fretboard.js';
+
+// Added this function since it was missing
+export function updateProgressionKey(newKey) {
+    const rootNote = newKey;
+    const scale = 'major'; // Default scale, can be changed as needed
+    const tuning = TUNINGS[UI.elements.chordTuning.value];
+    updateFretboardNotes(UI.elements.chordFretboard, rootNote, scale, tuning);
+}
 
 export function loadProgression(progressionName) {
     const progression = progressions[progressionName];
@@ -60,7 +67,7 @@ export function loadProgression(progressionName) {
         const firstMeasure = progression.measures[0];
         const rootNote = firstMeasure.root || 'C';
         const chordQuality = firstMeasure.quality || 'maj7';
-        const scale = suggestScaleForQuality(chordQuality); // Map quality to scale
+        const scale = suggestScaleForQuality(chordQuality);
         const tuning = TUNINGS[UI.elements.chordTuning.value];
 
         updateFretboardNotes(
@@ -73,6 +80,8 @@ export function loadProgression(progressionName) {
 
     log(`Loaded progression: ${progressionName}`);
 }
+
+// ... [rest of your existing functions (parseProgression, addMeasure, removeMeasure) remain unchanged]
 
 export function parseProgression(progText, key) {
     const result = [];
