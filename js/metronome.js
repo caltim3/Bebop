@@ -6,24 +6,36 @@ import { log } from '../utils/helpers.js';
 
 // These are only for UI display and mapping, not for playback
 export let currentDrumSetIndex = 0;
-export const drumSoundSets = [
+const drumKits = [
     {
-        name: "Drums Drums",
-        snare: "Snare.wav",
-        hihat: "HiHat.wav",
-        kick: "Kick.wav"
+        name: "default",
+        samples: {
+            'hihat': 'HiHat.wav',
+            'kick': 'Kick.wav',
+            'snare': 'Snare.wav',
+            'click': 'Click.wav',
+            'woodblock': 'Woodblock.wav'
+        }
     },
     {
-        name: "Makaya Drums",
-        snare: "Snare2.wav",
-        hihat: "HiHat2.wav",
-        kick: "Kick2.wav"
+        name: "makaya",
+        samples: {
+            'hihat': 'HiHat2.wav',
+            'kick': 'Kick2.wav',
+            'snare': 'Snare2.wav',
+            'click': 'Click.wav',         // fallback to default click
+            'woodblock': 'Woodblock.wav'  // fallback to default woodblock
+        }
     },
     {
-        name: "Max Drums",
-        kick: 'jazzkick.wav',
-        snare: 'jazzsnare.wav',
-        hihat: 'jazzhat.wav'
+        name: "philly joe",
+        samples: {
+            'hihat': 'jazzhat.wav',
+            'kick': 'jazzkick.wav',
+            'snare': 'jazzsnare.wav',
+            'click': 'Click.wav',         // fallback to default click
+            'woodblock': 'Woodblock.wav'  // fallback to default woodblock
+        }
     }
 ];
 
