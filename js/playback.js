@@ -37,12 +37,11 @@ export function startPlayback() {
                 currentBeatElement.classList.add('active');
                 const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
                 console.log('[Playback] Beat', AppState.currentBeat, 'volume:', volume);
-                if (volume > 0) {
-                    // Ensure valid drum sound (use hihat instead of click)
-                    const soundType = UI.elements.soundType?.value || 'drums';
-                    const drumSound = soundType === 'click' ? 'hihat' : soundType;
-                    playMetronomeSound(volume, drumSound);
-                }
+                    if (volume > 0) {
+                      // Use the actual drum sound(s) for this beat, as set by metronome.js
+                      const drumSounds = currentBeatElement.dataset.sound || 'hihat';
+                      playMetronomeSound(volume, drumSounds);
+                    }
             }
 
             // Chord playback logic (default: 4/4, beats 0 and 4)
