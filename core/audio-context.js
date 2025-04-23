@@ -61,83 +61,88 @@ export const AudioContextManager = {
     },
 
     // --- Drum Kit Loading ---
-    async loadDrumKits() {
-        for (let kitIndex = 0; kitIndex < drumKits.length; kitIndex++) {
-            const kit = drumKits[kitIndex];
-            for (let [type, filename] of Object.entries(kit.samples)) {
-                try {
-                    const response = await fetch(`./${filename}`);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const arrayBuffer = await response.arrayBuffer();
-                    this.drumKitBuffers[kitIndex][type] = await this.context.decodeAudioData(arrayBuffer);
-                    log(`Loaded ${type} for kit ${kit.name} from ${filename}`);
-                } catch (error) {
-                    console.error(`Failed to load ${filename}:`, error);
-                    this.drumKitBuffers[kitIndex][type] = await this.createDrumSound(type);
-                    log(`Using fallback synthetic sound for ${type} in kit ${kit.name}`);
-                }
+    loadDrumKits: async function() {
+    for (let kitIndex = 0; kitIndex < drumKits.length; kitIndex++) {
+        const kit = drumKits[kitIndex];
+        for (let [type, filename] of Object.entries(kit.samples)) {
+            try {
+                const response = await fetch(`./${filename}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const arrayBuffer = await response.arrayBuffer();
+                this.drumKitBuffers[kitIndex][type] = await this.context.decodeAudioData(arrayBuffer);
+                log(`Loaded ${type} for kit ${kit.name} from ${filename}`);
+            } catch (error) {
+                console.error(`Failed to load ${filename}:`, error);
+                this.drumKitBuffers[kitIndex][type] = await this.createDrumSound(type);
+                log(`Using fallback synthetic sound for ${type} in kit ${kit.name}`);
             }
         }
-        updateLoadingStatus("All drum kits loaded");
-    },
+    }
+    updateLoadingStatus("All drum kits loaded");
+},
 
-    // --- Drum Kit Switching ---
-    setDrumKit(index) {
-        if (index >= 0 && index < drumKits.length) {
-            this.currentDrumKitIndex = index;
-            updateLoadingStatus(`Drum kit set to: ${drumKits[index].name}`);
-        }
-    },
-    getCurrentDrumKit() {
-        return drumKits[this.currentDrumKitIndex];
-    },
+// --- Drum Kit Switching ---
+setDrumKit: function(index) {
+    if (index >= 0 && index < drumKits.length) {
+        this.currentDrumKitIndex = index;
+        updateLoadingStatus(`Drum kit set to: ${drumKits[index].name}`);
+    }
+},
+getCurrentDrumKit: function() {
+    return drumKits[this.currentDrumKitIndex];
+},
 
-    // --- Drum Playback (uses selected kit) ---
-    playDrumSample(type, volume = 1) {
-        if (!this.context) {
-            console.error('[AudioContextManager] AudioContext not initialized');
-            return;
-        }
+// --- Drum Playback (uses selected kit) ---
+playDrumSample: function(type, volume = 1) {
+    if (!this.context) {
+        console.error('[AudioContextManager] AudioContext not initialized');
+        return;
+    }
 
-        const buffer = this.drumKitBuffers[this.currentDrumKitIndex][type];
+    // Fallback: if type not found, use hihat
+    let buffer = this.drumKitBuffers[this.currentDrumKitIndex][type];
+    if (!buffer) {
+        console.warn(`[AudioContextManager] No buffer found for drum type: ${type} in kit ${this.currentDrumKitIndex}, falling back to hihat`);
+        buffer = this.drumKitBuffers[this.currentDrumKitIndex]['hihat'];
         if (!buffer) {
-            console.error(`[AudioContextManager] No buffer found for drum type: ${type} in kit ${this.currentDrumKitIndex}`);
+            console.error(`[AudioContextManager] No buffer found for fallback drum type: hihat in kit ${this.currentDrumKitIndex}`);
             return;
         }
+    }
 
-        try {
-            const source = this.context.createBufferSource();
-            source.buffer = buffer;
+    try {
+        const source = this.context.createBufferSource();
+        source.buffer = buffer;
 
-            // Dry path
-            const dryGain = this.context.createGain();
-            dryGain.gain.value = Math.min(volume, 1);
-            source.connect(dryGain);
-            dryGain.connect(this.context.destination);
+        // Dry path
+        const dryGain = this.context.createGain();
+        dryGain.gain.value = Math.min(volume, 1);
+        source.connect(dryGain);
+        dryGain.connect(this.context.destination);
 
-            // Wet (reverb) path
-            if (this.reverbNode) {
-                const reverbGain = this.context.createGain();
-                reverbGain.gain.value = 0.2;
-                source.connect(this.reverbNode);
+        // Wet (reverb) path
+        if (this.reverbNode) {
+            const reverbGain = this.context.createGain();
+            reverbGain.gain.value = 0.2;
+            source.connect(this.reverbNode);
 
-                // Connect reverbNode to reverbGain, then to destination (for this playback only)
-                this.reverbNode.connect(reverbGain);
-                reverbGain.connect(this.context.destination);
+            // Connect reverbNode to reverbGain, then to destination (for this playback only)
+            this.reverbNode.connect(reverbGain);
+            reverbGain.connect(this.context.destination);
 
-                // Disconnect after playback
-                source.onended = () => {
-                    try { this.reverbNode.disconnect(reverbGain); } catch (e) {}
-                    try { reverbGain.disconnect(); } catch (e) {}
-                };
-            }
-
-            source.start(0);
-            log(`[AudioContextManager] Played drum sample: ${type} at volume ${volume}`);
-        } catch (error) {
-            console.error(`[AudioContextManager] Error playing drum sample ${type}:`, error);
+            // Disconnect after playback
+            source.onended = () => {
+                try { this.reverbNode.disconnect(reverbGain); } catch (e) {}
+                try { reverbGain.disconnect(); } catch (e) {}
+            };
         }
-    },
+
+        source.start(0);
+        log(`[AudioContextManager] Played drum sample: ${type} at volume ${volume}`);
+    } catch (error) {
+        console.error(`[AudioContextManager] Error playing drum sample ${type}:`, error);
+    }
+},
 
     // --- Piano Sample Loading ---
 loadPianoSamples: async function() {
