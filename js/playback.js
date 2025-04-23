@@ -58,23 +58,27 @@ export function startPlayback() {
                     const isSecondHalf = (timeSignature === 4 && AppState.currentBeat === 4);
                     const voicingType = isSecondHalf ? 'drop2' : null;
 
-                    if (UI.elements.chordsEnabled?.classList.contains('active') && rootNote && chordQuality) {
-                        console.log(`[Playback] Playing chord: ${rootNote} ${chordQuality}, isSecondHalf: ${isSecondHalf}, voicing: ${voicingType}`);
-                        playChord(rootNote, chordQuality, 0, 1.8, isSecondHalf, voicingType);
-                        // Update fretboard with chord
-                        if (UI.elements.chordFretboard) {
-                            const scale = suggestScaleForQuality(chordQuality);
-                            updateFretboardNotes(
-                                UI.elements.chordFretboard,
-                                rootNote,
-                                scale,
-                                TUNINGS[UI.elements.chordTuning.value]
-                            );
-                            console.log(`[Playback] Updated fretboard for chord: ${rootNote} ${chordQuality} (scale: ${scale})`);
-                        }
-                    } else {
-                        console.warn('[Playback] Chords disabled or missing root/quality, skipping chord playback');
-                    }
+                   const chordsEnabled = UI.elements.chordsEnabled?.classList.contains('active');
+
+if (chordsEnabled) {
+    if (rootNote && chordQuality) {
+        console.log(`[Playback] Playing chord: ${rootNote} ${chordQuality}, isSecondHalf: ${isSecondHalf}, voicing: ${voicingType}`);
+        playChord(rootNote, chordQuality, 0, 1.8, isSecondHalf, voicingType);
+        // Update fretboard with chord
+        if (UI.elements.chordFretboard) {
+            const scale = suggestScaleForQuality(chordQuality);
+            updateFretboardNotes(
+                UI.elements.chordFretboard,
+                rootNote,
+                scale,
+                TUNINGS[UI.elements.chordTuning.value]
+            );
+            console.log(`[Playback] Updated fretboard for chord: ${rootNote} ${chordQuality} (scale: ${scale})`);
+        }
+    } else {
+        console.warn('[Playback] Chords enabled but missing root/quality, skipping chord playback');
+    }
+}
 
                     // --- ADVANCE MEASURE HERE ---
                     // In 4/4, after beat 4 (second chord), advance measure
