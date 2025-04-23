@@ -1,8 +1,8 @@
 import { UI } from '../core/ui-manager.js';
 import { getChordFromFunction, parseChord } from './music-theory.js';
 import { suggestScaleForQuality } from '../utils/helpers.js';
-import { progressions, TUNINGS } from '../utils/constants.js';
-import { updateFretboardNotes } from './fretboard.js'; //check 
+import { progressions, TUNINGS, NOTES, CHORD_QUALITIES, SCALE_NAMES } from '../utils/constants.js';
+import { updateFretboardNotes } from './fretboard.js';
 
 export function loadProgression(progressionName) {
     const progression = progressions[progressionName];
@@ -23,25 +23,6 @@ export function loadProgression(progressionName) {
     // Update the progression with the current key
     updateProgressionKey(UI.elements.keySelect.value);
     
-    log(`Loaded progression: ${progressionName}`);
-}
-
-export function parseProgression(progText, key) {
-    const result = [];
-    const chordRegex = /([b#]?\w+|[IViv]+)([^/]*)/g;
-    let match;
-
-    while ((match = chordRegex.exec(progText))) {
-        let [, root, quality] = match;
-        quality = quality.trim() || 'maj';
-        if (progText.includes('V7') && root.match(/^[Vv]/)) quality = '7';
-        const normalizedRoot = root.match(/^[IViv]+/) ? getChordFromFunction(root, key)[0] : root;
-        result.push({ function: root, root: normalizedRoot, quality });
-        console.log(`[parseProgression] Parsed chord: ${normalizedRoot} ${quality}`);
-    }
-    return result;
-}
-
     // Add new measures based on the progression
     progression.measures.forEach((measure, index) => {
         const measureElement = document.createElement('div');
@@ -90,6 +71,22 @@ export function parseProgression(progText, key) {
     }
 
     log(`Loaded progression: ${progressionName}`);
+}
+
+export function parseProgression(progText, key) {
+    const result = [];
+    const chordRegex = /([b#]?\w+|[IViv]+)([^/]*)/g;
+    let match;
+
+    while ((match = chordRegex.exec(progText))) {
+        let [, root, quality] = match;
+        quality = quality.trim() || 'maj';
+        if (progText.includes('V7') && root.match(/^[Vv]/)) quality = '7';
+        const normalizedRoot = root.match(/^[IViv]+/) ? getChordFromFunction(root, key)[0] : root;
+        result.push({ function: root, root: normalizedRoot, quality });
+        console.log(`[parseProgression] Parsed chord: ${normalizedRoot} ${quality}`);
+    }
+    return result;
 }
 
 export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuality = null) {
