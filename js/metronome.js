@@ -52,11 +52,14 @@ export function createBeats() {
     const beatConfigs = {
         4: {
             drumSounds: {
-                0: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },
-                2: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },
-                4: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' },
-                6: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' }
-            }
+                  0: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },   // 1
+                  1: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },         // 1&
+                  2: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' },  // 2
+                  3: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },         // 2&
+                  4: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },   // 3
+                  5: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },         // 3&
+                  6: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' },  // 4
+                  7: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' }          // 4&
         },
         3: { strongBeats: [0, 3, 6] },
         6: { strongBeats: [0, 3] },
