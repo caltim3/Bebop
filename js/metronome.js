@@ -2,6 +2,23 @@ import { UI } from '../core/ui-manager.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { log } from '../utils/helpers.js';
 
+
+// --- Drum Kit Select Dropdown Logic ---
+export function setupDrumKitSelect() {
+    const select = document.getElementById("drum-kit-select");
+    if (!select) return;
+    // Set initial value
+    select.value = currentDrumSetIndex;
+    // Show/hide based on instrument
+    select.style.display = UI.elements.soundType.value === "drums" ? "inline-block" : "none";
+    // Change event
+    select.onchange = (e) => {
+        currentDrumSetIndex = parseInt(e.target.value, 10);
+        if (AudioContextManager) AudioContextManager.currentDrumKitIndex = currentDrumSetIndex;
+        // Optionally update UI or reload samples if needed
+        log(`[Metronome] Drum kit changed to: ${drumKits[currentDrumSetIndex].name}`);
+    };
+}
 // Drum kit definitions
 export let currentDrumSetIndex = 0;
 const drumKits = [
@@ -118,6 +135,21 @@ export function createBeats() {
         container.appendChild(beat);
     }
     setupDrumSetToggle();
+
+    // --- Drum Kit Select Dropdown Logic ---
+    const drumKitSelect = document.getElementById("drum-kit-select");
+    if (drumKitSelect) {
+        // Set initial value to match current kit
+        drumKitSelect.value = currentDrumSetIndex;
+        // Show only if "drums" is selected
+        drumKitSelect.style.display = soundType === "drums" ? "inline-block" : "none";
+        // Set up change event
+        drumKitSelect.onchange = (e) => {
+            currentDrumSetIndex = parseInt(e.target.value, 10);
+            if (AudioContextManager) AudioContextManager.currentDrumKitIndex = currentDrumSetIndex;
+            log(`[Metronome] Drum kit changed to: ${drumKits[currentDrumSetIndex].name}`);
+        };
+    }
 }
 
 export function toggleBeatState(beat, timeSignature, soundType) {
@@ -162,7 +194,9 @@ export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
     if (combinedVolume <= 0) return;
 
     const soundType = UI.elements.soundType?.value || 'click';
-    const kitIndex = AudioContextManager.currentDrumKitIndex ?? currentDrumSetIndex ?? 0;
+    const kitIndex = typeof AudioContextManager.currentDrumKitIndex === "number"
+    ? AudioContextManager.currentDrumKitIndex
+    : currentDrumSetIndex;
     const beatElement = document.querySelector(`.beat[data-beat="${window.AppState?.currentBeat ?? 0}"]`);
     if (!beatElement) return;
 
@@ -195,7 +229,9 @@ export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
 }
 
 export function onMetronomeInstrumentChange(selectedInstrument) {
-    setupDrumSetToggle();
+    const select = document.getElementById("drum-kit-select");
+    if (select) select.style.display = selectedInstrument === "drums" ? "inline-block" : "none";
+    setupDrumKitSelect();
 }
 
 // Import AppState at the end to avoid circular dependencies
