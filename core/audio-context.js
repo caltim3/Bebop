@@ -140,28 +140,27 @@ export const AudioContextManager = {
     },
 
     // --- Piano Sample Loading ---
-    async loadPianoSamples() {
-        const octaves = [2, 3, 4, 5];
-        const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
-    
-        for (const octave of octaves) {
-            for (const note of notes) {
-                const sampleName = `${note}${octave}.wav`;
-                try {
-                    const response = await fetch(`./${sampleName}`);
-                    if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
-                    const arrayBuffer = await response.arrayBuffer();
-                    const sampleKey = `${note}${octave}`;
-                    this.pianoSamples[sampleKey] = await this.context.decodeAudioData(arrayBuffer);
-                    log(`Loaded ${sampleName} as key ${sampleKey}`);
-                } catch (error) {
-                    console.error(`Error loading ${sampleName}:`, error);
-                }
+loadPianoSamples: async function() {
+    const octaves = [2, 3, 4, 5];
+    const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
+
+    for (const octave of octaves) {
+        for (const note of notes) {
+            const sampleName = `${note}${octave}.wav`;
+            try {
+                const response = await fetch(`./${sampleName}`);
+                if (!response.ok) throw new Error(`Failed to load ${sampleName}`);
+                const arrayBuffer = await response.arrayBuffer();
+                const sampleKey = `${note}${octave}`;
+                this.pianoSamples[sampleKey] = await this.context.decodeAudioData(arrayBuffer);
+                log(`Loaded ${sampleName} as key ${sampleKey}`);
+            } catch (error) {
+                console.error(`Error loading ${sampleName}:`, error);
             }
         }
-        updateLoadingStatus("Piano samples loaded");
-    },
-
+    }
+    updateLoadingStatus("Piano samples loaded");
+},
     // --- Reverb Setup ---
     async setupReverb() {
         this.reverbNode = this.context.createConvolver();
