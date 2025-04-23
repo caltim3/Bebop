@@ -197,7 +197,7 @@ export const scaleDegrees = {
 
 
 
-export const CHORD_QUALITIES = {
+export const CHORD_QUALITY_INTERVALS = {
     // Basic Chord Qualities
     'major': [0, 4, 7],               // C
     'minor': [0, 3, 7],               // Cm
@@ -230,3 +230,15 @@ export const CHORD_QUALITIES = {
     // etc. (Add more as needed for your app)
 };
 
+export const CHORD_QUALITIES = [
+    'major', 'minor', 'diminished', 'augmented',
+    'maj7', 'm7', 'dom7', 'dim7', 'augM7',
+    'maj6', 'm6',
+    'm9', 'maj9',
+    'sus2', 'sus4',
+    'V7b9', 'V7#11',
+    'add9',
+    'lydianDom',
+    'm11'
+    // ...add more as needed
+];
