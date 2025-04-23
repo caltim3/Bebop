@@ -5,10 +5,9 @@ import { progressions, TUNINGS, NOTES, CHORD_QUALITIES, SCALE_NAMES } from '../u
 import { updateFretboardNotes } from './fretboard.js';
 import { playChord } from './audio-handler.js';
 
-// Added this function since it was missing
 export function updateProgressionKey(newKey) {
     const rootNote = newKey;
-    const scale = 'major'; // Default scale, can be changed as needed
+    const scale = suggestScaleForQuality('maj7'); // Use default or dynamic scale
     const tuning = TUNINGS[UI.elements.chordTuning.value];
     updateFretboardNotes(UI.elements.chordFretboard, rootNote, scale, tuning);
 }
@@ -31,43 +30,12 @@ export function loadProgression(progressionName) {
     
     // Update the progression with the current key
     updateProgressionKey(UI.elements.keySelect.value);
-    
-    // Add new measures based on the progression
-    progression.measures.forEach((measure, index) => {
-        const measureElement = document.createElement('div');
-        measureElement.className = 'measure';
-        measureElement.dataset.index = index;
-
-        // Add chord controls (root, quality)
-        const chordControls = document.createElement('div');
-        chordControls.className = 'chord-controls';
-        chordControls.innerHTML = `
-            <label>Root:</label>
-            <select class="root-note">${NOTES.map(note => `<option>${note}</option>`).join('')}</select>
-            <label>Quality:</label>
-            <select class="chord-quality">${CHORD_QUALITIES.map(q => `<option>${q}</option>`).join('')}</select>
-        `;
-        measureElement.appendChild(chordControls);
-
-        // Add scale controls (root and scale type)
-        const scaleControls = document.createElement('div');
-        scaleControls.className = 'scale-controls';
-        scaleControls.innerHTML = `
-            <label>Scale Root:</label>
-            <select class="second-key">${NOTES.map(note => `<option>${note}</option>`).join('')}</select>
-            <label>Scale Type:</label>
-            <select class="scale-select">${SCALE_NAMES.map(s => `<option>${s}</option>`).join('')}</select>
-        `;
-        measureElement.appendChild(scaleControls);
-
-        UI.elements.measures.appendChild(measureElement);
-    });
 
     // Initialize fretboard with first measure's data
-    if (progression.measures.length > 0) {
-        const firstMeasure = progression.measures[0];
-        const rootNote = firstMeasure.root || 'C';
-        const chordQuality = firstMeasure.quality || 'maj7';
+    if (chords.length > 0) {
+        const firstChord = chords[0];
+        const rootNote = firstChord.root || 'C';
+        const chordQuality = firstChord.quality || 'maj7';
         const scale = suggestScaleForQuality(chordQuality);
         const tuning = TUNINGS[UI.elements.chordTuning.value];
 
@@ -82,10 +50,6 @@ export function loadProgression(progressionName) {
     log(`Loaded progression: ${progressionName}`);
 }
 
-// ... [rest of your existing functions (parseProgression, addMeasure, removeMeasure) remain unchanged]
-
-// ... [rest of your existing functions (parseProgression, addMeasure, removeMeasure) remain unchanged]
-
 export function parseProgression(progText, key) {
     const result = [];
     const chordRegex = /([b#]?\w+|[IViv]+)([^/]*)/g;
@@ -94,7 +58,7 @@ export function parseProgression(progText, key) {
     while ((match = chordRegex.exec(progText))) {
         let [, root, quality] = match;
         quality = quality.trim() || 'maj';
-        if (progText.includes('V7') && root.match(/^[Vv]/)) quality = '7';
+        if (root.match(/^[Vv]/) && quality === 'maj') quality = '7';
         const normalizedRoot = root.match(/^[IViv]+/) 
             ? getChordFromFunction(root, key)[0] 
             : root;
@@ -118,7 +82,7 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     const chordFunctionSelect = document.createElement('select');
     chordFunctionSelect.className = 'chord-function';
     
-    // Add chord function options
+    // Use CHORD_QUALITIES for chord functions (ensure they match your constants)
     const chordFunctions = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°', 'I7', 'ii7', 'iii7', 'IV7', 'V7', 'vi7', 'vii°7'];
     chordFunctions.forEach(func => {
         const option = document.createElement('option');
@@ -133,10 +97,7 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     
     const rootNoteSelect = document.createElement('select');
     rootNoteSelect.className = 'root-note';
-    
-    // Add root note options
-    const rootNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    rootNotes.forEach(note => {
+    NOTES.forEach(note => {
         const option = document.createElement('option');
         option.value = note;
         option.textContent = note;
@@ -148,10 +109,7 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     
     const chordQualitySelect = document.createElement('select');
     chordQualitySelect.className = 'chord-quality';
-    
-    // Add chord quality options
-    const chordQualities = ['major', 'minor', 'dim', 'aug', 'dom7', 'maj7', 'min7', 'dim7', 'min7b5', 'sus2', 'sus4'];
-    chordQualities.forEach(quality => {
+    CHORD_QUALITIES.forEach(quality => {
         const option = document.createElement('option');
         option.value = quality;
         option.textContent = quality;
@@ -167,9 +125,7 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     
     const secondKeySelect = document.createElement('select');
     secondKeySelect.className = 'second-key';
-    
-    // Add scale root options (same as chord roots)
-    rootNotes.forEach(note => {
+    NOTES.forEach(note => {
         const option = document.createElement('option');
         option.value = note;
         option.textContent = note;
@@ -181,10 +137,7 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     
     const scaleSelect = document.createElement('select');
     scaleSelect.className = 'scale-select';
-    
-    // Add scale options
-    const scales = ['major', 'minor', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian', 'blues', 'minorPentatonic', 'majorPentatonic', 'harmonicMinor', 'melodicMinor', 'diminished', 'wholeTone', 'alteredDominant', 'lydianDominant'];
-    scales.forEach(scale => {
+    SCALE_NAMES.forEach(scale => {
         const option = document.createElement('option');
         option.value = scale;
         option.textContent = scale.replace(/([A-Z])/g, ' $1').trim();
@@ -220,17 +173,17 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     
     UI.elements.measures.appendChild(measure);
     
-    // Set initial chord based on function and current key
+    // Set initial values
     const key = UI.elements.keySelect.value;
     const chord = getChordFromFunction(chordFunction, key);
-    const [root, quality] = parseChord(chord);
+    const [root, quality] = parseChord(chord) || [];
     
-    rootNoteSelect.value = defaultRoot || root;
-    chordQualitySelect.value = defaultQuality || quality;
-    secondKeySelect.value = defaultRoot || root;
+    rootNoteSelect.value = defaultRoot || root || 'C';
+    chordQualitySelect.value = defaultQuality || quality || 'maj7';
+    secondKeySelect.value = defaultRoot || root || 'C';
     
-    // Suggest a scale based on chord quality
-    scaleSelect.value = suggestScaleForQuality(defaultQuality || quality);
+    // Suggest scale based on quality
+    scaleSelect.value = suggestScaleForQuality(defaultQuality || quality) || 'major';
     
     log(`Added measure with chord: ${root} ${quality}`);
     return measure;
