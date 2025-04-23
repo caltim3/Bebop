@@ -52,58 +52,61 @@ export function startPlayback() {
                 const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value || 'maj';
 
                 // Play chord on beat 1 and 3 in 4/4, or on first beat in other signatures
-// After this block (inside setInterval):
-// Play chord on beat 1 and 3 in 4/4, or on first beat in other signatures
-if (
-    (timeSignature === 4 && (AppState.currentBeat === 0 || AppState.currentBeat === 4)) ||
-    (timeSignature !== 4 && AppState.currentBeat === 0)
-) {
-    const isSecondHalf = (timeSignature === 4 && AppState.currentBeat === 4);
-    const voicingType = isSecondHalf ? 'drop2' : null;
+                if (
+                    (timeSignature === 4 && (AppState.currentBeat === 0 || AppState.currentBeat === 4)) ||
+                    (timeSignature !== 4 && AppState.currentBeat === 0)
+                ) {
+                    const isSecondHalf = (timeSignature === 4 && AppState.currentBeat === 4);
+                    const voicingType = isSecondHalf ? 'drop2' : null;
 
-    if (UI.elements.chordsEnabled?.classList.contains('active') && rootNote && chordQuality) {
-        console.log(`[Playback] Playing chord: ${rootNote} ${chordQuality}, isSecondHalf: ${isSecondHalf}, voicing: ${voicingType}`);
-        playChord(rootNote, chordQuality, 0, 1.8, isSecondHalf, voicingType);
-        // Update fretboard with chord
-        if (UI.elements.chordFretboard) {
-            const scale = suggestScaleForQuality(chordQuality);
-            updateFretboardNotes(
-                UI.elements.chordFretboard,
-                rootNote,
-                scale,
-                TUNINGS[UI.elements.chordTuning.value]
-            );
-            console.log(`[Playback] Updated fretboard for chord: ${rootNote} ${chordQuality} (scale: ${scale})`);
-        }
-    } else {
-        console.warn('[Playback] Chords disabled or missing root/quality, skipping chord playback');
-    }
+                    if (UI.elements.chordsEnabled?.classList.contains('active') && rootNote && chordQuality) {
+                        console.log(`[Playback] Playing chord: ${rootNote} ${chordQuality}, isSecondHalf: ${isSecondHalf}, voicing: ${voicingType}`);
+                        playChord(rootNote, chordQuality, 0, 1.8, isSecondHalf, voicingType);
+                        // Update fretboard with chord
+                        if (UI.elements.chordFretboard) {
+                            const scale = suggestScaleForQuality(chordQuality);
+                            updateFretboardNotes(
+                                UI.elements.chordFretboard,
+                                rootNote,
+                                scale,
+                                TUNINGS[UI.elements.chordTuning.value]
+                            );
+                            console.log(`[Playback] Updated fretboard for chord: ${rootNote} ${chordQuality} (scale: ${scale})`);
+                        }
+                    } else {
+                        console.warn('[Playback] Chords disabled or missing root/quality, skipping chord playback');
+                    }
 
-    // --- ADVANCE MEASURE HERE ---
-    // In 4/4, after beat 4 (second chord), advance measure
-    if ((timeSignature === 4 && AppState.currentBeat === 4) ||
-        (timeSignature !== 4 && AppState.currentBeat === 0)) {
-        AppState.currentMeasure = (AppState.currentMeasure + 1) % Math.max(1, measures.length);
+                    // --- ADVANCE MEASURE HERE ---
+                    // In 4/4, after beat 4 (second chord), advance measure
+                    if ((timeSignature === 4 && AppState.currentBeat === 4) ||
+                        (timeSignature !== 4 && AppState.currentBeat === 0)) {
+                        AppState.currentMeasure = (AppState.currentMeasure + 1) % Math.max(1, measures.length);
 
-        if (measures.length > 0) {
-            const nextMeasureElement = measures[AppState.currentMeasure];
-            const scaleRoot = nextMeasureElement.querySelector('.scale-controls .second-key')?.value;
-            const scaleType = nextMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-            const tuning = TUNINGS[UI.elements.chordTuning.value];
+                        if (measures.length > 0) {
+                            const nextMeasureElement = measures[AppState.currentMeasure];
+                            const scaleRoot = nextMeasureElement.querySelector('.scale-controls .second-key')?.value;
+                            const scaleType = nextMeasureElement.querySelector('.scale-controls .scale-select')?.value;
+                            const tuning = TUNINGS[UI.elements.chordTuning.value];
 
-            if (UI.elements.chordFretboard && scaleRoot && scaleType && tuning) {
-                const mappedScale = suggestScaleForQuality(scaleType);
-                updateFretboardNotes(
-                    UI.elements.chordFretboard,
-                    scaleRoot,
-                    mappedScale,
-                    tuning
-                );
-                console.log(`[Playback] Updated fretboard for scale: ${scaleRoot} ${scaleType} (mapped: ${mappedScale})`);
+                            if (UI.elements.chordFretboard && scaleRoot && scaleType && tuning) {
+                                const mappedScale = suggestScaleForQuality(scaleType);
+                                updateFretboardNotes(
+                                    UI.elements.chordFretboard,
+                                    scaleRoot,
+                                    mappedScale,
+                                    tuning
+                                );
+                                console.log(`[Playback] Updated fretboard for scale: ${scaleRoot} ${scaleType} (mapped: ${mappedScale})`);
+                            }
+                        }
+                    }
+                }
             }
-        }
-    }
-}
+
+            // Advance beat
+            AppState.currentBeat = (AppState.currentBeat + 1) % (timeSignature === 4 ? 8 : timeSignature);
+
         }, beatDuration / (timeSignature === 4 ? 2 : 1)); // Eighth notes for 4/4, quarter notes for others
 
         log("Playback started");
