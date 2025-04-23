@@ -4,6 +4,7 @@ import { log, suggestScaleForQuality } from '../utils/helpers.js';
 import { progressions, TUNINGS, NOTES, CHORD_QUALITIES, SCALE_NAMES } from '../utils/constants.js';
 import { updateFretboardNotes } from './fretboard.js';
 import { AudioContextManager } from '../core/audio-context.js';
+import { CHORD_QUALITY_INTERVALS } from '../utils/constants.js';
 
 export function updateProgressionKey(newKey) {
     const rootNote = newKey;
