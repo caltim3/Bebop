@@ -213,16 +213,25 @@ export const AudioContextManager = {
 
     // --- Piano Chord Playback (with gain, reverb, and smooth transitions) ---
     playChord(noteNames, duration = 1.5, velocity = 1) {
+        if (!this.context) {
+            console.error('[AudioContextManager] AudioContext not initialized');
+            return;
+        }
+
         // Fade out previous chord
         if (this.currentChordGain) {
-            this.currentChordGain.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.1);
+            try {
+                this.currentChordGain.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.1);
+            } catch (e) {
+                // Ignore if already disconnected
+            }
         }
 
         const chordGain = this.context.createGain();
-        chordGain.gain.value = velocity;
+        chordGain.gain.value = velocity || 1.0;
         chordGain.connect(this.context.destination);
 
-        // Reverb
+        // Optional: Reverb
         let reverbGain = null;
         if (this.reverbNode) {
             reverbGain = this.context.createGain();
@@ -233,7 +242,10 @@ export const AudioContextManager = {
 
         noteNames.forEach(note => {
             const buffer = this.pianoSamples[note];
-            if (!buffer) return;
+            if (!buffer) {
+                console.warn(`[AudioContextManager] No buffer for note: ${note}`);
+                return;
+            }
             const source = this.context.createBufferSource();
             source.buffer = buffer;
             source.connect(chordGain);
@@ -244,8 +256,8 @@ export const AudioContextManager = {
 
         this.currentChordGain = chordGain;
         setTimeout(() => {
-            chordGain.disconnect();
-            if (reverbGain) reverbGain.disconnect();
+            try { chordGain.disconnect(); } catch (e) {}
+            if (reverbGain) try { reverbGain.disconnect(); } catch (e) {}
         }, duration * 1000 + 200);
     }
 };
