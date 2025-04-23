@@ -14,6 +14,7 @@ import { startPlayback, stopPlayback } from './playback.js';
 let currentDrumSetIndex = 0;
 
 async function initializeApp() {
+    await AudioContextManager.initialize(); // <--- Add this line!
     UI.init();
     createBeats();
     createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
