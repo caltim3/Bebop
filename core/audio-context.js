@@ -93,51 +93,51 @@ export const AudioContextManager = {
     },
 
     // --- Drum Playback (uses selected kit) ---
-   playDrumSample(type, volume = 1) {
-    if (!this.context) {
-        console.error('[AudioContextManager] AudioContext not initialized');
-        return;
-    }
-
-    const buffer = this.drumKitBuffers[this.currentDrumKitIndex][type];
-    if (!buffer) {
-        console.error(`[AudioContextManager] No buffer found for drum type: ${type} in kit ${this.currentDrumKitIndex}`);
-        return;
-    }
-
-    try {
-        const source = this.context.createBufferSource();
-        source.buffer = buffer;
-
-        // Dry path
-        const dryGain = this.context.createGain();
-        dryGain.gain.value = Math.min(volume, 1);
-        source.connect(dryGain);
-        dryGain.connect(this.context.destination);
-
-        // Wet (reverb) path
-        if (this.reverbNode) {
-            const reverbGain = this.context.createGain();
-            reverbGain.gain.value = 0.2;
-            source.connect(this.reverbNode);
-
-            // Connect reverbNode to reverbGain, then to destination (for this playback only)
-            this.reverbNode.connect(reverbGain);
-            reverbGain.connect(this.context.destination);
-
-            // Disconnect after playback
-            source.onended = () => {
-                try { this.reverbNode.disconnect(reverbGain); } catch (e) {}
-                try { reverbGain.disconnect(); } catch (e) {}
-            };
+    playDrumSample(type, volume = 1) {
+        if (!this.context) {
+            console.error('[AudioContextManager] AudioContext not initialized');
+            return;
         }
 
-        source.start(0);
-        log(`[AudioContextManager] Played drum sample: ${type} at volume ${volume}`);
-    } catch (error) {
-        console.error(`[AudioContextManager] Error playing drum sample ${type}:`, error);
-    }
-}
+        const buffer = this.drumKitBuffers[this.currentDrumKitIndex][type];
+        if (!buffer) {
+            console.error(`[AudioContextManager] No buffer found for drum type: ${type} in kit ${this.currentDrumKitIndex}`);
+            return;
+        }
+
+        try {
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+
+            // Dry path
+            const dryGain = this.context.createGain();
+            dryGain.gain.value = Math.min(volume, 1);
+            source.connect(dryGain);
+            dryGain.connect(this.context.destination);
+
+            // Wet (reverb) path
+            if (this.reverbNode) {
+                const reverbGain = this.context.createGain();
+                reverbGain.gain.value = 0.2;
+                source.connect(this.reverbNode);
+
+                // Connect reverbNode to reverbGain, then to destination (for this playback only)
+                this.reverbNode.connect(reverbGain);
+                reverbGain.connect(this.context.destination);
+
+                // Disconnect after playback
+                source.onended = () => {
+                    try { this.reverbNode.disconnect(reverbGain); } catch (e) {}
+                    try { reverbGain.disconnect(); } catch (e) {}
+                };
+            }
+
+            source.start(0);
+            log(`[AudioContextManager] Played drum sample: ${type} at volume ${volume}`);
+        } catch (error) {
+            console.error(`[AudioContextManager] Error playing drum sample ${type}:`, error);
+        }
+    },
 
     // --- Piano Sample Loading ---
     async loadPianoSamples() {
@@ -222,56 +222,57 @@ export const AudioContextManager = {
 
     // --- Piano Chord Playback (with gain, reverb, and smooth transitions) ---
     playChord(noteNames, duration = 1.5, velocity = 1) {
-    if (!this.context) {
-        console.error('[AudioContextManager] AudioContext not initialized');
-        return;
-    }
-
-    // Fade out previous chord
-    if (this.currentChordGain) {
-        try {
-            this.currentChordGain.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.1);
-        } catch (e) {}
-    }
-
-    const chordGain = this.context.createGain();
-    chordGain.gain.value = velocity || 1.0;
-    chordGain.connect(this.context.destination);
-
-    // Wet (reverb) path
-    let reverbGain = null;
-    if (this.reverbNode) {
-        reverbGain = this.context.createGain();
-        reverbGain.gain.value = 0.25;
-        this.reverbNode.connect(reverbGain);
-        reverbGain.connect(this.context.destination);
-    }
-
-    noteNames.forEach(note => {
-        const buffer = this.pianoSamples[note];
-        if (!buffer) {
-            console.warn(`[AudioContextManager] No buffer for note: ${note}`);
+        if (!this.context) {
+            console.error('[AudioContextManager] AudioContext not initialized');
             return;
         }
-        const source = this.context.createBufferSource();
-        source.buffer = buffer;
-        source.connect(chordGain);
-        if (this.reverbNode) source.connect(this.reverbNode);
-        source.start();
-        source.stop(this.context.currentTime + duration);
 
-        // Disconnect reverb after playback
-        if (this.reverbNode && reverbGain) {
-            source.onended = () => {
-                try { this.reverbNode.disconnect(reverbGain); } catch (e) {}
-                try { reverbGain.disconnect(); } catch (e) {}
-            };
+        // Fade out previous chord
+        if (this.currentChordGain) {
+            try {
+                this.currentChordGain.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.1);
+            } catch (e) {}
         }
-    });
 
-    this.currentChordGain = chordGain;
-    setTimeout(() => {
-        try { chordGain.disconnect(); } catch (e) {}
-        if (reverbGain) try { reverbGain.disconnect(); } catch (e) {}
-    }, duration * 1000 + 200);
-}
+        const chordGain = this.context.createGain();
+        chordGain.gain.value = velocity || 1.0;
+        chordGain.connect(this.context.destination);
+
+        // Wet (reverb) path
+        let reverbGain = null;
+        if (this.reverbNode) {
+            reverbGain = this.context.createGain();
+            reverbGain.gain.value = 0.25;
+            this.reverbNode.connect(reverbGain);
+            reverbGain.connect(this.context.destination);
+        }
+
+        noteNames.forEach(note => {
+            const buffer = this.pianoSamples[note];
+            if (!buffer) {
+                console.warn(`[AudioContextManager] No buffer for note: ${note}`);
+                return;
+            }
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(chordGain);
+            if (this.reverbNode) source.connect(this.reverbNode);
+            source.start();
+            source.stop(this.context.currentTime + duration);
+
+            // Disconnect reverb after playback
+            if (this.reverbNode && reverbGain) {
+                source.onended = () => {
+                    try { this.reverbNode.disconnect(reverbGain); } catch (e) {}
+                    try { reverbGain.disconnect(); } catch (e) {}
+                };
+            }
+        });
+
+        this.currentChordGain = chordGain;
+        setTimeout(() => {
+            try { chordGain.disconnect(); } catch (e) {}
+            if (reverbGain) try { reverbGain.disconnect(); } catch (e) {}
+        }, duration * 1000 + 200);
+    }
+};
