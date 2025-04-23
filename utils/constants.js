@@ -192,3 +192,39 @@ export const scaleDegrees = {
     'V7/bIII': 7, 'V7/bVI': 7, 'V7/bVII': 7
     }
 };
+
+
+
+export const CHORD_QUALITIES = {
+    // Basic Chord Qualities
+    major: [0, 4, 7],               // C
+    minor: [0, 3, 7],               // Cm
+    diminished: [0, 3, 6],          // Cdim
+    augmented: [0, 4, 8],           // C+
+    // Seventh Chords
+    maj7: [0, 4, 7, 11],            // CM7
+    m7: [0, 3, 7, 10],              // Cm7
+    dom7: [0, 4, 7, 10],            // C7
+    dim7: [0, 3, 6, 9],             // Cdim7
+    augM7: [0, 4, 8, 11],           // C+M7
+    // Sixth Chords (NEW)
+    maj6: [0, 4, 7, 9],             // C6 (C-E-G-A)
+    m6: [0, 3, 7, 9],               // Cm6 (C-Eb-G-A)
+    // Extended Chords
+    m9: [0, 3, 7, 10, 14],          // Cm9
+    maj9: [0, 4, 7, 11, 14],        // CM9
+    // Suspended Chords
+    sus2: [0, 2, 7],                // Csus2
+    sus4: [0, 5, 7],                // Csus4
+    // Altered Dominant
+    V7b9: [0, 4, 7, 10, 13],        // C7b9
+    V7#11: [0, 4, 7, 10, 18],       // C7#11 (example structure)
+    // Add/Slash Chords
+    add9: [0, 4, 7, 14],            // Cadd9
+    // Modal Mixture
+    lydianDom: [0, 4, 7, 10, 2],    // C7#11 (Lydian Dominant)
+    // Jazz Extensions
+    m11: [0, 3, 7, 10, 14, 17],     // Cm11
+    // etc. (Add more as needed for your app)
+};
+
