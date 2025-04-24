@@ -137,4 +137,3 @@ document.addEventListener('DOMContentLoaded', () => {
     UI.init();
     UI.setupMetronomeControls();
 });
-});
