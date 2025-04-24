@@ -21,97 +21,108 @@ export function startPlayback() {
             UI.elements.startStopButton.classList.add('active');
         }
 
+        // Reset state
         AppState.currentBeat = 0;
         AppState.currentMeasure = 0;
 
         const timeSignature = parseInt(UI.elements.timeSignature.value) || 4;
-        const totalBeatsPerMeasure = timeSignature === 4 ? 8 : timeSignature;
+        const is44Time = timeSignature === 4;
+        const beatsPerMeasure = is44Time ? 8 : timeSignature; // 8 eighth notes for 4/4
+        const beatDuration = 60000 / AppState.tempo; // Milliseconds per beat
+        const intervalDuration = is44Time ? beatDuration / 2 : beatDuration; // Eighth notes for 4/4
+
         const measures = UI.elements.measures.children;
+        const totalMeasures = measures.length;
 
-        const beatDuration = 60000 / AppState.tempo;
+        // Clear previous interval
+        clearInterval(AppState.metronomeInterval);
 
+        // Start new interval
         AppState.metronomeInterval = setInterval(() => {
-            const beats = document.querySelectorAll('.beat');
-            beats.forEach(beat => beat.classList.remove('active'));
+            // Clear active beats
+            document.querySelectorAll('.beat').forEach(beat => beat.classList.remove('active'));
 
-            const currentBeatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
+            // Update current beat
+            const currentBeat = AppState.currentBeat;
+            const currentBeatElement = document.querySelector(`.beat[data-beat="${currentBeat}"]`);
             if (currentBeatElement) {
                 currentBeatElement.classList.add('active');
                 const volume = parseFloat(currentBeatElement.dataset.volume) || 0;
-                console.log('[Playback] Beat', AppState.currentBeat, 'volume:', volume);
                 if (volume > 0) {
                     const drumSounds = currentBeatElement.dataset.sound || 'hihat';
                     playMetronomeSound(volume, drumSounds);
                 }
             }
 
-            // Chord playback logic (trigger on beat 0 of each measure)
-            if (measures.length > 0 && AppState.currentMeasure < measures.length) {
+            // CHORD PROGRESSION LOGIC
+            if (measures.length > 0 && AppState.currentMeasure < totalMeasures) {
                 const currentMeasureElement = measures[AppState.currentMeasure];
                 const rootNote = currentMeasureElement.querySelector('.chord-controls .root-note')?.value;
                 const chordQuality = currentMeasureElement.querySelector('.chord-controls .chord-quality')?.value || 'maj';
 
-                // Play chord on the first beat of each measure (beat 0)
-                if (AppState.currentBeat === 0) {
-                    const isSecondHalf = false; // Reset for new measure
-                    const voicingType = null;
-
+                // CHORD UPDATE ON BEAT 1 (0-based)
+                if (currentBeat === 0) {
                     const chordsEnabled = UI.elements.chordsEnabled?.classList.contains('active');
-                    if (chordsEnabled) {
-                        if (rootNote && chordQuality) {
-                            console.log(`[Playback] Playing chord: ${rootNote} ${chordQuality}, isSecondHalf: ${isSecondHalf}, voicing: ${voicingType}`);
-                            playChord(rootNote, chordQuality, 0, 1.8, isSecondHalf, voicingType);
-                            // Update fretboard with chord
-                            if (UI.elements.chordFretboard) {
-                                const scale = suggestScaleForQuality(chordQuality);
-                                updateFretboardNotes(
-                                    UI.elements.chordFretboard,
-                                    rootNote,
-                                    scale,
-                                    TUNINGS[UI.elements.chordTuning.value]
-                                );
-                                console.log(`[Playback] Updated fretboard for chord: ${rootNote} ${chordQuality} (scale: ${scale})`);
-                            }
-                        } else {
-                            console.warn('[Playback] Chords enabled but missing root/quality, skipping chord playback');
-                        }
+                    if (chordsEnabled && rootNote && chordQuality) {
+                        playChord(rootNote, chordQuality, 0, 1.8, false, null);
+                        updateFretboardNotes(
+                            UI.elements.chordFretboard,
+                            rootNote,
+                            suggestScaleForQuality(chordQuality),
+                            TUNINGS[UI.elements.chordTuning.value]
+                        );
+                        console.log(`[Playback] Updated fretboard for chord: ${rootNote} ${chordQuality}`);
                     }
                 }
 
-                // Advance measure when reaching the last beat of the current measure
-                if (AppState.currentBeat === (totalBeatsPerMeasure - 1)) {
-                    AppState.currentMeasure = (AppState.currentMeasure + 1) % Math.max(1, measures.length);
-
-                    // Update scale for next measure
-                    if (measures.length > 0) {
-                        const nextMeasureElement = measures[AppState.currentMeasure];
-                        const scaleRoot = nextMeasureElement.querySelector('.scale-controls .second-key')?.value;
-                        const scaleType = nextMeasureElement.querySelector('.scale-controls .scale-select')?.value;
-                        const tuning = TUNINGS[UI.elements.chordTuning.value];
-
-                        if (UI.elements.chordFretboard && scaleRoot && scaleType && tuning) {
-                            const mappedScale = suggestScaleForQuality(scaleType);
-                            updateFretboardNotes(
-                                UI.elements.chordFretboard,
-                                scaleRoot,
-                                mappedScale,
-                                tuning
-                            );
-                            console.log(`[Playback] Updated fretboard for scale: ${scaleRoot} ${scaleType} (mapped: ${mappedScale})`);
-                        }
+                // SCALE UPDATE ON MEASURE CHANGE
+                if (currentBeat === beatsPerMeasure - 1) { // Last beat of measure
+                    AppState.currentMeasure = (AppState.currentMeasure + 1) % totalMeasures;
+                    const nextMeasure = measures[AppState.currentMeasure];
+                    updateMeasureHighlight(nextMeasure);
+                    const scaleRoot = nextMeasure.querySelector('.scale-controls .second-key')?.value;
+                    const scaleType = nextMeasure.querySelector('.scale-controls .scale-select')?.value;
+                    if (scaleRoot && scaleType && UI.elements.chordFretboard) {
+                        updateFretboardNotes(
+                            UI.elements.chordFretboard,
+                            scaleRoot,
+                            suggestScaleForQuality(scaleType),
+                            TUNINGS[UI.elements.chordTuning.value]
+                        );
+                        console.log(`[Playback] Updated scale: ${scaleRoot} ${scaleType}`);
                     }
                 }
             }
 
-            // Advance beat
-            AppState.currentBeat = (AppState.currentBeat + 1) % totalBeatsPerMeasure;
+            // ADVANCE BEAT AND MEASURE
+            AppState.currentBeat = (currentBeat + 1) % beatsPerMeasure;
 
-        }, beatDuration);
+            // UPDATE MEASURE HIGHLIGHT
+            updateMeasureHighlight(measures[AppState.currentMeasure]);
+        }, intervalDuration);
+
+        // METRONOME SLIDER UPDATE
+        const tempoSlider = document.getElementById('tempo');
+        tempoSlider.addEventListener('input', () => {
+            AppState.tempo = parseInt(tempoSlider.value);
+            document.getElementById('tempo-display').textContent = `${AppState.tempo} BPM`;
+            // Restart playback with new tempo
+            stopPlayback();
+            startPlayback();
+        });
 
         log("Playback started");
     }).catch(error => {
         console.error("Failed to start playback:", error);
     });
+}
+
+// HELPER FUNCTION FOR MEASURE HIGHLIGHTING
+function updateMeasureHighlight(measureElement) {
+    if (!measureElement) return;
+    const allMeasures = document.querySelectorAll('.measure');
+    allMeasures.forEach(m => m.classList.remove('active-measure'));
+    measureElement.classList.add('active-measure');
 }
 
 export function stopPlayback() {
