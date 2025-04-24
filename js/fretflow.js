@@ -60,7 +60,7 @@ const updatedNotes = fretboard.getElementsByClassName('note');
     log("FretFlow initialized");
 } // Closes the initializeFretFlow function
 
-export function playNote(noteName, volume = 0.3, duration = 500) {
+export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) {
     AudioContextManager.ensureAudioContext().then(() => {
         // Extract note and octave from noteName (e.g., "C#4" → note: "C#", octave: 4)
         const noteMatch = noteName.match(/([A-Ga-g#b]+)(\d+)$/);
@@ -93,8 +93,8 @@ export function playNote(noteName, volume = 0.3, duration = 500) {
         gainNode.connect(AudioContextManager.context.destination);
 
         // Start and stop the note
-        source.start(0);
-        setTimeout(() => source.stop(), duration);
+    source.start(startTime);
+    setTimeout(() => source.stop(), startTime + duration);
     }).catch(error => {
         console.error('Error playing note:', error);
     });
