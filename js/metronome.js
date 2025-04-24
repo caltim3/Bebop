@@ -52,7 +52,19 @@ export function setupDrumKitSelect() {
         log(`[Metronome] Drum kit changed to: ${drumKits[currentDrumSetIndex].name}`);
     };
 }
+// Add this after defining setupDrumKitSelect()
+function setupSoundTypeListener() {
+  const soundTypeSelect = document.getElementById("sound-type");
+  soundTypeSelect.addEventListener("change", () => {
+    const isDrumsSelected = soundTypeSelect.value === "drums";
+    const drumSelect = document.getElementById("drum-kit-select");
+    drumSelect.style.display = isDrumsSelected ? "inline-block" : "none";
+    setupDrumKitSelect(); // Re-initialize drum kit select
+  });
+}
 
+// Call this after initializing UI elements
+setupSoundTypeListener();
 // --- Beat Creation ---
 export function createBeats() {
     const container = document.querySelector('.beats-container');
@@ -64,14 +76,14 @@ export function createBeats() {
 
     // Classic 4/4 pop/rock pattern
     const drumSounds = {
-        0: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },   // 1
-        1: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },         // 1&
-        2: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' },  // 2
-        3: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },         // 2&
-        4: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },   // 3
-        5: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },         // 3&
-        6: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' },  // 4
-        7: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' }          // 4&
+      0: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' }, // Beat 1
+      1: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },       // 1&
+      2: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' }, // Beat 2
+      3: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },       // 2&
+      4: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' }, // Beat 3
+      5: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },       // 3&
+      6: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' }, // Beat 4
+      7: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' }        // 4&
     };
 
     for (let i = 0; i < totalBeats; i++) {
