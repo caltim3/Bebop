@@ -168,6 +168,26 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .btn-start {
+       background-color: #4CAF50; /* Green */
+       color: white;
+       }
+       
+       .btn-stop {
+           background-color: #f44336; /* Red */
+           color: white;
+       }
+       
+       #start-stop {
+           padding: 10px 20px;
+           border: none;
+           border-radius: 4px;
+           cursor: pointer;
+           font-size: 16px;
+           transition: background-color 0.3s;
+       }
+
         .volume-control {
             display: flex;
             align-items: center;
