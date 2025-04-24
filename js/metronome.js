@@ -121,3 +121,14 @@ export const UI = {
         });
     }
 };
+
+export { 
+    playMetronomeSound, // Critical addition
+    startMetronome,
+    stopMetronome,
+    toggleMetronome,
+    setupDrumKitSelect,
+    onMetronomeInstrumentChange,
+    createBeats,
+    currentDrumSetIndex
+};
