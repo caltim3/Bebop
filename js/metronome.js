@@ -201,3 +201,9 @@ export function onMetronomeInstrumentChange(selectedInstrument) {
 
 // Import AppState at the end to avoid circular dependencies
 import { AppState } from './app-state.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize listeners and setup functions
+  setupSoundTypeListener();
+  setupDrumKitSelect();
+});
