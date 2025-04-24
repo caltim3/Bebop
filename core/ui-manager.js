@@ -1,31 +1,83 @@
 // core/ui-manager.js
 export const UI = {
-    elements: {
-        chordFretboard: document.getElementById('chord-fretboard'),
-        measures: document.getElementById('measures'),
-        tempoDisplay: document.getElementById('tempo-display'),
-        startStopButton: document.getElementById('start-stop'),
-        progressionSelect: document.getElementById('progression-select'),
-        keySelect: document.getElementById('keySelect'),
-        scaleDisplay: document.getElementById('scale-display'),
-        chordTuning: document.getElementById('chord-tuning'),
-        timeSignature: document.getElementById('time-signature'),
-        soundType: document.getElementById('sound-type'),
-        metronomeVolume: document.getElementById('metronome-volume'),
-        tempo: document.getElementById('tempo'),
-        tapTempo: document.getElementById('tap-tempo'),
-        chordFretboardVolume: document.getElementById('chord-fretboard-volume'),
-        chordVolume: document.getElementById('chord-volume'),
-        chordsEnabled: document.getElementById('chordsEnabled'),
-        fretboardVolume: document.getElementById('fretboard-volume'),
-        fretboardsGrid: document.querySelector('.fretboards-grid'),
-        darkModeToggle: document.getElementById('dark-mode-toggle'),
-        accentIntensity: document.getElementById('accent-intensity')
+    elements: {}, // Will be populated in init()
+
+    // List of all required element IDs
+    elementIds: [
+        'chord-fretboard',
+        'measures',
+        'tempo-display',
+        'start-stop',
+        'progression-select',
+        'keySelect',
+        'scale-display',
+        'chord-tuning',
+        'time-signature',
+        'sound-type',
+        'metronome-volume',
+        'tempo',
+        'tap-tempo',
+        'chord-fretboard-volume',
+        'chord-volume',
+        'chordsEnabled',
+        'fretboard-volume',
+        'dark-mode-toggle',
+        'accent-intensity'
+    ],
+
+    // Additional elements that use querySelector
+    querySelectors: {
+        'fretboardsGrid': '.fretboards-grid'
     },
 
     init() {
-        Object.entries(this.elements).forEach(([key, el]) => {
-            if (!el) console.warn(`Missing DOM element: ${key}`);
+        // Initialize standard elements by ID
+        this.elementIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                // Convert ID to camelCase for the elements object key
+                const key = id.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+                this.elements[key] = element;
+            } else {
+                console.warn(`Missing DOM element: ${id}`);
+            }
         });
+
+        // Initialize elements that need querySelector
+        Object.entries(this.querySelectors).forEach(([key, selector]) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                this.elements[key] = element;
+            } else {
+                console.warn(`Missing DOM element (querySelector): ${selector}`);
+            }
+        });
+
+        // Verify critical elements
+        this.verifyCriticalElements();
+    },
+
+    verifyCriticalElements() {
+        const criticalElements = [
+            'tempoDisplay',
+            'startStopButton',
+            'soundType',
+            'timeSignature'
+        ];
+
+        criticalElements.forEach(key => {
+            if (!this.elements[key]) {
+                console.error(`Critical UI element missing: ${key}`);
+            }
+        });
+    },
+
+    // Helper to safely add event listeners
+    addListener(elementKey, eventType, callback) {
+        if (this.elements[elementKey]) {
+            this.elements[elementKey].addEventListener(eventType, callback);
+        } else {
+            console.warn(`Cannot add listener - element not found: ${elementKey}`);
+        }
     }
 };
