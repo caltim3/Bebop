@@ -137,18 +137,30 @@ export function populateChordQualityDropdowns() {
         defaultOption.selected = true;
         select.appendChild(defaultOption);
         
-        // Add all chord qualities
-        for (const [value, label] of Object.entries(CHORD_QUALITIES)) {
+        // Add all chord qualities with proper formatting
+        CHORD_QUALITIES.forEach(quality => {
             const option = document.createElement('option');
-            option.value = value;
-            option.textContent = label;
+            option.value = quality;
+            
+            // Format the display text
+            let displayText = quality
+                .replace('maj', 'Major')
+                .replace('m', 'Minor')
+                .replace('dom', 'Dominant')
+                .replace('aug', 'Augmented')
+                .replace('dim', 'Diminished')
+                .replace('sus', 'Suspended')
+                .replace('add', 'Add')
+                .replace('lydian', 'Lydian')
+                .replace('b', '♭')
+                .replace('#', '♯');
+            
+            // Capitalize first letter
+            displayText = displayText.charAt(0).toUpperCase() + displayText.slice(1);
+            
+            option.textContent = displayText;
             select.appendChild(option);
-        }
-        
-        // Set initial value if one exists
-        if (select.dataset.initialValue) {
-            select.value = select.dataset.initialValue;
-        }
+        });
     });
 }
 
@@ -233,12 +245,20 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     SCALE_NAMES.forEach(scale => {
         const option = document.createElement('option');
         option.value = scale;
-        option.textContent = scale
+        
+        // Format the display text
+        let displayText = scale
             .replace(/([A-Z])/g, ' $1') // Add space before capitals
-            .replace('Diminished', 'Dim') // Abbreviate for display
-            .trim()
-            .charAt(0).toUpperCase() + // Capitalize first letter
-            option.textContent.slice(1);
+            .replace('Diminished', 'Dim')
+            .replace('Major', 'Maj')
+            .replace('Minor', 'Min')
+            .replace('Pentatonic', 'Pent')
+            .trim();
+        
+        // Capitalize first letter
+        displayText = displayText.charAt(0).toUpperCase() + displayText.slice(1);
+        
+        option.textContent = displayText;
         scaleSelect.appendChild(option);
     });
     
