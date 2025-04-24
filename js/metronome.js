@@ -177,24 +177,12 @@ export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
         soundKey = soundKey.trim();
         if (soundKey === 'silent') continue;
 
-        let mappedType = soundKey;
-        if (soundType === 'click' || soundType === 'woodblock') {
-            mappedType = soundType;
-        } else if (soundType === 'drums') {
-            if (kitIndex === 1) { // Makaya
-                if (soundKey === 'kick') mappedType = 'kick2';
-                else if (soundKey === 'snare') mappedType = 'snare2';
-                else if (soundKey === 'hihat') mappedType = 'hihat2';
-            } else if (kitIndex === 2) { // Philly Joe
-                if (soundKey === 'kick') mappedType = 'jazzkick';
-                else if (soundKey === 'snare') mappedType = 'jazzsnare';
-                else if (soundKey === 'hihat') mappedType = 'jazzhat';
-            }
-        }
+        // Dynamically map the soundKey to the correct sample name
+        const mappedType = drumKits[kitIndex]?.samples[soundKey] || soundKey;
+
         AudioContextManager.playDrumSample(mappedType, adjustedVolume);
     }
 }
-
 export function onMetronomeInstrumentChange(selectedInstrument) {
     setupDrumKitSelect();
 }
