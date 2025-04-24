@@ -96,48 +96,34 @@ export function parseProgression(progText, key) {
 
     const result = [];
     tokens.forEach(token => {
-        // Extract roman numeral and quality
+        // Extract roman and quality with improved regex
         const match = token.match(/^([b#]?[IViv]+)(.*)$/);
         let roman, quality;
         if (match) {
             roman = match[1];
-            quality = match[2] ? match[2].trim() : '';
+            quality = match[2].trim() || '';
         } else {
             roman = token;
             quality = '';
         }
 
-        // Standardize quality defaults
+        // Standardize quality
         if (!quality || quality === 'maj') {
-            if (/^[Vv]$/.test(roman)) {
-                quality = '7'; // Dominant 7th for V
-            } else {
-                quality = 'maj7'; // Major 7th for other chords
-            }
-        } else if (quality === 'm') {
-            quality = 'm7'; // Minor 7th by default
+            quality = roman.toLowerCase() === 'v' ? '7' : 'maj7';
+        } else {
+            // Clean up quality strings (remove trailing numbers)
+            quality = quality.replace(/(\d+)$/, '');
+            // Map to valid qualities
+            if (quality.includes('m')) quality = 'm7';
+            else if (quality.includes('dom')) quality = '7';
         }
 
-        // Map roman numeral to root note
-        let root = getRootFromRoman(roman, key);
-        // Fallback: if not found, use the roman as root (for custom notes)
-        if (!root) root = roman;
+        // Map roman to root
+        let root = getRootFromRoman(roman, key) || roman;
 
-        // Format quality to match CHORD_QUALITIES array
-        const standardizedQuality = quality
-            .replace('maj', 'maj7') // Ensure full major 7 notation
-            .replace('m', 'm7')    // Ensure minor 7 notation
-            .replace('dom', '7');  // Normalize 'dom7' to '7'
-
-        result.push({
-            roman: roman,
-            root: root,
-            quality: standardizedQuality
-        });
-
-        console.log(`[parseProgression] Parsed chord: ${root} ${standardizedQuality}`);
+        result.push({ roman, root, quality });
+        console.log(`[parseProgression] Parsed chord: ${root} ${quality}`);
     });
-
     return result;
 }
 
