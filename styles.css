@@ -17,7 +17,7 @@
     --slider-track: #ddd;
 }
 
-/* DARK MODE 1 */
+/* DARK MODE THEMES */
 body.darkmode1 {
     --main-bg: #181c1f;
     --main-text: #e0e0e0;
@@ -25,7 +25,6 @@ body.darkmode1 {
     --control-bg: #23272a;
     --border: #333;
     --button-bg: #1976d2;
-    --button-text: #fff;
     --button-bg-stop: #d32f2f;
     --beat-active: #90caf9;
     --beat-inactive: #424242;
@@ -37,7 +36,6 @@ body.darkmode1 {
     --slider-track: #333;
 }
 
-/* DARK MODE 2 */
 body.darkmode2 {
     --main-bg: #22212c;
     --main-text: #f8f8f2;
@@ -57,7 +55,6 @@ body.darkmode2 {
     --slider-track: #44475a;
 }
 
-/* DARK MODE 3 */
 body.darkmode3 {
     --main-bg: #1a1a2e;
     --main-text: #e94560;
@@ -65,7 +62,6 @@ body.darkmode3 {
     --control-bg: #16213e;
     --border: #0f3460;
     --button-bg: #e94560;
-    --button-text: #fff;
     --button-bg-stop: #53354a;
     --beat-active: #e94560;
     --beat-inactive: #393e46;
@@ -77,16 +73,12 @@ body.darkmode3 {
     --slider-track: #0f3460;
 }
 
-/* GENERAL STYLES */
+/* CORE STYLES */
 body {
     background: var(--main-bg);
     color: var(--main-text);
     font-family: 'Lato', Arial, sans-serif;
     transition: background 0.3s, color 0.3s;
-}
-
-h1, h2, h3 {
-    color: var(--accent);
 }
 
 .app-section {
@@ -99,56 +91,7 @@ h1, h2, h3 {
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-.fretboard, .fretboards-grid {
-    background: var(--fretboard-bg);
-    border: 1px solid var(--fretboard-border);
-    border-radius: 6px;
-    padding: 1rem;
-}
-
-input[type="range"] {
-    width: 120px;
-    accent-color: var(--slider-thumb);
-    background: var(--slider-track);
-}
-
-input, select, button {
-    background: var(--input-bg);
-    color: var(--input-text);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.4em 0.8em;
-    margin: 0.2em 0.5em;
-    font-size: 1em;
-    transition: background 0.3s, color 0.3s, border 0.3s;
-}
-
-select:focus, input:focus, button:focus {
-    outline: 2px solid var(--accent);
-}
-
-button, .btn-metronome {
-    background: var(--button-bg);
-    color: var(--button-text);
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background 0.3s, color 0.3s;
-}
-
-.btn-metronome.stop {
-    background: var(--button-bg-stop);
-}
-
-#start-stop {
-    min-width: 100px;
-    font-size: 1.1em;
-}
-
-.volume-control, .tempo-control {
-    margin: 1em 0;
-}
-
+/* METRONOME */
 .metronome-controls {
     display: flex;
     align-items: center;
@@ -160,6 +103,35 @@ button, .btn-metronome {
     margin-bottom: 1em;
 }
 
+#start-stop {
+    background: var(--button-bg);
+    color: var(--button-text);
+    border: none;
+    padding: 0.6rem 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#start-stop.stop {
+    background: var(--button-bg-stop);
+}
+
+#tap-tempo {
+    background: var(--accent);
+    color: var(--main-text);
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#tap-tempo:hover {
+    background: darken(var(--accent), 10%);
+}
+
+/* BEATS VISUALIZATION */
 .beats-container {
     display: flex;
     gap: 0.5em;
@@ -182,28 +154,36 @@ button, .btn-metronome {
 }
 
 .beat.active {
-    background: var(--beat-active) !important;
+    background: var(--beat-active);
     color: #fff;
     border-color: var(--accent);
 }
 
-.toggle-button.active, .toggle-button:active {
-    background: var(--accent);
-    color: #fff;
+/* INPUTS & CONTROLS */
+input, select, button {
+    background: var(--input-bg);
+    color: var(--input-text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.4em 0.8em;
+    margin: 0.2em 0.5em;
+    font-size: 1em;
+    transition: background 0.3s, color 0.3s, border 0.3s;
 }
 
-.checkbox-wrapper {
-    margin: 1em 0;
+input[type="range"] {
+    width: 120px;
+    accent-color: var(--slider-thumb);
+    background: var(--slider-track);
 }
 
-/* DARK MODE TOGGLE SWITCH */
+/* DARK MODE TOGGLE */
 .dark-mode-toggle {
     position: relative;
     display: inline-block;
     width: 60px;
     height: 34px;
     margin: 10px 0;
-    vertical-align: middle;
 }
 .dark-mode-toggle input {
     opacity: 0;
@@ -214,24 +194,26 @@ button, .btn-metronome {
     position: absolute;
     cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
+    background: var(--slider-track);
+    transition: 0.4s;
     border-radius: 34px;
 }
 .slider:before {
-    position: absolute;
     content: "";
-    height: 26px; width: 26px;
-    left: 4px; bottom: 4px;
-    background-color: white;
-    transition: .4s;
+    position: absolute;
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background: var(--input-bg);
+    transition: 0.4s;
     border-radius: 50%;
 }
 input:checked + .slider {
-    background-color: var(--accent);
+    background: var(--accent);
 }
 input:checked + .slider:before {
-    transform: translateX(26px);
+    transform: translateX(22px);
 }
 .slider.round {
     border-radius: 34px;
@@ -240,7 +222,15 @@ input:checked + .slider:before {
     border-radius: 50%;
 }
 
-/* Responsive */
+/* FRETBOARD */
+.fretboard, .fretboards-grid {
+    background: var(--fretboard-bg);
+    border: 1px solid var(--fretboard-border);
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+/* RESPONSIVE */
 @media (max-width: 700px) {
     .app-section {
         padding: 1rem;
