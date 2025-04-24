@@ -7,6 +7,7 @@ import { AudioContextManager } from '../core/audio-context.js';
 import { CHORD_QUALITY_INTERVALS } from '../utils/constants.js';
 import { playChord } from './music-theory.js';
 
+
 // --- FIXED: Robust Roman numeral to root mapping ---
 const MAJOR_SCALE = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const ROMAN_TO_DEGREE = {
@@ -120,6 +121,39 @@ export function parseProgression(progText, key) {
     return result;
 }
 
+// In your chord-progression.js or similar file
+export function populateChordQualityDropdowns() {
+    const qualitySelects = document.querySelectorAll('.chord-quality');
+    
+    qualitySelects.forEach(select => {
+        // Clear existing options
+        select.innerHTML = '';
+        
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Select Quality';
+        defaultOption.disabled = true;
+        defaultOption.selected = true;
+        select.appendChild(defaultOption);
+        
+        // Add all chord qualities
+        for (const [value, label] of Object.entries(CHORD_QUALITIES)) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            select.appendChild(option);
+        }
+        
+        // Set initial value if one exists
+        if (select.dataset.initialValue) {
+            select.value = select.dataset.initialValue;
+        }
+    });
+}
+
+import { CHORD_QUALITIES, NOTES, SCALE_NAMES } from './constants (1).js'; // Ensure correct import path
+
 export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuality = null) {
     const measure = document.createElement('div');
     measure.className = 'measure';
@@ -161,10 +195,19 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     
     const chordQualitySelect = document.createElement('select');
     chordQualitySelect.className = 'chord-quality';
+    
+    // Populate chord qualities with proper display names
     CHORD_QUALITIES.forEach(quality => {
         const option = document.createElement('option');
         option.value = quality;
-        option.textContent = quality;
+        option.textContent = quality
+            .replace(/([A-Z])/g, ' $1') // Add space before capitals
+            .replace('dom', 'Dominant') // Special case for 'dom7'
+            .replace('maj', 'Major')
+            .replace('m', 'Minor')
+            .trim()
+            .charAt(0).toUpperCase() + // Capitalize first letter
+            option.textContent.slice(1);
         chordQualitySelect.appendChild(option);
     });
     
@@ -192,7 +235,12 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     SCALE_NAMES.forEach(scale => {
         const option = document.createElement('option');
         option.value = scale;
-        option.textContent = scale.replace(/([A-Z])/g, ' $1').trim();
+        option.textContent = scale
+            .replace(/([A-Z])/g, ' $1') // Add space before capitals
+            .replace('Diminished', 'Dim') // Abbreviate for display
+            .trim()
+            .charAt(0).toUpperCase() + // Capitalize first letter
+            option.textContent.slice(1);
         scaleSelect.appendChild(option);
     });
     
@@ -242,4 +290,13 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
 export function removeMeasure(measure) {
     UI.elements.measures.removeChild(measure);
     log('Removed measure');
+    
+    // Re-index measure numbers after removal
+    Array.from(UI.elements.measures.children).forEach((m, index) => {
+        m.querySelector('.measure-number').textContent = (index + 1).toString();
+    });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    populateChordQualityDropdowns();
+});
