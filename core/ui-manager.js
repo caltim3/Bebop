@@ -1,8 +1,7 @@
 // core/ui-manager.js
 export const UI = {
-    elements: {}, // Will be populated in init()
+    elements: {},
 
-    // List of all required element IDs
     elementIds: [
         'chord-fretboard',
         'measures',
@@ -26,19 +25,16 @@ export const UI = {
         'click-volume' // Added to match your HTML
     ],
 
-    // Additional elements that use querySelector
     querySelectors: {
         fretboardsGrid: '.fretboards-grid',
         beatsContainer: '.beats-container'
     },
 
-    // Initialize elements
     init() {
         // Initialize elements by ID
         this.elementIds.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
-                // Convert ID to camelCase (e.g., "my-element" → "myElement")
                 const key = id.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
                 this.elements[key] = element;
             } else {
@@ -58,15 +54,10 @@ export const UI = {
 
         // Critical element validation
         this.validateCriticalElements();
-
-        // Verify critical elements (legacy check)
         this.verifyCriticalElements();
-
-        // Initialize the start/stop button text
         this.updateStartStopButton(false);
     },
 
-    // Validate critical elements
     validateCriticalElements() {
         const criticalElements = [
             { key: 'startStop', id: 'start-stop' },
@@ -79,32 +70,23 @@ export const UI = {
             if (!this.elements[key]) {
                 const missingElement = id || selector;
                 console.error(`Critical element missing: ${missingElement}`);
-                // Optional: Throw error to halt execution
-                // throw new Error(`Missing critical element: ${missingElement}`);
             }
         });
     },
 
-    // Legacy critical element verification
     verifyCriticalElements() {
         const criticalElements = [
             { key: 'tempoDisplay', id: 'tempo-display' },
-            { key: 'startStop', id: 'start-stop' }, // Updated to match your single button
             { key: 'soundType', id: 'sound-type' }
         ];
 
         criticalElements.forEach(({ key, id }) => {
             if (!this.elements[key]) {
                 console.error(`Critical UI element missing: ${id}`);
-                // Create fallback element if absolutely necessary
-                if (key === 'soundType') {
-                    this.elements.soundType = { value: 'click' };
-                }
             }
         });
     },
 
-    // Helper to safely add event listeners
     addListener(elementKey, eventType, callback) {
         if (this.elements[elementKey]) {
             this.elements[elementKey].addEventListener(eventType, callback);
@@ -113,7 +95,6 @@ export const UI = {
         }
     },
 
-    // Update the start/stop button text and appearance
     updateStartStopButton(isRunning) {
         if (this.elements.startStop) {
             this.elements.startStop.textContent = isRunning ? 'Stop' : 'Start';
@@ -121,23 +102,19 @@ export const UI = {
         }
     },
 
-    // Setup metronome controls
     setupMetronomeControls() {
         this.addListener('startStop', 'click', () => {
             const isRunning = this.elements.startStop.textContent === 'Stop';
             if (isRunning) {
-                // Stop logic
                 stopMetronome();
                 this.updateStartStopButton(false);
             } else {
-                // Start logic
                 const tempo = parseInt(this.elements.tempoSlider.value) || 120;
                 startMetronome(tempo);
                 this.updateStartStopButton(true);
             }
         });
 
-        // Tempo slider updates
         this.addListener('tempoSlider', 'input', () => {
             if (this.elements.tempoDisplay) {
                 this.elements.tempoDisplay.textContent = this.elements.tempoSlider.value;
