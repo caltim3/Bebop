@@ -60,19 +60,29 @@ const updatedNotes = fretboard.getElementsByClassName('note');
     log("FretFlow initialized");
 } // Closes the initializeFretFlow function
 
-// Function to play a note with the given volume and duration
-function playNote(noteName, volume = 0.3, duration = 500) {
+export function playNote(noteName, volume = 0.3, duration = 500) {
     AudioContextManager.ensureAudioContext().then(() => {
-        const note = noteName.toLowerCase().replace('b', '#');
-        const octave = 3; // Default octave
-        const sampleKey = `${note}${octave}`;
-        const buffer = AudioContextManager.pianoSamples[sampleKey];
+        // Extract note and octave from noteName (e.g., "C#4" → note: "C#", octave: 4)
+        const noteMatch = noteName.match(/([A-Ga-g#b]+)(\d+)$/);
+        let notePart = noteName;
+        let octave = 3; // Default to middle octave if not specified
+        
+        if (noteMatch) {
+            notePart = noteMatch[1];
+            octave = parseInt(noteMatch[2], 10);
+        }
 
+        // Sanitize note name for filenames (replace '#' with 's', lowercase)
+        const sanitizedNote = notePart.replace('#', 's').toLowerCase();
+        const sampleKey = `${sanitizedNote}${octave}`;
+        
+        const buffer = AudioContextManager.pianoSamples[sampleKey];
         if (!buffer) {
             console.error(`No sample for ${sampleKey}`);
             return;
         }
 
+        // Create and connect audio nodes
         const source = AudioContextManager.context.createBufferSource();
         source.buffer = buffer;
 
@@ -82,10 +92,9 @@ function playNote(noteName, volume = 0.3, duration = 500) {
         source.connect(gainNode);
         gainNode.connect(AudioContextManager.context.destination);
 
+        // Start and stop the note
         source.start(0);
-        setTimeout(() => {
-            source.stop();
-        }, duration);
+        setTimeout(() => source.stop(), duration);
     }).catch(error => {
         console.error('Error playing note:', error);
     });
