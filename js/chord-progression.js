@@ -96,7 +96,7 @@ export function parseProgression(progText, key) {
 
     const result = [];
     tokens.forEach(token => {
-        // Extract roman and quality
+        // Extract roman numeral and quality
         const match = token.match(/^([b#]?[IViv]+)(.*)$/);
         let roman, quality;
         if (match) {
@@ -106,18 +106,38 @@ export function parseProgression(progText, key) {
             roman = token;
             quality = '';
         }
+
+        // Standardize quality defaults
         if (!quality || quality === 'maj') {
-            // Default to 7 for V, dom7 for V7, etc.
-            if (/^[Vv]$/.test(roman)) quality = '7';
-            else quality = 'maj';
+            if (/^[Vv]$/.test(roman)) {
+                quality = '7'; // Dominant 7th for V
+            } else {
+                quality = 'maj7'; // Major 7th for other chords
+            }
+        } else if (quality === 'm') {
+            quality = 'm7'; // Minor 7th by default
         }
+
         // Map roman numeral to root note
         let root = getRootFromRoman(roman, key);
-        // Fallback: if not found, use the roman as root
+        // Fallback: if not found, use the roman as root (for custom notes)
         if (!root) root = roman;
-        result.push({ function: roman, root, quality });
-        console.log(`[parseProgression] Parsed chord: ${root} ${quality}`);
+
+        // Format quality to match CHORD_QUALITIES array
+        const standardizedQuality = quality
+            .replace('maj', 'maj7') // Ensure full major 7 notation
+            .replace('m', 'm7')    // Ensure minor 7 notation
+            .replace('dom', '7');  // Normalize 'dom7' to '7'
+
+        result.push({
+            roman: roman,
+            root: root,
+            quality: standardizedQuality
+        });
+
+        console.log(`[parseProgression] Parsed chord: ${root} ${standardizedQuality}`);
     });
+
     return result;
 }
 
