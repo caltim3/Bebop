@@ -184,8 +184,8 @@ export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
     const soundKeys = beatElement.dataset.sound.split(',').map(s => s.trim());
 
     for (const soundKey of soundKeys) {
-        // Play the sample using the soundKey (not the filename)
-        AudioContextManager.playDrumSample(soundKey, combinedVolume);
+        // Play the sample with reverb disabled
+        AudioContextManager.playDrumSample(soundKey, combinedVolume, false); // Added false parameter to disable reverb
     }
 }
 
