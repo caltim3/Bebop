@@ -152,8 +152,6 @@ export function populateChordQualityDropdowns() {
     });
 }
 
-import { CHORD_QUALITIES, NOTES, SCALE_NAMES } from './constants (1).js'; // Ensure correct import path
-
 export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuality = null) {
     const measure = document.createElement('div');
     measure.className = 'measure';
