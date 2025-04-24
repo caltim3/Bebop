@@ -43,9 +43,11 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
     try {
         await AudioContextManager.ensureAudioContext();
         console.log(`[playChord] Called with root: ${root}, quality: ${quality}, startTime: ${startTime}, duration: ${duration}, isSecondHalf: ${isSecondHalf}, voicingType: ${voicingType}`);
+        
+        // Get chord notes and apply voicing
         let chordNotes = getChordNotes(root, quality);
         console.log(`[playChord] Chord notes:`, chordNotes);
-
+        
         if (!chordNotes.length) {
             console.error(`[playChord] No valid notes found for chord: ${root} ${quality}`);
             return;
@@ -61,14 +63,29 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
             return;
         }
 
-        // Choose octaves for each note (root = 2, others = 3)
-        const noteNamesWithOctave = chordNotes.map((note, i) => `${note}${i === 0 ? 2 : 3}`);
+        // Sanitize note names and assign octaves
+        const sanitizedNotes = chordNotes.map(note => 
+            note.replace('#', 's').toLowerCase()
+        );
+        
+        // Assign octaves: root to 3, others to 4 (adjust as needed)
+        const noteNamesWithOctave = sanitizedNotes.map((note, index) => {
+            const octave = index === 0 ? 3 : 4; // Adjust octaves for better sound range
+            return `${note}${octave}`;
+        });
 
         // Log audio context state
         console.log(`[playChord] AudioContext state:`, AudioContextManager.context.state);
 
-        // Use AudioContextManager to play the chord
-        AudioContextManager.playChord(noteNamesWithOctave, duration, 0.5);
+        // Play each note with proper timing and duration
+        noteNamesWithOctave.forEach(note => {
+            playNote(
+                note, 
+                0.5, // Volume
+                duration * 1000, // Convert seconds to milliseconds
+                startTime // Start time in seconds
+            );
+        });
 
         console.log(`[playChord] Playing chord: ${root} ${quality} ${isSecondHalf && voicingType ? '(' + voicingType + ')' : ''}`);
     } catch (error) {
