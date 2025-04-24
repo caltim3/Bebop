@@ -1,6 +1,7 @@
 import { UI } from '../core/ui-manager.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { log } from '../utils/helpers.js';
+import { AppState } from './app-state.js'; // Moved to top to avoid circular dependency
 
 // Drum kit definitions
 export let currentDrumSetIndex = 0;
@@ -52,19 +53,25 @@ export function setupDrumKitSelect() {
         log(`[Metronome] Drum kit changed to: ${drumKits[currentDrumSetIndex].name}`);
     };
 }
-// Add this after defining setupDrumKitSelect()
-function setupSoundTypeListener() {
-  const soundTypeSelect = document.getElementById("sound-type");
-  soundTypeSelect.addEventListener("change", () => {
-    const isDrumsSelected = soundTypeSelect.value === "drums";
+
+// New export for instrument change handling
+export function onMetronomeInstrumentChange() {
+    // Update drum kit visibility and selection
+    const soundType = UI.elements.soundType.value;
     const drumSelect = document.getElementById("drum-kit-select");
-    drumSelect.style.display = isDrumsSelected ? "inline-block" : "none";
-    setupDrumKitSelect(); // Re-initialize drum kit select
-  });
+    drumSelect.style.display = soundType === "drums" ? "inline-block" : "none";
+    // Re-initialize drum kit selection
+    setupDrumKitSelect();
 }
 
-// Call this after initializing UI elements
-setupSoundTypeListener();
+// Sound type listener setup
+function setupSoundTypeListener() {
+    const soundTypeSelect = document.getElementById("sound-type");
+    soundTypeSelect.addEventListener("change", () => {
+        onMetronomeInstrumentChange(); // Use the new export
+    });
+}
+
 // --- Beat Creation ---
 export function createBeats() {
     const container = document.querySelector('.beats-container');
@@ -76,14 +83,14 @@ export function createBeats() {
 
     // Classic 4/4 pop/rock pattern
     const drumSounds = {
-      0: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' }, // Beat 1
-      1: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },       // 1&
-      2: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' }, // Beat 2
-      3: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },       // 2&
-      4: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' }, // Beat 3
-      5: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },       // 3&
-      6: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' }, // Beat 4
-      7: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' }        // 4&
+        0: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },
+        1: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },
+        2: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' },
+        3: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },
+        4: { sound: ['kick', 'hihat'], volume: '1', color: '#1F618D' },
+        5: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' },
+        6: { sound: ['snare', 'hihat'], volume: '1', color: '#4CAF50' },
+        7: { sound: ['hihat'], volume: '0.7', color: '#9E9E9E' }
     };
 
     for (let i = 0; i < totalBeats; i++) {
@@ -99,7 +106,6 @@ export function createBeats() {
             beat.dataset.sound = Array.isArray(config.sound) ? config.sound.join(',') : config.sound;
             beat.style.backgroundColor = config.color;
         } else if (soundType === 'drums') {
-            // Fallback for other time signatures: strong beats = kick, others = hihat
             const isStrong = i % timeSignature === 0;
             beat.textContent = i + 1;
             beat.dataset.sound = isStrong ? 'kick' : 'hihat';
@@ -107,7 +113,6 @@ export function createBeats() {
             beat.dataset.volume = isStrong ? '1' : '0.7';
             beat.style.backgroundColor = isStrong ? '#1F618D' : '#9E9E9E';
         } else {
-            // Click/woodblock
             const isQuarterNote = timeSignature === 4 ? i % 2 === 0 : true;
             beat.textContent = timeSignature === 4 ? `${Math.floor(i / 2 + 1)}${isQuarterNote ? '' : '&'}` : i + 1;
             if (isQuarterNote) {
@@ -127,7 +132,6 @@ export function createBeats() {
         container.appendChild(beat);
     }
 
-    // --- Drum Kit Select Dropdown Logic ---
     setupDrumKitSelect();
 }
 
@@ -180,19 +184,12 @@ export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
     const soundKeys = beatElement.dataset.sound.split(',').map(s => s.trim());
 
     for (const soundKey of soundKeys) {
-        // Get the filename from the drum kit's samples
-        const mappedType = drumKits[kitIndex]?.samples[soundKey] || soundKey;
-
         // Play the sample using the soundKey (not the filename)
         AudioContextManager.playDrumSample(soundKey, combinedVolume);
     }
 }
 
-// Import AppState at the end to avoid circular dependencies
-import { AppState } from './app-state.js';
-
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize listeners and setup functions
-  setupSoundTypeListener();
-  setupDrumKitSelect();
+    setupSoundTypeListener();
+    setupDrumKitSelect();
 });
