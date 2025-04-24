@@ -38,6 +38,7 @@
 
     <!-- Metronome Section -->
   <!-- Metronome Section -->
+<!-- Metronome Section -->
 <div class="app-section" id="metronome-section">
     <h2>BeatForge Metronome</h2>
     <h3>Click to accent strong beats</h3>
@@ -55,7 +56,6 @@
 
     <!-- METRONOME SETTINGS -->
     <div class="controls">
-        <!-- Time Signature -->
         <select id="time-signature" aria-label="Select time signature">
             <option value="2">2/4</option>
             <option value="3">3/4</option>
@@ -65,15 +65,11 @@
             <option value="8">8/8</option>
             <option value="12">12/8</option>
         </select>
-
-        <!-- Sound Type -->
         <select id="sound-type" aria-label="Select metronome sound">
             <option value="click">Click</option>
             <option value="woodblock">Woodblock</option>
             <option value="drums" selected>Drums</option>
         </select>
-
-        <!-- Drum Kit -->
         <select id="drum-kit-select">
             <option value="0">Default</option>
             <option value="1">Makaya</option>
@@ -95,6 +91,10 @@
 
     <!-- BEATS VISUALIZATION -->
     <div class="beats-container" id="beats-container"></div>
+</div>
+<div class="volume-control">
+    <label for="accent-intensity">Accent Intensity:</label>
+    <input type="range" id="accent-intensity" min="1" max="2" step="0.1" value="1.5" aria-label="Accent intensity">
 </div>
 
     <!-- Metronome Controls -->
