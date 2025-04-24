@@ -3,6 +3,26 @@ import { AudioContextManager } from '../core/audio-context.js';
 import { log } from '../utils/helpers.js';
 import { AppState } from './app-state.js';
 
+
+// In your metronome.js
+const elements = {
+    startBtn: document.getElementById('start-metronome'),
+    stopBtn: document.getElementById('stop-metronome'),
+    tempoSlider: document.getElementById('tempo-slider'),
+    tempoDisplay: document.getElementById('tempo-display'),
+    mainVolume: document.getElementById('metronome-main-volume'),
+    clickVolume: document.getElementById('click-volume'),
+    beatsContainer: document.getElementById('beats-container')
+};
+
+// Initialize with null checks
+if (!elements.startBtn || !elements.stopBtn) {
+    console.error('Metronome controls missing!');
+} else {
+    elements.startBtn.addEventListener('click', startMetronome);
+    elements.stopBtn.addEventListener('click', stopMetronome);
+}
+
 // Drum kit definitions
 export let currentDrumSetIndex = 0;
 const drumKits = [
