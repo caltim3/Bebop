@@ -28,62 +28,64 @@ export const UI = {
 
     // Additional elements that use querySelector
     querySelectors: {
-        'fretboardsGrid': '.fretboards-grid',
-        'beatsContainer': '.beats-container'
+        fretboardsGrid: '.fretboards-grid',
+        beatsContainer: '.beats-container'
     },
 
-   init() {
-    // Initialize elements by ID
-    this.elementIds.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            // Convert ID to camelCase (e.g., "my-element" → "myElement")
-            const key = id.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
-            this.elements[key] = element;
-        } else {
-            console.warn(`Missing DOM element: ${id}`);
-        }
-    });
+    // Initialize elements
+    init() {
+        // Initialize elements by ID
+        this.elementIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                // Convert ID to camelCase (e.g., "my-element" → "myElement")
+                const key = id.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+                this.elements[key] = element;
+            } else {
+                console.warn(`Missing DOM element: ${id}`);
+            }
+        });
 
-    // Initialize elements via selectors
-    Object.entries(this.querySelectors).forEach(([key, selector]) => {
-        const element = document.querySelector(selector);
-        if (element) {
-            this.elements[key] = element;
-        } else {
-            console.warn(`Missing element for selector: ${selector}`);
-        }
-    });
+        // Initialize elements via selectors
+        Object.entries(this.querySelectors).forEach(([key, selector]) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                this.elements[key] = element;
+            } else {
+                console.warn(`Missing element for selector: ${selector}`);
+            }
+        });
 
-    // Critical element validation
-    this.validateCriticalElements();
-}
+        // Critical element validation
+        this.validateCriticalElements();
 
-validateCriticalElements() {
-    const criticalElements = [
-        { key: 'startStop', id: 'start-stop' },
-        { key: 'tempoSlider', id: 'tempo-slider' },
-        { key: 'metronomeVolume', id: 'metronome-volume' },
-        { key: 'beatsContainer', selector: '#beats-container' }
-    ];
-
-    criticalElements.forEach(({ key, id, selector }) => {
-        if (!this.elements[key]) {
-            const missingElement = id || selector;
-            console.error(`Critical element missing: ${missingElement}`);
-            // Optional: Throw error to halt execution if critical
-            // throw new Error(`Missing critical element: ${missingElement}`);
-        }
-    });
-}
-
-        // Verify critical elements
+        // Verify critical elements (legacy check)
         this.verifyCriticalElements();
 
         // Initialize the start/stop button text
         this.updateStartStopButton(false);
     },
 
+    // Validate critical elements
+    validateCriticalElements() {
+        const criticalElements = [
+            { key: 'startStop', id: 'start-stop' },
+            { key: 'tempoSlider', id: 'tempo-slider' },
+            { key: 'metronomeVolume', id: 'metronome-volume' },
+            { key: 'beatsContainer', selector: '.beats-container' }
+        ];
+
+        criticalElements.forEach(({ key, id, selector }) => {
+            if (!this.elements[key]) {
+                const missingElement = id || selector;
+                console.error(`Critical element missing: ${missingElement}`);
+                // Optional: Throw error to halt execution
+                // throw new Error(`Missing critical element: ${missingElement}`);
+            }
+        });
+    },
+
+    // Legacy critical element verification
     verifyCriticalElements() {
         const criticalElements = [
             { key: 'tempoDisplay', id: 'tempo-display' },
@@ -91,7 +93,7 @@ validateCriticalElements() {
             { key: 'soundType', id: 'sound-type' }
         ];
 
-        criticalElements.forEach(({key, id}) => {
+        criticalElements.forEach(({ key, id }) => {
             if (!this.elements[key]) {
                 console.error(`Critical UI element missing: ${id}`);
                 // Create fallback element if absolutely necessary
