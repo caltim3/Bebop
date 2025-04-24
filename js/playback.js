@@ -58,22 +58,35 @@ export function startPlayback() {
                 }
             }
 
-            // Handle measure changes on beat 0 (first beat)
-            if (AppState.currentBeat === 0 && measures.length > 0) {
+            // Handle chord playback
+            if (measures.length > 0) {
                 const currentMeasure = measures[AppState.currentMeasure];
-                
-                // Update chord and fretboard
-                const rootNote = currentMeasure.querySelector('.chord-controls .root-note')?.value;
-                const chordQuality = currentMeasure.querySelector('.chord-controls .chord-quality')?.value || 'maj';
-                
-                if (rootNote && chordQuality) {
-                    playChord(rootNote, chordQuality, 0, 1.8, false, null);
-                    updateFretboardNotes(
-                        UI.elements.chordFretboard,
+                const rootNote = currentMeasure.querySelector('.chord-controls .root-note')?.value || 'C';
+                const chordQuality = currentMeasure.querySelector('.chord-controls .chord-quality')?.value || 'maj7';
+
+                // Play chord on beat 0 (measure start) and beat 4 (quarter note 3) in 4/4
+                if (is44Time && (AppState.currentBeat === 0 || AppState.currentBeat === 4)) {
+                    const isSecondHalf = AppState.currentBeat === 4;
+                    const voicingType = isSecondHalf ? 'drop2' : null; // Add voicing for second half
+
+                    playChord(
                         rootNote,
-                        suggestScaleForQuality(chordQuality),
-                        TUNINGS[UI.elements.chordTuning.value]
+                        chordQuality,
+                        0,
+                        1.8,
+                        isSecondHalf,
+                        voicingType
                     );
+
+                    // Update fretboard only on measure start (beat 0)
+                    if (AppState.currentBeat === 0) {
+                        updateFretboardNotes(
+                            UI.elements.chordFretboard,
+                            rootNote,
+                            suggestScaleForQuality(chordQuality),
+                            TUNINGS[UI.elements.chordTuning.value]
+                        );
+                    }
                 }
             }
 
