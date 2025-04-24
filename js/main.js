@@ -134,8 +134,7 @@ function setupEventListeners() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    initializeApp().catch(error => {
-        console.error("Initialization failed:", error);
-        updateLoadingStatus("Initialization failed");
-    });
+    UI.init();
+    UI.setupMetronomeControls();
+});
 });
