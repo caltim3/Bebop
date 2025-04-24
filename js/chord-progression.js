@@ -240,27 +240,28 @@ export function addMeasure(chordFunction = 'I', defaultRoot = null, defaultQuali
     const scaleSelectLabel = document.createElement('label');
     scaleSelectLabel.textContent = 'Scale:';
     
-    const scaleSelect = document.createElement('select');
-    scaleSelect.className = 'scale-select';
-    SCALE_NAMES.forEach(scale => {
-        const option = document.createElement('option');
-        option.value = scale;
-        
-        // Format the display text
-        let displayText = scale
-            .replace(/([A-Z])/g, ' $1') // Add space before capitals
-            .replace('Diminished', 'Dim')
-            .replace('Major', 'Maj')
-            .replace('Minor', 'Min')
-            .replace('Pentatonic', 'Pent')
-            .trim();
-        
-        // Capitalize first letter
-        displayText = displayText.charAt(0).toUpperCase() + displayText.slice(1);
-        
-        option.textContent = displayText;
-        scaleSelect.appendChild(option);
-    });
+const scaleSelect = document.createElement('select');
+scaleSelect.className = 'scale-select';
+
+SCALE_NAMES.forEach(scale => {
+    const option = document.createElement('option');
+    option.value = scale;
+    
+    // Format display text
+    let displayText = scale
+        .replace(/([A-Z])/g, ' $1') // Add space before capitals
+        .replace('Diminished', 'Dim')
+        .replace('Major', 'Maj')
+        .replace('Minor', 'Min')
+        .replace('Pentatonic', 'Pent')
+        .trim();
+    
+    // Capitalize first letter
+    displayText = displayText.charAt(0).toUpperCase() + displayText.slice(1);
+    
+    option.textContent = displayText;
+    scaleSelect.appendChild(option);
+});
     
     // Remove button
     const removeButton = document.createElement('button');
