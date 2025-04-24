@@ -163,7 +163,7 @@ export function toggleBeatState(beat, timeSignature, soundType) {
 
 export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
     if (!AudioContextManager.context || !AudioContextManager.samplesLoaded) {
-        console.warn('[Metronome] AudioContext or samples not initialized');
+        console.warn('[Metronome] AudioContext or samples not ready');
         return;
     }
 
@@ -172,31 +172,20 @@ export function playMetronomeSound(baseVolume, drumSound = 'hihat') {
     const combinedVolume = baseVolume * metronomeVolume;
     if (combinedVolume <= 0) return;
 
-    const soundType = UI.elements.soundType?.value || 'click';
-    const kitIndex = typeof AudioContextManager.currentDrumKitIndex === "number"
-        ? AudioContextManager.currentDrumKitIndex
-        : currentDrumSetIndex;
-    const beatElement = document.querySelector(`.beat[data-beat="${window.AppState?.currentBeat ?? 0}"]`);
+    const kitIndex = AudioContextManager.currentDrumKitIndex;
+    const beatElement = document.querySelector(`.beat[data-beat="${AppState.currentBeat}"]`);
     if (!beatElement) return;
 
-    let drumSounds = beatElement.dataset.sound ? beatElement.dataset.sound.split(',') : [drumSound];
-    const baseVolumeValue = parseFloat(beatElement.dataset.baseVolume) || 0;
-    const isAccent = baseVolumeValue >= 1 && ['kick', 'snare'].includes(drumSounds[0]);
-    const accentBoost = parseFloat(UI.elements.accentIntensity?.value || 1);
-    let adjustedVolume = isAccent ? Math.min(combinedVolume * accentBoost, 0.7) : Math.min(combinedVolume, 0.7);
+    // Split the comma-separated sound types (e.g., "kick,hihat")
+    const soundKeys = beatElement.dataset.sound.split(',').map(s => s.trim());
 
-    for (let soundKey of drumSounds) {
-        soundKey = soundKey.trim();
-        if (soundKey === 'silent') continue;
-
-        // Dynamically map the soundKey to the correct sample name
+    for (const soundKey of soundKeys) {
+        // Get the filename from the drum kit's samples
         const mappedType = drumKits[kitIndex]?.samples[soundKey] || soundKey;
 
-        AudioContextManager.playDrumSample(mappedType, adjustedVolume);
+        // Play the sample using the soundKey (not the filename)
+        AudioContextManager.playDrumSample(soundKey, combinedVolume);
     }
-}
-export function onMetronomeInstrumentChange(selectedInstrument) {
-    setupDrumKitSelect();
 }
 
 // Import AppState at the end to avoid circular dependencies
