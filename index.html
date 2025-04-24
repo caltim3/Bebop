@@ -61,26 +61,36 @@
             <option value="2">Philly Joe</option>
         </select>
 
-        <!-- Rest of the controls -->
+ <div class="metronome-section">
+    <!-- Volume Controls -->
+    <div class="volume-controls">
         <div class="volume-control">
-            <span>Metronome Volume:</span>
-            <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" aria-label="Metronome volume">
+            <label for="metronome-main-volume">Metronome Volume:</label>
+            <input type="range" id="metronome-main-volume" min="0" max="1" step="0.1" value="0.25" 
+                   aria-label="Main metronome volume">
         </div>
-        <div id="tempo-display">120</div>
-            <button id="start-stop">Start/Stop</button>
-            <button id="tap-tempo">Tap Tempo</button>
-            <select id="sound-type">
-                <option value="click">Click</option>
-                <option value="drums">Drums</option>
-            </select>
-<select id="drum-kit-select"></select>
-        <div class="metronome-controls">
-            <button id="start-metronome">Start</button>
-            <button id="stop-metronome">Stop</button>
-            <input type="range" id="tempo" min="30" max="240" value="120">
-            <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="1">
+        
+        <div class="volume-control">
+            <label for="click-volume">Click Volume:</label>
+            <input type="range" id="click-volume" min="0" max="1" step="0.1" value="0.5" 
+                   aria-label="Click sound volume">
         </div>
-    <div class="beats-container"></div>
+    </div>
+
+    <!-- Metronome Controls -->
+    <div class="metronome-controls">
+        <button id="start-metronome" class="btn-primary">Start</button>
+        <button id="stop-metronome" class="btn-secondary">Stop</button>
+        
+        <div class="tempo-control">
+            <label for="tempo-slider">Tempo (BPM):</label>
+            <input type="range" id="tempo-slider" min="30" max="240" value="120">
+            <span id="tempo-display">120</span>
+        </div>
+    </div>
+
+    <!-- Beats Visualization -->
+    <div class="beats-container" id="beats-container"></div>
 </div>
 
     <div class="volume-control">
