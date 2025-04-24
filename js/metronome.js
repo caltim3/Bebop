@@ -3,24 +3,24 @@ import { AudioContextManager } from '../core/audio-context.js';
 import { log } from '../utils/helpers.js';
 import { AppState } from './app-state.js';
 
-
-// In your metronome.js
+// Use UI elements instead of direct DOM access
 const elements = {
-    startBtn: document.getElementById('start-metronome'),
-    stopBtn: document.getElementById('stop-metronome'),
-    tempoSlider: document.getElementById('tempo-slider'),
-    tempoDisplay: document.getElementById('tempo-display'),
-    mainVolume: document.getElementById('metronome-main-volume'),
-    clickVolume: document.getElementById('click-volume'),
-    beatsContainer: document.getElementById('beats-container')
+    startStopBtn: UI.elements.startStop,
+    tempoSlider: UI.elements.tempoSlider,
+    tempoDisplay: UI.elements.tempoDisplay,
+    metronomeVolume: UI.elements.metronomeVolume,
+    clickVolume: UI.elements.clickVolume,
+    beatsContainer: UI.elements.beatsContainer,
+    soundType: UI.elements.soundType,
+    drumKitSelect: UI.elements.drumKitSelect,
+    timeSignature: UI.elements.timeSignature
 };
 
 // Initialize with null checks
-if (!elements.startBtn || !elements.stopBtn) {
+if (!elements.startStopBtn || !elements.tempoSlider) {
     console.error('Metronome controls missing!');
 } else {
-    elements.startBtn.addEventListener('click', startMetronome);
-    elements.stopBtn.addEventListener('click', stopMetronome);
+    elements.startStopBtn.addEventListener('click', toggleMetronome);
 }
 
 // Drum kit definitions
@@ -64,14 +64,11 @@ let currentBeat = 0;
 
 // --- Drum Kit Select Dropdown Logic ---
 export function setupDrumKitSelect() {
-    const select = document.getElementById("drum-kit-select");
+    const select = elements.drumKitSelect;
     if (!select) return;
     
-    // Safely get soundType value
-    const soundTypeValue = UI.elements.soundType?.value || 'click';
-    
-    select.value = currentDrumSetIndex;
-    select.style.display = soundTypeValue === "drums" ? "inline-block" : "none";
+    select.value = currentDrumSetIndex.toString();
+    select.style.display = elements.soundType.value === "drums" ? "inline-block" : "none";
     select.onchange = (e) => {
         currentDrumSetIndex = parseInt(e.target.value, 10);
         AudioContextManager.currentDrumKitIndex = currentDrumSetIndex;
@@ -80,21 +77,28 @@ export function setupDrumKitSelect() {
 }
 
 export function onMetronomeInstrumentChange() {
-    const soundType = UI.elements.soundType.value;
-    const drumSelect = document.getElementById("drum-kit-select");
-    drumSelect.style.display = soundType === "drums" ? "inline-block" : "none";
+    const soundType = elements.soundType.value;
+    elements.drumKitSelect.style.display = soundType === "drums" ? "inline-block" : "none";
     setupDrumKitSelect();
 }
 
 function setupSoundTypeListener() {
-    const soundTypeSelect = document.getElementById("sound-type");
-    soundTypeSelect.addEventListener("change", () => {
+    elements.soundType.addEventListener("change", () => {
         onMetronomeInstrumentChange();
         createBeats(); // Rebuild beats when sound type changes
     });
 }
 
 // --- Metronome Control Functions ---
+export function toggleMetronome() {
+    if (metronomeInterval) {
+        stopMetronome();
+    } else {
+        const tempo = parseInt(elements.tempoSlider.value) || 120;
+        startMetronome(tempo);
+    }
+}
+
 export function startMetronome(tempo) {
     if (metronomeInterval) return;
     const beatDuration = 60000 / tempo;
@@ -115,12 +119,12 @@ export function stopMetronome() {
 }
 
 function getTotalBeats() {
-    const timeSignature = parseInt(UI.elements.timeSignature.value) || 4;
+    const timeSignature = parseInt(elements.timeSignature.value) || 4;
     return timeSignature === 4 ? 8 : timeSignature;
 }
 
 function updateBeatDisplay(currentBeat) {
-    const beats = document.querySelectorAll('.beats-container .beat');
+    const beats = elements.beatsContainer.querySelectorAll('.beat');
     beats.forEach(beat => beat.classList.remove('active'));
     if (currentBeat < beats.length) {
         beats[currentBeat].classList.add('active');
@@ -129,11 +133,10 @@ function updateBeatDisplay(currentBeat) {
 
 // --- Beat Creation ---
 export function createBeats() {
-    const container = document.querySelector('.beats-container');
-    container.innerHTML = '';
+    elements.beatsContainer.innerHTML = '';
     
-    const timeSignature = parseInt(UI.elements.timeSignature.value);
-    const soundType = UI.elements.soundType.value || 'click';
+    const timeSignature = parseInt(elements.timeSignature.value);
+    const soundType = elements.soundType.value || 'click';
     const totalBeats = timeSignature === 4 ? 8 : timeSignature;
 
     const drumSounds = {
@@ -164,14 +167,14 @@ export function createBeats() {
         }
 
         beat.addEventListener('click', () => toggleBeatState(beat, timeSignature, soundType));
-        container.appendChild(beat);
+        elements.beatsContainer.appendChild(beat);
     }
 }
 
 // --- Sound Playback ---
 export function playMetronomeSound() {
-    const timeSignature = parseInt(UI.elements.timeSignature.value) || 4;
-    const beatElement = document.querySelector(`.beat[data-beat="${currentBeat}"]`);
+    const timeSignature = parseInt(elements.timeSignature.value) || 4;
+    const beatElement = elements.beatsContainer.querySelector(`.beat[data-beat="${currentBeat}"]`);
     if (!beatElement) return;
 
     const baseVolume = parseFloat(beatElement.dataset.baseVolume) || 0;
@@ -187,29 +190,18 @@ export function playMetronomeSound() {
 }
 
 function getMetronomeVolume() {
-    const volumeControl = document.getElementById('metronome-volume');
-    return volumeControl ? parseFloat(volumeControl.value) || 1 : 1;
+    return parseFloat(elements.metronomeVolume.value) || 1;
 }
 
 // --- Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
     setupSoundTypeListener();
     setupDrumKitSelect();
+    createBeats(); // Initialize beats on load
 
-    // Safely get elements
-    const startButton = document.getElementById('start-metronome');
-    const stopButton = document.getElementById('stop-metronome');
-    const tempoInput = document.getElementById('tempo');
-
-    if (startButton && stopButton && tempoInput) {
-        startButton.addEventListener('click', () => {
-            const tempo = parseInt(tempoInput.value) || 120;
-            startMetronome(tempo);
-        });
-
-        stopButton.addEventListener('click', () => {
-            stopMetronome();
-        });
+    // Ensure UI elements are initialized
+    if (UI.elements.startStop && UI.elements.tempoSlider) {
+        // No need for separate listeners - already handled in toggleMetronome
     } else {
         console.error("Missing metronome control elements!");
     }
