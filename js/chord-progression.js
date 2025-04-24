@@ -121,15 +121,13 @@ export function parseProgression(progText, key) {
     return result;
 }
 
-// In your chord-progression.js or similar file
 export function populateChordQualityDropdowns() {
     const qualitySelects = document.querySelectorAll('.chord-quality');
     
     qualitySelects.forEach(select => {
-        // Clear existing options
-        select.innerHTML = '';
+        select.innerHTML = ''; // Clear existing options
         
-        // Add default option
+        // Add default placeholder
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = 'Select Quality';
@@ -137,12 +135,12 @@ export function populateChordQualityDropdowns() {
         defaultOption.selected = true;
         select.appendChild(defaultOption);
         
-        // Add all chord qualities with proper formatting
+        // Format each quality into user-friendly text
         CHORD_QUALITIES.forEach(quality => {
             const option = document.createElement('option');
-            option.value = quality;
+            option.value = quality; // Keep internal name
             
-            // Format the display text
+            // Format display text
             let displayText = quality
                 .replace('maj', 'Major')
                 .replace('m', 'Minor')
@@ -152,8 +150,8 @@ export function populateChordQualityDropdowns() {
                 .replace('sus', 'Suspended')
                 .replace('add', 'Add')
                 .replace('lydian', 'Lydian')
-                .replace('b', '♭')
-                .replace('#', '♯');
+                .replace('b', '♭') // Flat symbol
+                .replace('#', '♯'); // Sharp symbol
             
             // Capitalize first letter
             displayText = displayText.charAt(0).toUpperCase() + displayText.slice(1);
