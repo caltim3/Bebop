@@ -493,5 +493,29 @@
             color: #ffe8d6;
             border: 1px solid #6b705c;
         }
+
+    .metronome-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.metronome-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.volume-controls {
+    display: flex;
+    gap: 2rem;
+}
+
+.beats-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
         
     </style>
