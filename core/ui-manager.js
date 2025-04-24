@@ -57,20 +57,24 @@ export const UI = {
         this.verifyCriticalElements();
     },
 
-    verifyCriticalElements() {
-        const criticalElements = [
-            'tempoDisplay',
-            'startStopButton',
-            'soundType',
-            'timeSignature'
-        ];
+// ui-manager.js
+verifyCriticalElements() {
+    const criticalElements = [
+        { key: 'tempoDisplay', id: 'tempo-display' },
+        { key: 'startStopButton', id: 'start-stop' },
+        { key: 'soundType', id: 'sound-type' }
+    ];
 
-        criticalElements.forEach(key => {
-            if (!this.elements[key]) {
-                console.error(`Critical UI element missing: ${key}`);
+    criticalElements.forEach(({key, id}) => {
+        if (!this.elements[key]) {
+            console.error(`Critical UI element missing: ${id}`);
+            // Create fallback element if absolutely necessary
+            if (key === 'soundType') {
+                this.elements.soundType = { value: 'click' };
             }
-        });
-    },
+        }
+    });
+}
 
     // Helper to safely add event listeners
     addListener(elementKey, eventType, callback) {
