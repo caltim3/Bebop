@@ -24,7 +24,6 @@ export const UI = {
         'accent-intensity',
         'click-volume'
     ],
-
     querySelectors: {
         fretboardsGrid: '.fretboards-grid',
         beatsContainer: '.beats-container'
