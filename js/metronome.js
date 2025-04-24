@@ -171,18 +171,22 @@ function getMetronomeVolume() {
 document.addEventListener('DOMContentLoaded', () => {
     setupSoundTypeListener();
     setupDrumKitSelect();
-    
-    // Add metronome controls
+
+    // Safely get elements
     const startButton = document.getElementById('start-metronome');
     const stopButton = document.getElementById('stop-metronome');
     const tempoInput = document.getElementById('tempo');
 
-    startButton.addEventListener('click', () => {
-        const tempo = parseInt(tempoInput.value) || 120;
-        startMetronome(tempo);
-    });
+    if (startButton && stopButton && tempoInput) {
+        startButton.addEventListener('click', () => {
+            const tempo = parseInt(tempoInput.value) || 120;
+            startMetronome(tempo);
+        });
 
-    stopButton.addEventListener('click', () => {
-        stopMetronome();
-    });
+        stopButton.addEventListener('click', () => {
+            stopMetronome();
+        });
+    } else {
+        console.error("Missing metronome control elements!");
+    }
 });
