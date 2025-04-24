@@ -7,27 +7,29 @@ export const UI = {
         'chord-fretboard',
         'measures',
         'tempo-display',
-        'start-stop',
+        'start-stop', // Single button for start/stop
         'progression-select',
         'keySelect',
         'scale-display',
         'chord-tuning',
         'time-signature',
         'sound-type',
-        'metronome-volume',
-        'tempo',
+        'metronome-main-volume', // Updated to match your HTML
+        'tempo-slider', // Updated to match your HTML
         'tap-tempo',
         'chord-fretboard-volume',
         'chord-volume',
         'chordsEnabled',
         'fretboard-volume',
         'dark-mode-toggle',
-        'accent-intensity'
+        'accent-intensity',
+        'click-volume' // Added to match your HTML
     ],
 
     // Additional elements that use querySelector
     querySelectors: {
-        'fretboardsGrid': '.fretboards-grid'
+        'fretboardsGrid': '.fretboards-grid',
+        'beatsContainer': '.beats-container'
     },
 
     init() {
@@ -55,17 +57,19 @@ export const UI = {
 
         // Verify critical elements
         this.verifyCriticalElements();
+
+        // Initialize the start/stop button text
+        this.updateStartStopButton(false);
     },
 
-    // Verify critical elements (must be inside the UI object)
     verifyCriticalElements() {
         const criticalElements = [
             { key: 'tempoDisplay', id: 'tempo-display' },
-            { key: 'startStopButton', id: 'start-stop' },
+            { key: 'startStop', id: 'start-stop' }, // Updated to match your single button
             { key: 'soundType', id: 'sound-type' }
         ];
 
-        criticalElements.forEach(({ key, id }) => {
+        criticalElements.forEach(({key, id}) => {
             if (!this.elements[key]) {
                 console.error(`Critical UI element missing: ${id}`);
                 // Create fallback element if absolutely necessary
@@ -83,5 +87,37 @@ export const UI = {
         } else {
             console.warn(`Cannot add listener - element not found: ${elementKey}`);
         }
+    },
+
+    // Update the start/stop button text and appearance
+    updateStartStopButton(isRunning) {
+        if (this.elements.startStop) {
+            this.elements.startStop.textContent = isRunning ? 'Stop' : 'Start';
+            this.elements.startStop.className = isRunning ? 'btn-stop' : 'btn-start';
+        }
+    },
+
+    // Setup metronome controls
+    setupMetronomeControls() {
+        this.addListener('startStop', 'click', () => {
+            const isRunning = this.elements.startStop.textContent === 'Stop';
+            if (isRunning) {
+                // Stop logic
+                stopMetronome();
+                this.updateStartStopButton(false);
+            } else {
+                // Start logic
+                const tempo = parseInt(this.elements.tempoSlider.value) || 120;
+                startMetronome(tempo);
+                this.updateStartStopButton(true);
+            }
+        });
+
+        // Tempo slider updates
+        this.addListener('tempoSlider', 'input', () => {
+            if (this.elements.tempoDisplay) {
+                this.elements.tempoDisplay.textContent = this.elements.tempoSlider.value;
+            }
+        });
     }
-}; // End of UI object
+};
