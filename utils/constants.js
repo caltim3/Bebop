@@ -221,27 +221,12 @@ export const CHORD_QUALITY_INTERVALS = {
 };
 
 export const CHORD_QUALITIES = [
-    // Basic triads
     'maj', 'm', 'dim', 'aug',
-    
-    // 7th chords
     'maj7', 'm7', '7', 'dim7', 'augM7',
-    
-    // 6th chords
     'maj6', 'm6',
-    
-    // Extended chords
     'm9', 'maj9', 'm11',
-    
-    // Suspended chords
     'sus2', 'sus4',
-    
-    // Altered dominants
     '7b9', '7#11',
-    
-    // Add chords
     'add9',
-    
-    // Special voicings
-    'lydian_dom', // Lydian Dominant
+    'lydian_dom',
 ];
