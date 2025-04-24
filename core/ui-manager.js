@@ -57,24 +57,24 @@ export const UI = {
         this.verifyCriticalElements();
     },
 
-// ui-manager.js
-verifyCriticalElements() {
-    const criticalElements = [
-        { key: 'tempoDisplay', id: 'tempo-display' },
-        { key: 'startStopButton', id: 'start-stop' },
-        { key: 'soundType', id: 'sound-type' }
-    ];
+    // Verify critical elements (must be inside the UI object)
+    verifyCriticalElements() {
+        const criticalElements = [
+            { key: 'tempoDisplay', id: 'tempo-display' },
+            { key: 'startStopButton', id: 'start-stop' },
+            { key: 'soundType', id: 'sound-type' }
+        ];
 
-    criticalElements.forEach(({key, id}) => {
-        if (!this.elements[key]) {
-            console.error(`Critical UI element missing: ${id}`);
-            // Create fallback element if absolutely necessary
-            if (key === 'soundType') {
-                this.elements.soundType = { value: 'click' };
+        criticalElements.forEach(({ key, id }) => {
+            if (!this.elements[key]) {
+                console.error(`Critical UI element missing: ${id}`);
+                // Create fallback element if absolutely necessary
+                if (key === 'soundType') {
+                    this.elements.soundType = { value: 'click' };
+                }
             }
-        }
-    });
-}
+        });
+    },
 
     // Helper to safely add event listeners
     addListener(elementKey, eventType, callback) {
@@ -84,4 +84,4 @@ verifyCriticalElements() {
             console.warn(`Cannot add listener - element not found: ${elementKey}`);
         }
     }
-};
+}; // End of UI object
