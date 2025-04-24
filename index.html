@@ -41,6 +41,19 @@
 <div class="app-section" id="metronome-section">
     <h2>BeatForge Metronome</h2>
     <h3>Click to accent strong beats</h3>
+    
+    <!-- METRONOME CONTROLS -->
+    <div class="metronome-controls">
+        <button id="start-stop" class="btn-metronome">Start</button>
+        <div class="tempo-control">
+            <label for="tempo-slider">Tempo (BPM):</label>
+            <input type="range" id="tempo-slider" min="30" max="240" value="120">
+            <span id="tempo-display">120</span>
+        </div>
+        <button id="tap-tempo">Tap Tempo</button>
+    </div>
+
+    <!-- METRONOME SETTINGS -->
     <div class="controls">
         <!-- Time Signature -->
         <select id="time-signature" aria-label="Select time signature">
@@ -67,6 +80,22 @@
             <option value="2">Philly Joe</option>
         </select>
     </div>
+
+    <!-- VOLUME CONTROLS -->
+    <div class="volume-controls">
+        <div class="volume-control">
+            <label for="metronome-volume">Metronome Volume:</label>
+            <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.5">
+        </div>
+        <div class="volume-control">
+            <label for="click-volume">Click Volume:</label>
+            <input type="range" id="click-volume" min="0" max="1" step="0.1" value="0.5">
+        </div>
+    </div>
+
+    <!-- BEATS VISUALIZATION -->
+    <div class="beats-container" id="beats-container"></div>
+</div>
 
     <!-- Metronome Controls -->
     <div class="metronome-controls">
