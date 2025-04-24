@@ -14,7 +14,7 @@ export const UI = {
         'chord-tuning',
         'time-signature',
         'sound-type',
-        'metronome-main-volume', // Updated to match your HTML
+        'metronome-volume', // Updated to match your HTML
         'tempo-slider', // Updated to match your HTML
         'tap-tempo',
         'chord-fretboard-volume',
@@ -32,28 +32,50 @@ export const UI = {
         'beatsContainer': '.beats-container'
     },
 
-    init() {
-        // Initialize standard elements by ID
-        this.elementIds.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                // Convert ID to camelCase for the elements object key
-                const key = id.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-                this.elements[key] = element;
-            } else {
-                console.warn(`Missing DOM element: ${id}`);
-            }
-        });
+   init() {
+    // Initialize elements by ID
+    this.elementIds.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            // Convert ID to camelCase (e.g., "my-element" → "myElement")
+            const key = id.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+            this.elements[key] = element;
+        } else {
+            console.warn(`Missing DOM element: ${id}`);
+        }
+    });
 
-        // Initialize elements that need querySelector
-        Object.entries(this.querySelectors).forEach(([key, selector]) => {
-            const element = document.querySelector(selector);
-            if (element) {
-                this.elements[key] = element;
-            } else {
-                console.warn(`Missing DOM element (querySelector): ${selector}`);
-            }
-        });
+    // Initialize elements via selectors
+    Object.entries(this.querySelectors).forEach(([key, selector]) => {
+        const element = document.querySelector(selector);
+        if (element) {
+            this.elements[key] = element;
+        } else {
+            console.warn(`Missing element for selector: ${selector}`);
+        }
+    });
+
+    // Critical element validation
+    this.validateCriticalElements();
+}
+
+validateCriticalElements() {
+    const criticalElements = [
+        { key: 'startStop', id: 'start-stop' },
+        { key: 'tempoSlider', id: 'tempo-slider' },
+        { key: 'metronomeVolume', id: 'metronome-volume' },
+        { key: 'beatsContainer', selector: '#beats-container' }
+    ];
+
+    criticalElements.forEach(({ key, id, selector }) => {
+        if (!this.elements[key]) {
+            const missingElement = id || selector;
+            console.error(`Critical element missing: ${missingElement}`);
+            // Optional: Throw error to halt execution if critical
+            // throw new Error(`Missing critical element: ${missingElement}`);
+        }
+    });
+}
 
         // Verify critical elements
         this.verifyCriticalElements();
