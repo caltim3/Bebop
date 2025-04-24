@@ -46,8 +46,12 @@ let currentBeat = 0;
 export function setupDrumKitSelect() {
     const select = document.getElementById("drum-kit-select");
     if (!select) return;
+    
+    // Safely get soundType value
+    const soundTypeValue = UI.elements.soundType?.value || 'click';
+    
     select.value = currentDrumSetIndex;
-    select.style.display = UI.elements.soundType.value === "drums" ? "inline-block" : "none";
+    select.style.display = soundTypeValue === "drums" ? "inline-block" : "none";
     select.onchange = (e) => {
         currentDrumSetIndex = parseInt(e.target.value, 10);
         AudioContextManager.currentDrumKitIndex = currentDrumSetIndex;
