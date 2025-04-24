@@ -99,7 +99,7 @@ getCurrentDrumKit: function() {
 },
 
 // --- Drum Playback (uses selected kit) ---
-playDrumSample: function(type, volume = 1) {
+playDrumSample: function(type, volume = 1, enableReverb = false) {
     if (!this.context) {
         console.error('[AudioContextManager] AudioContext not initialized');
         return;
@@ -120,23 +120,21 @@ playDrumSample: function(type, volume = 1) {
         const source = this.context.createBufferSource();
         source.buffer = buffer;
 
-        // Dry path
+        // Dry path (always active)
         const dryGain = this.context.createGain();
         dryGain.gain.value = Math.min(volume, 1);
         source.connect(dryGain);
         dryGain.connect(this.context.destination);
 
-        // Wet (reverb) path
-        if (this.reverbNode) {
+        // Optional reverb path
+        if (enableReverb && this.reverbNode) {
             const reverbGain = this.context.createGain();
-            reverbGain.gain.value = 0.2;
+            reverbGain.gain.value = 0.2; // Adjust reverb mix as needed
             source.connect(this.reverbNode);
-
-            // Connect reverbNode to reverbGain, then to destination (for this playback only)
             this.reverbNode.connect(reverbGain);
             reverbGain.connect(this.context.destination);
 
-            // Disconnect after playback
+            // Cleanup after playback
             source.onended = () => {
                 try { this.reverbNode.disconnect(reverbGain); } catch (e) {}
                 try { reverbGain.disconnect(); } catch (e) {}
