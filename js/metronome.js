@@ -171,26 +171,27 @@ function getMetronomeVolume() {
     return volumeControl ? parseFloat(volumeControl.value) || 1 : 1;
 }
 
-// --- Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
     setupSoundTypeListener();
     setupDrumKitSelect();
 
     // Safely get elements
-    const startButton = document.getElementById('start-metronome');
-    const stopButton = document.getElementById('stop-metronome');
-    const tempoInput = document.getElementById('tempo');
+    const startStopButton = document.getElementById('start-stop');
+    const tempoInput = document.getElementById('tempo-slider');
 
-    if (startButton && stopButton && tempoInput) {
-        startButton.addEventListener('click', () => {
+    if (startStopButton && tempoInput) {
+        startStopButton.addEventListener('click', () => {
+            const isRunning = startStopButton.textContent === 'Stop';
             const tempo = parseInt(tempoInput.value) || 120;
-            startMetronome(tempo);
-        });
-
-        stopButton.addEventListener('click', () => {
-            stopMetronome();
+            if (isRunning) {
+                stopMetronome();
+                startStopButton.textContent = 'Start';
+            } else {
+                startMetronome(tempo);
+                startStopButton.textContent = 'Stop';
+            }
         });
     } else {
-        console.error("Missing metronome control elements!");
+        console.error("Missing metronome control elements!");  //<- line 194
     }
 });
