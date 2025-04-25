@@ -1,12 +1,8 @@
-
-import { UI } from '../core/ui-manager.js';
-import { getChordFromFunction, parseChord } from './music-theory.js';
-import { log, suggestScaleForQuality } from '../utils/helpers.js';
-import { progressions, TUNINGS, NOTES, CHORD_QUALITIES, SCALE_NAMES } from '../utils/constants.js';
-import { updateFretboardNotes } from './fretboard.js';
-import { AudioContextManager } from '../core/audio-context.js';
-import { CHORD_QUALITY_INTERVALS } from '../utils/constants.js';
-import { playChord } from './music-theory.js';
+import { UI } from './ui-manager.js'; // was ../core/ui-manager.js
+import { getChordFromFunction, parseChord } from './music-theory.js'; // was ./music-theory.js
+import { log, suggestScaleForQuality } from './helpers.js'; // was ../utils/helpers.js
+import { progressions, TUNINGS, NOTES, CHORD_QUALITIES, SCALE_NAMES } from './constants.js'; // was ../utils/constants.js
+import { updateFretboardNotes } from './fretboard.js'; // was ./fretboard.js
 
 
 // --- FIXED: Robust Roman numeral to root mapping ---
