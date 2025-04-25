@@ -1,7 +1,3 @@
-export function createFretboard() {
-    console.log("createFretboard called");
-    // ...rest of function...
-}
 // js/fretboard.js
 import { NOTES, SCALES, TUNINGS } from '../utils/constants.js';
 import { AudioContextManager } from '../core/audio-context.js';
@@ -9,6 +5,7 @@ import { UI } from '../core/ui-manager.js';
 import { standardizeNoteName, log } from '../utils/helpers.js';
 
 export function createFretboard(container, tuning) {
+    console.log("createFretboard called");
     container.innerHTML = '';
 
     // Create fret lines and fret numbers
