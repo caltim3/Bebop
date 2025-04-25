@@ -1,5 +1,5 @@
-import { log } from './helpers.js'; // was ../utils/helpers.js
-import { startMetronome, stopMetronome } from './metronome.js'; // was ./metronome.js
+import { log } from '../utils/helpers.js';
+import { startMetronome, stopMetronome } from '../js/metronome.js';
 
 export const UI = {
     elements: {},
@@ -79,7 +79,7 @@ export const UI = {
 
         elementsToVerify.forEach(elementKey => {
             if (this.elements[elementKey]) {
-                log(`Verified UI element: ${elementKey}`);
+                log(`Verified UI element: ${key}`);
             }
         });
     },
