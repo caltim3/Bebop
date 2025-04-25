@@ -68,7 +68,7 @@ export const AudioContextManager = {
             const loadedSamples = {};
             for (const [type, file] of Object.entries(kit.samples)) {
                 try {
-                    const response = await fetch(file);
+                    const response = await fetch(`./${file}`);
                     const arrayBuffer = await response.arrayBuffer();
                     loadedSamples[type] = await this.context.decodeAudioData(arrayBuffer);
                 } catch (error) {
@@ -112,7 +112,7 @@ export const AudioContextManager = {
     async loadPianoSamples() {
         this.pianoSamples = {};
         const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
-        for (let octave = 2; octave <= 3; octave++) {
+        for (let octave = 2; octave <= 5; octave++) {
             for (const note of notes) {
                 const sampleName = `${note}${octave}.wav`;
                 try {
