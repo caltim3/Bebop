@@ -3,6 +3,7 @@ import { UI } from '../core/ui-manager.js';
 import { TUNINGS } from '../utils/constants.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
 import { log, suggestScaleForQuality } from '../utils/helpers.js';
+import { sharpifyNote } from '../utils/helpers.js';  // adjust path as needed
 
 // Import at the end to avoid circular dependencies
 let AudioContextManager;
