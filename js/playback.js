@@ -8,14 +8,33 @@ import { log } from '../utils/helpers.js';
 import { TUNINGS } from '../utils/constants.js';
 import { suggestScaleForQuality } from '../utils/helpers.js';
 
-// Import at the end to avoid circular dependencies
-
-// Around line 111
-if (UI.elements.chordsEnabled) {
-    UI.elements.chordsEnabled.addEventListener('click', toggleChordsEnabled);
-} else {
-    console.error("chordsEnabled element not found during playback setup");
+// Define toggleChordsEnabled function
+function toggleChordsEnabled() {
+    const chordsEnabledBtn = UI.elements.chordsEnabled || document.getElementById('chordsEnabled');
+    if (chordsEnabledBtn) {
+        chordsEnabledBtn.classList.toggle('active');
+        console.log("Chords enabled toggled:", chordsEnabledBtn.classList.contains('active'));
+    } else {
+        console.error("toggleChordsEnabled: chordsEnabled button not found");
+    }
 }
+
+// Set up the chordsEnabled event listener once, after DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait for UI.init() to complete if not already
+    if (!UI.elements.chordsEnabled) {
+        console.warn("chordsEnabled not found in UI.elements, attempting direct DOM query");
+        UI.elements.chordsEnabled = document.getElementById('chordsEnabled');
+    }
+
+    if (UI.elements.chordsEnabled) {
+        UI.elements.chordsEnabled.addEventListener('click', toggleChordsEnabled);
+        console.log("chordsEnabled event listener added successfully");
+    } else {
+        console.error("chordsEnabled element not found during playback setup");
+    }
+});
+
 export function startPlayback() {
     if (AppState.isPlaying) return;
 
