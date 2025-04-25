@@ -1,7 +1,3 @@
-export function loadProgression() {
-    console.log("progression called");
-    // ...rest of function...
-}
 
 import { UI } from '../core/ui-manager.js';
 import { getChordFromFunction, parseChord } from './music-theory.js';
