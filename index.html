@@ -3,20 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BEBOP BLUEPRINT</title>
+    <title>Bebop Blueprint</title>
     <link rel="icon" type="image/png" href="es335icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Chord Fretboard Section -->
     <div class="app-section" id="chord-fretboard-section">
         <h1>BEBOP BLUEPRINT</h1>
         <h3>Fretflow - Dynamic Fretboard with Scales that Move with the Chord Progression</h3>
-        <label class="dark-mode-toggle">
-            <input type="checkbox" id="dark-mode-toggle">
-            <span class="slider round"></span>
-        </label>
+        <button id="dark-mode-toggle" aria-label="Toggle dark mode">Dark Mode</button>
         <div class="volume-control">
             <span>Fretboard Volume:</span>
             <input type="range" id="chord-fretboard-volume" min="0" max="1" step="0.1" value="0.3">
@@ -36,114 +32,99 @@
         </div>
     </div>
 
-    <!-- Metronome Section -->
-  <!-- Metronome Section -->
-<!-- Metronome Section -->
-<div class="app-section" id="metronome-section">
-    <h2>BeatForge Metronome</h2>
-    <h3>Click to accent strong beats</h3>
-    
-    <!-- METRONOME CONTROLS -->
-    <div class="metronome-controls">
-        <button id="start-stop" class="btn-metronome">Start</button>
-        <div class="tempo-control">
-            <label for="tempo-slider">Tempo (BPM):</label>
-            <input type="range" id="tempo-slider" min="30" max="240" value="120">
-            <span id="tempo-display">120</span>
+    <div class="app-section" id="metronome-section">
+        <h2>BeatForge Metronome</h2>
+        <h3>Click to accent strong beats</h3>
+        <div class="controls">
+            <select id="time-signature" aria-label="Select time signature">
+                <option value="2">2/4</option>
+                <option value="3">3/4</option>
+                <option value="4" selected>4/4</option>
+                <option value="6">6/8</option>
+                <option value="7">7/8</option>
+                <option value="8">8/8</option>
+                <option value="12">12/8</option>
+                <select id="sound-type" aria-label="Select metronome sound">
+                  <option value="click">Click</option>
+                  <option value="woodblock">Woodblock</option>
+                  <option value="drums" selected>Drums</option> <!-- Add "selected" here -->
+                </select>
+            <select id="drum-kit-select">
+              <option value="0">Default</option>
+              <option value="1">Makaya</option>
+              <option value="2">Philly Joe</option>
+            </select>
+            <div class="volume-control">
+                <span>Metronome Volume:</span>
+                <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" aria-label="Metronome volume">
+            </div>
+            <input type="range" id="tempo" min="40" max="220" value="120" aria-label="Tempo">
+            <span id="tempo-display">120 BPM</span>
+            <button id="tap-tempo" aria-label="Tap tempo">Tap Tempo</button>
+            <button id="start-stop" aria-label="Start or stop metronome">Start</button>
         </div>
-        <button id="tap-tempo">Tap Tempo</button>
+        <div class="beats-container"></div>
     </div>
 
-    <!-- METRONOME SETTINGS -->
-    <div class="controls">
-        <select id="time-signature" aria-label="Select time signature">
-            <option value="2">2/4</option>
-            <option value="3">3/4</option>
-            <option value="4" selected>4/4</option>
-            <option value="6">6/8</option>
-            <option value="7">7/8</option>
-            <option value="8">8/8</option>
-            <option value="12">12/8</option>
-        </select>
-        <select id="sound-type" aria-label="Select metronome sound">
-            <option value="click">Click</option>
-            <option value="woodblock">Woodblock</option>
-            <option value="drums" selected>Drums</option>
-        </select>
-        <select id="drum-kit-select">
-            <option value="0">Default</option>
-            <option value="1">Makaya</option>
-            <option value="2">Philly Joe</option>
-        </select>
-    </div>
-
-    <!-- VOLUME CONTROLS -->
-    <div class="volume-controls">
-        <div class="volume-control">
-            <label for="metronome-volume">Metronome Volume:</label>
-            <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.5">
-        </div>
-        <div class="volume-control">
-            <label for="click-volume">Click Volume:</label>
-            <input type="range" id="click-volume" min="0" max="1" step="0.1" value="0.5">
-        </div>
-    </div>
-
-    <!-- BEATS VISUALIZATION -->
-    <div class="beats-container" id="beats-container"></div>
-</div>
-<div class="volume-control">
-    <label for="accent-intensity">Accent Intensity:</label>
-    <input type="range" id="accent-intensity" min="1" max="2" step="0.1" value="1.5" aria-label="Accent intensity">
-</div>
-
-    <!-- Metronome Controls -->
-    <div class="metronome-controls">
-        <button id="start-stop" class="btn-metronome">Start</button>
-        <div class="tempo-control">
-            <label for="tempo-slider">Tempo (BPM):</label>
-            <input type="range" id="tempo-slider" min="30" max="240" value="120">
-            <span id="tempo-display">120</span>
-        </div>
-        <button id="tap-tempo">Tap Tempo</button>
-    </div>
-
-    <!-- Volume Controls -->
-    <div class="volume-controls">
-        <div class="volume-control">
-            <label for="metronome-volume">Metronome Volume:</label>
-            <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" 
-                   aria-label="Main metronome volume">
-        </div>
-        <div class="volume-control">
-            <label for="click-volume">Click Volume:</label>
-            <input type="range" id="click-volume" min="0" max="1" step="0.1" value="0.5" 
-                   aria-label="Click sound volume">
-        </div>
-    </div>
-
-    <!-- Beats Visualization -->
-    <div class="beats-container" id="beats-container"></div>
-</div>
-    <!-- Accent Intensity -->
     <div class="volume-control">
         <label for="accent-intensity">Accent Intensity:</label>
         <input type="range" id="accent-intensity" min="1" max="2" step="0.1" value="1.5" aria-label="Accent intensity">
     </div>
-
-    <!-- Chord Progression Section -->
+    
     <div class="app-section" id="chord-progression-section">
         <h2>Chord Progression Practice</h2>
         <h3>Create a progression or pick one from the dropdown. Choose which key and scale to go with it.</h3>
         <label for="progression-select">Select Progression:</label>
         <select id="progression-select" aria-label="Select chord progression">
-            <!-- Your options here -->
+            <option value="I V7">I-V7</option>
+            <option value="I V7">I-V7</option>
+            <option value="jazz_blues">Jazz Blues</option>
+            <option value="minor_blues">Minor Blues</option>
+            <option value="rhythm_changes">Rhythm Changes</option>
+            <option value="2_5_1">II-V-I</option>
+            <option value="6_2_5_1">VI-II-V-I</option>
+            <option value="minor_2_5_1">Minor iim-V7-im</option>
+            <option value="dark_eyes">Dark Eyes</option>
+            <option value="ill_see_you_in_my_dreams">I'll See You In My Dreams</option>
+            <option value="rose_room">Rose Room</option>
+            <option value="black_orpheus">Black Orpheus</option>
+            <option value="all_the_things_you_are">All The Things You Are</option>
+            <option value="all_of_me">All of Me</option>
+            <option value="stella_by_starlight">Stella By Starlight</option>
+            <option value="autumn_leaves">Autumn Leaves</option>
+            <option value="summertime">Summertime</option>
+            <option value="girl_from_ipanema">Girl From Ipanema</option>
+            <option value="coltrane_changes">Coltrane Changes</option>
+            <option value="bird_blues">Bird Blues</option>
+            <option value="just_friends">Just Friends</option>
+            <option value="blue_bossa">Blue Bossa</option>
+            <option value="on_green_dolphin_street">On Green Dolphin Street</option>
+            <option value="solar">Solar</option>
+            <option value="misty">Misty</option>
+            <option value="days_of_wine_and_roses">Days of Wine and Roses</option>
+            <option value="cherokee">Cherokee</option>
+            <option value="caravan">Caravan</option>
+            <option value="nows_the_time">Now's The Time</option>
+            <option value="tenor_madness">Tenor Madness</option>
         </select>
         <label for="keySelect">Select Key:</label>
         <select id="keySelect" aria-label="Select key">
-            <!-- Your options here -->
+            <option value="C">C</option>
+            <option value="Db">Db</option>
+            <option value="D">D</option>
+            <option value="Eb">Eb</option>
+            <option value="E">E</option>
+            <option value="F">F</option>
+            <option value="Gb">Gb</option>
+            <option value="G">G</option>
+            <option value="Ab">Ab</option>
+            <option value="A">A</option>
+            <option value="Bb">Bb</option>
+            <option value="B">B</option>
         </select>
-        <div id="measures"></div>
+        <div id="measures">
+            <!-- Measures will be populated dynamically -->
+        </div>
         <button onclick="addMeasure()" aria-label="Add measure">Add Measure</button>
         <button onclick="removeMeasure()" aria-label="Remove measure">Remove Measure</button>
         <div class="checkbox-wrapper">
@@ -155,7 +136,6 @@
         </div>
     </div>
 
-    <!-- FretFlow Section -->
     <div class="app-section" id="fretflow-section">
         <h2>FretFlow</h2>
         <h3>Multiple scale workout</h3>
@@ -166,6 +146,6 @@
         <div class="fretboards-grid"></div>
     </div>
 
-    <script type="module" src="js/main.js"></script>
-</body>
-</html>
+  <script type="module" src="js/main.js"></script>
+        </body>
+        </html>
