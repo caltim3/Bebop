@@ -135,19 +135,8 @@ function setupEventListeners() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    try {
-        console.log("DOMContentLoaded: starting UI.init()");
-        UI.init();
-        console.log("UI.init() complete");
-
-        if (UI.setupMetronomeControls) {
-            console.log("Starting UI.setupMetronomeControls()");
-            UI.setupMetronomeControls();
-            console.log("UI.setupMetronomeControls() complete");
-        } else {
-            console.warn("UI.setupMetronomeControls is not defined");
-        }
-    } catch (error) {
-        console.error("Error during DOMContentLoaded initialization:", error);
-    }
+    initializeApp().catch(error => {
+        console.error("Initialization failed:", error);
+        updateLoadingStatus("Initialization failed");
+    });
 });
