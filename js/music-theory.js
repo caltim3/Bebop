@@ -49,7 +49,7 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
         let chordNotes = getChordNotes(root, quality);
         console.log(`[playChord] Chord notes:`, chordNotes);
         
-        if (!chordNotes.length) {
+        if (!chordNotes || !chordNotes.length) {
             console.error(`[playChord] No valid notes found for chord: ${root} ${quality}`);
             return;
         }
@@ -59,7 +59,8 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
             console.log(`[playChord] Using drop voicing (${voicingType}):`, chordNotes);
         }
 
-        if (!UI.elements.chordsEnabled.classList.contains('active')) {
+        // Check if chords are enabled
+        if (!UI.elements.chordsEnabled || !UI.elements.chordsEnabled.classList.contains('active')) {
             console.warn("[playChord] Chords are disabled. Skipping chord playback.");
             return;
         }
@@ -78,8 +79,12 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
         // Log audio context state
         console.log(`[playChord] AudioContext state:`, AudioContextManager.context.state);
 
-        // Play each note with proper timing and duration
+        // Play each note with proper timing and duration, with validation
         noteNamesWithOctave.forEach(note => {
+            if (!note || note === 'undefined') {
+                console.error("Empty or invalid note passed to playNote:", note, "from sanitizedNotes:", sanitizedNotes);
+                return;
+            }
             playNote(
                 note, 
                 0.5, // Volume
@@ -256,14 +261,6 @@ export function parseChord(chord) {
 
     return [root, quality];
 }
-
-chordNotes.forEach(async note => {
-    if (!note) {
-        console.error("Empty note passed to playNote:", chordNotes);
-        return;
-    }
-    await playNote(note, 4);
-});
 
 export function getDropVoicing(notes, voicingType = 'drop2') {
     if (!notes || notes.length < 3) return notes;
