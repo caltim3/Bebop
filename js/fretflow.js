@@ -1,7 +1,3 @@
-export function initializeFretFlow(...) {
-    console.log("fretflow called");
-    // ...rest of function...
-}
 
 // js/fretflow.js
 import { UI } from '../core/ui-manager.js';
