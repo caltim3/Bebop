@@ -1,7 +1,9 @@
-import { UI } from '../core/ui-manager.js';
-import { TUNINGS } from '../utils/constants.js';
-import { createFretboard, updateFretboardNotes } from './fretboard.js';
-import { log, suggestScaleForQuality, sharpifyNote } from '../utils/helpers.js';
+import { UI } from './ui-manager.js'; // was ../core/ui-manager.js
+import { TUNINGS } from './constants.js'; // was ../utils/constants.js
+import { createFretboard, updateFretboardNotes } from './fretboard.js'; // was ./fretboard.js
+import { log, suggestScaleForQuality, sharpifyNote } from './helpers.js'; // was ../utils/helpers.js
+// Dynamic import of AudioContextManager adjusted to new path
+import('../core/audio-context.js') becomes import('./audio-context.js')
 
 let AudioContextManager;
 setTimeout(() => {
