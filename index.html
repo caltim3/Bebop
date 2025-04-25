@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Chord Fretboard Section -->
     <div class="app-section" id="chord-fretboard-section">
         <h1>BEBOP BLUEPRINT</h1>
         <h3>Fretflow - Dynamic Fretboard with Scales that Move with the Chord Progression</h3>
@@ -32,9 +33,19 @@
         </div>
     </div>
 
+    <!-- Metronome Section -->
     <div class="app-section" id="metronome-section">
         <h2>BeatForge Metronome</h2>
         <h3>Click to accent strong beats</h3>
+        <div class="metronome-controls">
+            <button id="start-stop" class="btn-metronome">Start</button>
+            <div class="tempo-control">
+                <label for="tempo-slider">Tempo (BPM):</label>
+                <input type="range" id="tempo-slider" min="30" max="240" value="120">
+                <span id="tempo-display">120</span>
+            </div>
+            <button id="tap-tempo" aria-label="Tap tempo">Tap Tempo</button>
+        </div>
         <div class="controls">
             <select id="time-signature" aria-label="Select time signature">
                 <option value="2">2/4</option>
@@ -44,26 +55,29 @@
                 <option value="7">7/8</option>
                 <option value="8">8/8</option>
                 <option value="12">12/8</option>
-                <select id="sound-type" aria-label="Select metronome sound">
-                  <option value="click">Click</option>
-                  <option value="woodblock">Woodblock</option>
-                  <option value="drums" selected>Drums</option> <!-- Add "selected" here -->
-                </select>
-            <select id="drum-kit-select">
-              <option value="0">Default</option>
-              <option value="1">Makaya</option>
-              <option value="2">Philly Joe</option>
             </select>
+            <select id="sound-type" aria-label="Select metronome sound">
+                <option value="click">Click</option>
+                <option value="woodblock">Woodblock</option>
+                <option value="drums" selected>Drums</option>
+            </select>
+            <select id="drum-kit-select">
+                <option value="0">Default</option>
+                <option value="1">Makaya</option>
+                <option value="2">Philly Joe</option>
+            </select>
+        </div>
+        <div class="volume-controls">
             <div class="volume-control">
-                <span>Metronome Volume:</span>
+                <label for="metronome-volume">Metronome Volume:</label>
                 <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" aria-label="Metronome volume">
             </div>
-            <input type="range" id="tempo" min="40" max="220" value="120" aria-label="Tempo">
-            <span id="tempo-display">120 BPM</span>
-            <button id="tap-tempo" aria-label="Tap tempo">Tap Tempo</button>
-            <button id="start-stop" aria-label="Start or stop metronome">Start</button>
+            <div class="volume-control">
+                <label for="click-volume">Click Volume:</label>
+                <input type="range" id="click-volume" min="0" max="1" step="0.1" value="0.5" aria-label="Click volume">
+            </div>
         </div>
-        <div class="beats-container"></div>
+        <div class="beats-container" id="beats-container"></div>
     </div>
 
     <div class="volume-control">
@@ -71,12 +85,12 @@
         <input type="range" id="accent-intensity" min="1" max="2" step="0.1" value="1.5" aria-label="Accent intensity">
     </div>
     
+    <!-- Chord Progression Section -->
     <div class="app-section" id="chord-progression-section">
         <h2>Chord Progression Practice</h2>
         <h3>Create a progression or pick one from the dropdown. Choose which key and scale to go with it.</h3>
         <label for="progression-select">Select Progression:</label>
         <select id="progression-select" aria-label="Select chord progression">
-            <option value="I V7">I-V7</option>
             <option value="I V7">I-V7</option>
             <option value="jazz_blues">Jazz Blues</option>
             <option value="minor_blues">Minor Blues</option>
@@ -136,6 +150,7 @@
         </div>
     </div>
 
+    <!-- FretFlow Section -->
     <div class="app-section" id="fretflow-section">
         <h2>FretFlow</h2>
         <h3>Multiple scale workout</h3>
@@ -146,6 +161,6 @@
         <div class="fretboards-grid"></div>
     </div>
 
-  <script type="module" src="js/main.js"></script>
-        </body>
-        </html>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
