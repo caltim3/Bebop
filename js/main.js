@@ -1,4 +1,5 @@
 // js/main.js
+console.log("main.js loaded!");
 
 import { AppState } from './app-state.js';
 import { UI } from '../core/ui-manager.js';
