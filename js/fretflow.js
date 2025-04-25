@@ -3,7 +3,6 @@ import { TUNINGS } from '../utils/constants.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
 import { log, suggestScaleForQuality, sharpifyNote } from '../utils/helpers.js';
 
-// Import at the end to avoid circular dependencies
 let AudioContextManager;
 setTimeout(() => {
     import('../core/audio-context.js').then(mod => {
@@ -83,7 +82,6 @@ export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) 
             octave = parseInt(noteMatch[2], 10);
         }
 
-        // Normalize note: replace '#' with 's', flats 'b' to 's' of previous note
         let sanitizedNote = notePart.toLowerCase().replace('#', 's');
         if (sanitizedNote.includes('b')) {
             const flatToSharpMap = {
@@ -98,8 +96,14 @@ export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) 
             sanitizedNote = flatToSharpMap[sanitizedNote] || sanitizedNote.replace('b', '');
         }
 
-        // Limit to available octaves (2 and 3)
-        const tryOctaves = [octave, octave === 3 ? 2 : 3].filter(oct => oct === 2 || oct === 3);
+        // Try requested octave, then adjacent octaves within 2-5 range
+        const tryOctaves = [
+            octave,
+            octave - 1,
+            octave + 1,
+            octave - 2,
+            octave + 2
+        ].filter(oct => oct >= 2 && oct <= 5);
 
         let buffer = null;
         let usedOctave = null;
