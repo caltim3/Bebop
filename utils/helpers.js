@@ -1,5 +1,5 @@
-import { AudioContextManager } from '../core/audio-context.js';
-import { NOTES } from './constants.js';
+// Likely imports from constants.js
+import { NOTES, ENHARMONIC_MAP, CHORD_QUALITIES, SCALES } from './constants.js'; // was ../utils/constants.js
 // Utility Functions
 export function log(message) {
     console.log(`[FretFlow Debug] ${message}`);
