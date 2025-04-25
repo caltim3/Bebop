@@ -68,11 +68,11 @@ export const SCALES = {
 export const SCALE_NAMES = Object.keys(SCALES);
 
 export const TUNINGS = {
-    standard: ['E', 'B', 'G', 'D', 'A', 'E'],  // Note the order change
-    dropD: ['E', 'B', 'G', 'D', 'A', 'D'],
-    openG: ['D', 'B', 'G', 'D', 'G', 'D'],
-    DADGAD: ['D', 'A', 'G', 'D', 'A', 'D'],
-    openE: ['E', 'B', 'E', 'Ab', 'B', 'E']
+    standard: ['E', 'A', 'D', 'G', 'B', 'E'],
+    dropD: ['D', 'A', 'D', 'G', 'B', 'E'],
+    openG: ['D', 'G', 'D', 'G', 'B', 'D'],
+    DADGAD: ['D', 'A', 'D', 'G', 'A', 'D'],
+    openE: ['E', 'B', 'E', 'G#', 'B', 'E']
 };
 
 export const DRUM_PATTERNS = {
