@@ -1,142 +1,142 @@
-// js/main.js
-console.log("main.js loaded!");
+import { AppState } from './core/app-state.js';
+import { UI } from './core/ui-manager.js';
+import { AudioContextManager } from './core/audio-context.js';
+import { createFretboard, updateFretboardNotes } from './core/fretboard.js';
+import { createBeats, onMetronomeInstrumentChange } from './core/metronome.js';
+import { loadProgression, updateProgressionKey, addMeasure, removeMeasure } from './core/chord-progression.js';
+import { initializeFretFlow } from './core/fretflow.js';
+import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatus } from './utils/helpers.js';
+import { TUNINGS } from './utils/constants.js';
+import { startPlayback, stopPlayback } from './core/playback.js';
 
-import { AppState } from './app-state.js';
-import { UI } from '../core/ui-manager.js';
-import { AudioContextManager } from '../core/audio-context.js';
-import { createFretboard, updateFretboardNotes } from './fretboard.js';
-import { createBeats, onMetronomeInstrumentChange } from './metronome.js';
-import { loadProgression, updateProgressionKey, addMeasure, removeMeasure } from './chord-progression.js';
-import { initializeFretFlow } from './fretflow.js';
-import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatus } from '../utils/helpers.js';
-import { TUNINGS } from '../utils/constants.js';
-import { startPlayback, stopPlayback } from './playback.js';
+document.addEventListener('DOMContentLoaded', async () => {
+    await initializeApp();
+});
 
 async function initializeApp() {
     UI.init();
+    await AudioContextManager.initialize();
+
+    const chordFretboardSection = UI.elements.chordFretboardSection;
+    const tuning = TUNINGS[UI.elements.chordTuning.value];
+    createFretboard(chordFretboardSection, tuning);
     createBeats();
-    createFretboard(UI.elements.chordFretboard, TUNINGS.standard);
+    updateFretboardNotes(chordFretboardSection, UI.elements.keySelect.value, suggestScaleForQuality('major'), tuning);
     loadProgression(UI.elements.progressionSelect.value);
     initializeFretFlow();
+
     setupEventListeners();
-    updateLoadingStatus("Application initialized");
-    setTimeout(() => {
-        const indicator = document.getElementById('loading-indicator');
-        if (indicator) indicator.remove();
-    }, 1000);
-    log("Application initialized");
+
+    updateLoadingStatus("App fully initialized");
 }
 
 function setupEventListeners() {
-    // Metronome start/stop
-    const startStopBtn = document.getElementById('start-stop');
+    const startStopBtn = UI.elements.startStop;
+    const tempoSlider = UI.elements.tempoSlider;
+    const chordsEnabledBtn = UI.elements.chordsEnabled;
+    const keySelect = UI.elements.keySelect;
+    const progressionSelect = UI.elements.progressionSelect;
+    const chordTuning = UI.elements.chordTuning;
+    const fretboardVolume = UI.elements.fretboardVolume;
+    const metronomeVolume = UI.elements.metronomeVolume;
+    const soundType = UI.elements.soundType;
+    const addMeasureBtn = UI.elements.addMeasureBtn;
+    const chordFretboardSection = UI.elements.chordFretboardSection;
+
     if (startStopBtn) {
         startStopBtn.addEventListener('click', async () => {
             await AudioContextManager.initialize();
-            if (startStopBtn.textContent === 'Start') {
-                startPlayback();
-                startStopBtn.textContent = 'Stop';
-            } else {
+            if (AppState.isPlaying) {
                 stopPlayback();
-                startStopBtn.textContent = 'Start';
-            }
-        });
-    }
-
-    // Tap tempo
-    const tapTempoBtn = document.getElementById('tap-tempo');
-    if (tapTempoBtn) {
-        tapTempoBtn.addEventListener('click', async () => {
-            await AudioContextManager.initialize();
-            log('Tap tempo clicked');
-        });
-    }
-
-    // Drum kit select
-    const drumKitSelect = document.getElementById('drum-kit-select');
-    if (drumKitSelect) {
-        drumKitSelect.addEventListener('change', (e) => {
-            const kitIndex = Number(e.target.value);
-            if (AudioContextManager) AudioContextManager.currentDrumKitIndex = kitIndex;
-            // Optionally, update metronome instrument here
-            onMetronomeInstrumentChange('drums');
-        });
-    }
-
-    // Metronome sound type select (click/woodblock/drums)
-    const soundTypeSelect = document.getElementById('sound-type');
-    if (soundTypeSelect) {
-        soundTypeSelect.addEventListener('change', (e) => {
-            createBeats();
-            onMetronomeInstrumentChange(e.target.value);
-        });
-    }
-
-    // Progression select
-    const progressionSelect = document.getElementById('progression-select');
-    if (progressionSelect) {
-        progressionSelect.addEventListener('change', (e) => {
-            loadProgression(e.target.value);
-        });
-    }
-
-    // Key select
-    const keySelect = document.getElementById('keySelect');
-    if (keySelect) {
-        keySelect.addEventListener('change', (e) => {
-            updateProgressionKey(e.target.value);
-        });
-    }
-
-    // Add/Remove measure
-    const addMeasureBtn = document.querySelector('button[aria-label="Add measure"]');
-    if (addMeasureBtn) {
-        addMeasureBtn.addEventListener('click', addMeasure);
-    }
-    const removeMeasureBtn = document.querySelector('button[aria-label="Remove measure"]');
-    if (removeMeasureBtn) {
-        removeMeasureBtn.addEventListener('click', removeMeasure);
-    }
-
-    // Chords Enabled button toggle
-    const chordsEnabledBtn = document.getElementById('chordsEnabled');
-    if (chordsEnabledBtn) {
-        chordsEnabledBtn.addEventListener('click', function() {
-            this.classList.toggle('active');
-            this.textContent = this.classList.contains('active') ? 'Chords Enabled' : 'Chords Disabled';
-        });
-    }
-
-    // Fretboard tuning select
-    const tuningSelect = document.getElementById('chord-tuning');
-    if (tuningSelect) {
-        tuningSelect.addEventListener('change', (e) => {
-            const container = UI.elements.chordFretboard;
-            const rootNote = UI.elements.keySelect.value;
-            // Try to get a global scaleSelect, otherwise use 'major'
-            let scaleInput = 'major';
-            if (UI.elements.scaleSelect && UI.elements.scaleSelect.value) {
-                scaleInput = UI.elements.scaleSelect.value;
             } else {
-                // Try to get from the current measure if available
-                const currentMeasure = UI.elements.measures.children[AppState.currentMeasure];
-                if (currentMeasure) {
-                    const scaleSelect = currentMeasure.querySelector('.scale-controls .scale-select');
-                    if (scaleSelect && scaleSelect.value) {
-                        scaleInput = scaleSelect.value;
-                    }
-                }
+                startPlayback();
             }
-            const scale = suggestScaleForQuality(scaleInput);
-            const tuning = TUNINGS[e.target.value];
-            updateFretboardNotes(container, rootNote, scale, tuning);
         });
     }
-}
 
-document.addEventListener('DOMContentLoaded', () => {
-    initializeApp().catch(error => {
-        console.error("Initialization failed:", error);
-        updateLoadingStatus("Initialization failed");
+    if (tempoSlider) {
+        tempoSlider.addEventListener('input', () => {
+            const tempo = parseInt(tempoSlider.value);
+            AppState.updateState({ tempo });
+        });
+    }
+
+    if (chordsEnabledBtn) {
+        chordsEnabledBtn.addEventListener('click', () => {
+            chordsEnabledBtn.classList.toggle('active');
+            const isEnabled = chordsEnabledBtn.classList.contains('active');
+            AppState.updateState({ chordsEnabled: isEnabled });
+        });
+    }
+
+    if (keySelect) {
+        keySelect.addEventListener('change', () => {
+            updateProgressionKey(keySelect.value);
+        });
+    }
+
+    if (progressionSelect) {
+        progressionSelect.addEventListener('change', () => {
+            loadProgression(progressionSelect.value);
+        });
+    }
+
+    if (chordTuning) {
+        chordTuning.addEventListener('change', () => {
+            const newTuning = TUNINGS[chordTuning.value];
+            createFretboard(chordFretboardSection, newTuning);
+            const currentKey = keySelect ? keySelect.value : 'C';
+            updateFretboardNotes(chordFretboardSection, currentKey, suggestScaleForQuality('major'), newTuning);
+        });
+    }
+
+    if (fretboardVolume) {
+        fretboardVolume.addEventListener('input', () => {
+            const volume = parseFloat(fretboardVolume.value);
+            AppState.updateState({ fretboardVolume: volume });
+        });
+    }
+
+    if (metronomeVolume) {
+        metronomeVolume.addEventListener('input', () => {
+            const volume = parseFloat(metronomeVolume.value);
+            AppState.updateState({ metronomeVolume: volume });
+        });
+    }
+
+    if (soundType) {
+        soundType.addEventListener('change', () => {
+            onMetronomeInstrumentChange();
+        });
+    }
+
+    if (addMeasureBtn) {
+        addMeasureBtn.addEventListener('click', () => {
+            addMeasure();
+        });
+    }
+
+    document.addEventListener('click', (event) => {
+        const removeBtn = event.target.closest('.remove-measure-btn');
+        if (removeBtn) {
+            const measure = removeBtn.closest('.measure');
+            if (measure) {
+                removeMeasure(measure);
+            }
+        }
     });
-});
+
+    document.addEventListener('click', async (event) => {
+        const target = event.target;
+        if (target.classList.contains('note')) {
+            await ensureAudioInitialized();
+        }
+    });
+
+    AppState.addListener((state) => {
+        if (startStopBtn) {
+            startStopBtn.textContent = state.isPlaying ? 'Stop' : 'Start';
+            startStopBtn.classList.toggle('active', state.isPlaying);
+        }
+    });
+}
