@@ -1,5 +1,5 @@
-import { log } from '../utils/helpers.js';
-import { startMetronome, stopMetronome } from './metronome.js';
+import { log } from './helpers.js'; // was ../utils/helpers.js
+import { startMetronome, stopMetronome } from './metronome.js'; // was ./metronome.js
 
 export const UI = {
     elements: {},
