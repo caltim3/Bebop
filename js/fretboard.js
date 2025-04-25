@@ -3,6 +3,7 @@ import { NOTES, SCALES, TUNINGS } from '../utils/constants.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { UI } from '../core/ui-manager.js';
 import { standardizeNoteName, log } from '../utils/helpers.js';
+import { AppState } from './app-state.js'; // Corrected import path
 
 export function createFretboard(container, tuning) {
     console.log("createFretboard called");
