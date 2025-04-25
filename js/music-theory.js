@@ -257,6 +257,14 @@ export function parseChord(chord) {
     return [root, quality];
 }
 
+chordNotes.forEach(async note => {
+    if (!note) {
+        console.error("Empty note passed to playNote:", chordNotes);
+        return;
+    }
+    await playNote(note, 4);
+});
+
 export function getDropVoicing(notes, voicingType = 'drop2') {
     if (!notes || notes.length < 3) return notes;
 
