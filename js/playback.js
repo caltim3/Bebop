@@ -9,8 +9,13 @@ import { TUNINGS } from '../utils/constants.js';
 import { suggestScaleForQuality } from '../utils/helpers.js';
 
 // Import at the end to avoid circular dependencies
-import { updateFretboardNotes } from './fretboard.js';
 
+// Around line 111
+if (UI.elements.chordsEnabled) {
+    UI.elements.chordsEnabled.addEventListener('click', toggleChordsEnabled);
+} else {
+    console.error("chordsEnabled element not found during playback setup");
+}
 export function startPlayback() {
     if (AppState.isPlaying) return;
 
@@ -145,3 +150,4 @@ export function stopPlayback() {
 
     log("Playback stopped");
 }
+import { updateFretboardNotes } from './fretboard.js';
