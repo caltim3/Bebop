@@ -1,5 +1,5 @@
-import { log, updateLoadingStatus } from '../utils/helpers.js';
-import { AppState } from './app-state.js';
+import { log, updateLoadingStatus } from './helpers.js'; // was ../utils/helpers.js
+import { AppState } from './app-state.js'; // was ./app-state.js
 
 export const AudioContextManager = {
     context: null,
