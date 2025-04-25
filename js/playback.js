@@ -1,13 +1,10 @@
-// js/playback.js
-import { AppState } from './app-state.js';
-import { UI } from '../core/ui-manager.js';
-import { AudioContextManager } from '../core/audio-context.js';
-import { playMetronomeSound } from './metronome.js';
-import { playChord } from './music-theory.js';
-import { log } from '../utils/helpers.js';
-import { TUNINGS } from '../utils/constants.js';
-import { suggestScaleForQuality } from '../utils/helpers.js';
-
+import { AppState } from './app-state.js'; // was ../core/app-state.js
+import { UI } from './ui-manager.js'; // was ../core/ui-manager.js
+import { AudioContextManager } from './audio-context.js'; // was ../core/audio-context.js
+import { playMetronomeSound } from './metronome.js'; // was ./metronome.js
+import { playChord } from './music-theory.js'; // was ./music-theory.js
+import { log } from './helpers.js'; // was ../utils/helpers.js
+import { TUNINGS, suggestScaleForQuality, updateFretboardNotes } from './constants.js'; // was ../utils/constants.js (split imports as needed)
 // Define toggleChordsEnabled function
 function toggleChordsEnabled() {
     const chordsEnabledBtn = UI.elements.chordsEnabled || document.getElementById('chordsEnabled');
