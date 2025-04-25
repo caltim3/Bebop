@@ -84,13 +84,52 @@ export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) 
             notePart = noteMatch[1];
             octave = parseInt(noteMatch[2], 10);
         }
-        const sanitizedNote = notePart.replace('#', 's').toLowerCase();
-        const sampleKey = `${sanitizedNote}${octave}`;
-        const buffer = AudioContextManager.pianoSamples[sampleKey];
+
+        // Normalize note: replace '#' with 's', flats 'b' to 's' of previous note
+        let sanitizedNote = notePart.toLowerCase().replace('#', 's');
+
+        // Handle flats by converting to equivalent sharp (e.g., Db -> cs)
+        if (sanitizedNote.includes('b')) {
+            // Map flats to sharps
+            const flatToSharpMap = {
+                'ab': 'gs',
+                'bb': 'as',
+                'cb': 'b',
+                'db': 'cs',
+                'eb': 'ds',
+                'fb': 'e',
+                'gb': 'fs'
+            };
+            sanitizedNote = flatToSharpMap[sanitizedNote] || sanitizedNote.replace('b', '');
+        }
+
+        // Try to find sample for exact octave, else try octave-1, then octave+1
+        const tryOctaves = [octave, octave - 1, octave + 1];
+
+        let buffer = null;
+        let usedOctave = null;
+
+        for (const oct of tryOctaves) {
+            if (oct < 0 || oct > 8) continue; // sanity check octave range
+            const sampleKey = `${sanitizedNote}${oct}`;
+            buffer = AudioContextManager.pianoSamples[sampleKey];
+            if (buffer) {
+                usedOctave = oct;
+                break;
+            }
+        }
+
         if (!buffer) {
-            console.error(`No sample for ${sampleKey}`);
+            console.error(`No sample found for note ${sanitizedNote} in octaves ${tryOctaves.join(', ')}`);
             return;
         }
+
+        if (usedOctave !== octave) {
+            log(`Fallback: playing ${sanitizedNote}${usedOctave} instead of requested ${sanitizedNote}${octave}`);
+        } else {
+            log(`Playing sample for ${sanitizedNote}${octave}`);
+        }
+
         const source = AudioContextManager.context.createBufferSource();
         source.buffer = buffer;
         const gainNode = AudioContextManager.context.createGain();
