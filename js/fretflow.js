@@ -1,4 +1,3 @@
-// js/fretflow.js
 import { UI } from '../core/ui-manager.js';
 import { TUNINGS } from '../utils/constants.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
@@ -91,7 +90,6 @@ export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) 
 
         // Handle flats by converting to equivalent sharp (e.g., Db -> cs)
         if (sanitizedNote.includes('b')) {
-            // Map flats to sharps
             const flatToSharpMap = {
                 'ab': 'gs',
                 'bb': 'as',
@@ -121,7 +119,7 @@ export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) 
         }
 
         if (!buffer) {
-            console.error(`No sample found for note ${sanitizedNote} in octaves ${tryOctaves.join(', ')}`);
+            log(`No sample found for ${sanitizedNote} in octaves ${tryOctaves.join(', ')}, skipping`);
             return;
         }
 
@@ -140,6 +138,6 @@ export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) 
         source.start(startTime);
         setTimeout(() => source.stop(), duration);
     }).catch(error => {
-        console.error('Error playing note:', error);
+        log('Error playing note: ' + error);
     });
 }
