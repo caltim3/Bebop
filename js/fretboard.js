@@ -192,5 +192,3 @@ export function updateFretboardNotes(container, rootNote, scale, tuning) {
     }
 }
 
-// Import AppState at the end to avoid circular dependencies
-import { AppState } from '../js/app-state.js';
