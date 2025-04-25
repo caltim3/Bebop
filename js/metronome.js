@@ -1,6 +1,6 @@
-import { UI } from './ui-manager.js';
-import { AudioContextManager } from './audio-context.js';
-import { log } from './helpers.js';
+import { UI } from '../core/ui-manager.js';
+import { AudioContextManager } from '../core/audio-context.js';
+import { log } from '../utils/helpers.js';
 import { AppState } from './app-state.js';
 
 let intervalId = null;
