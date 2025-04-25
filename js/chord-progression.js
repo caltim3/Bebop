@@ -1,4 +1,4 @@
-export function loadProgression(...) {
+export function loadProgression() {
     console.log("progression called");
     // ...rest of function...
 }
