@@ -65,11 +65,16 @@ export async function playChord(root, quality, startTime = 0, duration = 1, isSe
             return;
         }
 
-        // Sanitize note names and assign octaves
-        const sanitizedNotes = chordNotes.map(note => 
-            note.replace('#', 's').toLowerCase()
-        );
+        // Sanitize note names and filter out invalid notes
+        const sanitizedNotes = chordNotes
+            .filter(note => note && typeof note === 'string' && note.trim() !== '') // Remove empty or invalid notes
+            .map(note => note.replace('#', 's').toLowerCase());
         
+        if (!sanitizedNotes.length) {
+            console.error(`[playChord] No valid sanitized notes after filtering for chord: ${root} ${quality}`);
+            return;
+        }
+
         // Assign octaves: root to 3, others to 4 (adjust as needed)
         const noteNamesWithOctave = sanitizedNotes.map((note, index) => {
             const octave = index === 0 ? 3 : 4; // Adjust octaves for better sound range
