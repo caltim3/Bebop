@@ -1,9 +1,8 @@
-// js/fretboard.js
-import { NOTES, SCALES, TUNINGS } from '../utils/constants.js';
-import { AudioContextManager } from '../core/audio-context.js';
-import { UI } from '../core/ui-manager.js';
-import { standardizeNoteName, log } from '../utils/helpers.js';
-import { AppState } from './app-state.js'; // Corrected import path
+import { NOTES, SCALES, TUNINGS } from './constants.js'; // was ../utils/constants.js
+import { AudioContextManager } from './audio-context.js'; // was ../core/audio-context.js
+import { UI } from './ui-manager.js'; // was ../core/ui-manager.js
+import { standardizeNoteName, log } from './helpers.js'; // was ../utils/helpers.js
+import { AppState } from './app-state.js'; // was ../core/app-state.js
 
 export function createFretboard(container, tuning) {
     console.log("createFretboard called");
