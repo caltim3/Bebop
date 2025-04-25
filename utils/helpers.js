@@ -37,12 +37,18 @@ export function isMinorKeyName(key) {
     return key && (key.endsWith('m') || key.endsWith('min'));
 }
 
-// Helper function for flat notes
 export function flattenNote(note) {
     const sharpToFlat = {
         'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'
     };
     return sharpToFlat[note] || note;
+}
+
+export function sharpifyNote(note) {
+    const flatToSharp = {
+        'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+    };
+    return flatToSharp[note] || note;
 }
 
 export function getQualityValue(quality) {
