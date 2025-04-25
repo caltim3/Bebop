@@ -1,3 +1,8 @@
+export function createFretboard(...) {
+    console.log("createFretboard called");
+    // ...rest of function...
+}
+
 // js/fretboard.js
 import { NOTES, SCALES, TUNINGS } from '../utils/constants.js';
 import { AudioContextManager } from '../core/audio-context.js';
