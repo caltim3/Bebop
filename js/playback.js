@@ -40,9 +40,9 @@ export function startPlayback() {
 
     AudioContextManager.ensureAudioContext().then(() => {
         AppState.isPlaying = true;
-        if (UI.elements.startStopButton) {
-            UI.elements.startStopButton.textContent = 'Stop';
-            UI.elements.startStopButton.classList.add('active');
+        if (UI.elements.startStop) {
+            UI.elements.startStop.textContent = 'Stop';
+            UI.elements.startStop.classList.add('active');
         }
 
         // Reset state
@@ -167,9 +167,9 @@ export function stopPlayback() {
     console.log('[Playback] Stopping playback, reason: manual stop or error');
     clearInterval(AppState.metronomeInterval);
     AppState.isPlaying = false;
-    if (UI.elements.startStopButton) {
-        UI.elements.startStopButton.textContent = 'Start';
-        UI.elements.startStopButton.classList.remove('active');
+    if (UI.elements.startStop) {
+        UI.elements.startStop.textContent = 'Start';
+        UI.elements.startStop.classList.remove('active');
     }
 
     document.querySelectorAll('.beat').forEach(beat => beat.classList.remove('active'));
