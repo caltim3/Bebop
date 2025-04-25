@@ -1,13 +1,23 @@
-
 // js/fretflow.js
 import { UI } from '../core/ui-manager.js';
 import { TUNINGS } from '../utils/constants.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
-import { log } from '../utils/helpers.js';
-import { suggestScaleForQuality } from '../utils/helpers.js';
+import { log, suggestScaleForQuality } from '../utils/helpers.js';
+
+// Import at the end to avoid circular dependencies
+let AudioContextManager;
+setTimeout(() => {
+    import('../core/audio-context.js').then(mod => {
+        AudioContextManager = mod.AudioContextManager;
+    });
+}, 0);
 
 export function initializeFretFlow() {
     const fretboardsGrid = UI.elements.fretboardsGrid;
+    if (!fretboardsGrid) {
+        log("No .fretboards-grid found!");
+        return;
+    }
     const scales = ['major', 'minor', 'dorian', 'mixolydian'];
     const tuning = TUNINGS[UI.elements.chordTuning.value];
     fretboardsGrid.innerHTML = '';
@@ -44,7 +54,7 @@ export function initializeFretFlow() {
             updateFretboardNotes(fretboard, UI.elements.keySelect.value, mappedScale, newTuning);
         });
 
-const updatedNotes = fretboard.getElementsByClassName('note');
+        const updatedNotes = fretboard.getElementsByClassName('note');
         Array.from(updatedNotes).forEach(note => {
             note.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -56,50 +66,40 @@ const updatedNotes = fretboard.getElementsByClassName('note');
                 }
             }); 
         });
-    }); // Closes the scales.forEach callback
+    });
 
     log("FretFlow initialized");
-} // Closes the initializeFretFlow function
+}
 
 export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) {
+    if (!AudioContextManager) {
+        log("AudioContextManager not loaded yet.");
+        return;
+    }
     AudioContextManager.ensureAudioContext().then(() => {
-        // Extract note and octave from noteName (e.g., "C#4" → note: "C#", octave: 4)
         const noteMatch = noteName.match(/([A-Ga-g#b]+)(\d+)$/);
         let notePart = noteName;
-        let octave = 3; // Default to middle octave if not specified
-        
+        let octave = 3;
         if (noteMatch) {
             notePart = noteMatch[1];
             octave = parseInt(noteMatch[2], 10);
         }
-
-        // Sanitize note name for filenames (replace '#' with 's', lowercase)
         const sanitizedNote = notePart.replace('#', 's').toLowerCase();
         const sampleKey = `${sanitizedNote}${octave}`;
-        
         const buffer = AudioContextManager.pianoSamples[sampleKey];
         if (!buffer) {
             console.error(`No sample for ${sampleKey}`);
             return;
         }
-
-        // Create and connect audio nodes
         const source = AudioContextManager.context.createBufferSource();
         source.buffer = buffer;
-
         const gainNode = AudioContextManager.context.createGain();
         gainNode.gain.value = volume;
-
         source.connect(gainNode);
         gainNode.connect(AudioContextManager.context.destination);
-
-        // Start and stop the note
-    source.start(startTime);
-    setTimeout(() => source.stop(), startTime + duration);
+        source.start(startTime);
+        setTimeout(() => source.stop(), duration);
     }).catch(error => {
         console.error('Error playing note:', error);
     });
 }
-
-// Import at the end to avoid circular dependencies
-import { AudioContextManager } from '../core/audio-context.js';
