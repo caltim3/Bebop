@@ -33,7 +33,7 @@ export function playChord(root, quality, startTime = 0, duration = 1, isSecondHa
     }
 
     const noteNamesWithOctave = sanitizedNotes.map((note, index) => {
-        const octave = 3; // Use octave 3 for all notes to match available samples
+        const octave = index === 0 ? 3 : 4; // Root at octave 3, others at octave 4
         return `${note}${octave}`;
     });
 
