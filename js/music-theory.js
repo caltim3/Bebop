@@ -1,4 +1,5 @@
 // js/music-theory.js
+import { playNote } from './fretflow.js';
 import { CHORD_QUALITY_INTERVALS, NOTES, scaleDegrees } from '../utils/constants.js';
 import { AudioContextManager } from '../core/audio-context.js';
 import { UI } from '../core/ui-manager.js';
