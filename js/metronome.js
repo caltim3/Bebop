@@ -1,6 +1,6 @@
 import { UI } from './ui-manager.js';
 import { AudioContextManager } from './audio-context.js';
-import { log } from '../utils/helpers.js';
+import { log } from './helpers.js';
 import { AppState } from './app-state.js';
 
 let intervalId = null;
@@ -8,7 +8,10 @@ let currentBeat = 0;
 
 export function setupDrumKitSelect() {
     const soundType = UI.elements.soundType;
-    if (!soundType) return;
+    if (!soundType) {
+        log("Error: #sound-type element not found for drum kit selection");
+        return;
+    }
 
     const drumKits = [
         { value: 'default', label: 'Default Kit' },
@@ -21,7 +24,10 @@ export function setupDrumKitSelect() {
 
 export function onMetronomeInstrumentChange() {
     const soundType = UI.elements.soundType;
-    if (!soundType) return;
+    if (!soundType) {
+        log("Error: #sound-type element not found for instrument change");
+        return;
+    }
 
     const drumKitMap = {
         'default': 0,
@@ -41,16 +47,15 @@ export function onMetronomeInstrumentChange() {
         { value: 'woodblock', label: 'Woodblock' },
     ];
 
-    const soundTypeSelect = UI.elements.soundType;
-    if (soundTypeSelect) {
-        soundTypeSelect.innerHTML = soundOptions.map(option => `<option value="${option.value}">${option.label}</option>`).join('');
-    }
+    soundType.innerHTML = soundOptions.map(option => `<option value="${option.value}">${option.label}</option>`).join('');
 }
 
 export function setupSoundTypeListener() {
     const soundType = UI.elements.soundType;
     if (soundType) {
         soundType.addEventListener('change', onMetronomeInstrumentChange);
+    } else {
+        log("Error: #sound-type element not found for sound type listener");
     }
 }
 
@@ -86,6 +91,10 @@ export function getTotalBeats() {
 
 export function updateBeatDisplay(currentBeat) {
     const beatElements = document.querySelectorAll('#beats-container .beat');
+    if (!beatElements.length) {
+        log("Error: #beats-container or .beat elements not found for beat display");
+        return;
+    }
     beatElements.forEach((beat, index) => {
         beat.classList.toggle('active', index === currentBeat);
     });
@@ -93,7 +102,10 @@ export function updateBeatDisplay(currentBeat) {
 
 export function createBeats() {
     const beatsContainer = document.getElementById('beats-container');
-    if (!beatsContainer) return;
+    if (!beatsContainer) {
+        log("Error: #beats-container element not found for creating beats");
+        return;
+    }
 
     beatsContainer.innerHTML = '';
     const totalBeats = getTotalBeats();
@@ -113,5 +125,9 @@ export function playMetronomeSound() {
 
 export function getMetronomeVolume() {
     const metronomeVolume = UI.elements.metronomeVolume;
-    return metronomeVolume ? parseFloat(metronomeVolume.value) : 1.0;
+    if (!metronomeVolume) {
+        log("Error: #metronome-volume element not found, defaulting to 1.0");
+        return 1.0;
+    }
+    return parseFloat(metronomeVolume.value) || 1.0;
 }
