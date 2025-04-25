@@ -19,7 +19,7 @@ function toggleChordsEnabled() {
     }
 }
 
-// Set up the chordsEnabled event listener once, after DOM is loaded
+// Around line 26 (DOMContentLoaded event listener remains unchanged)
 document.addEventListener('DOMContentLoaded', () => {
     // Wait for UI.init() to complete if not already
     if (!UI.elements.chordsEnabled) {
@@ -131,14 +131,21 @@ export function startPlayback() {
         }, intervalDuration);
 
         // Tempo slider handling
-        const tempoSlider = document.getElementById('tempo');
-        tempoSlider.addEventListener('input', () => {
-            AppState.tempo = parseInt(tempoSlider.value);
-            document.getElementById('tempo-display').textContent = `${AppState.tempo} BPM`;
-            // Restart playback with new tempo
-            stopPlayback();
-            startPlayback();
-        });
+        const tempoSlider = UI.elements.tempoSlider; // Use UI.elements.tempoSlider instead of document.getElementById('tempo')
+        if (tempoSlider) {
+            tempoSlider.addEventListener('input', () => {
+                AppState.tempo = parseInt(tempoSlider.value);
+                const tempoDisplay = document.getElementById('tempo-display');
+                if (tempoDisplay) {
+                    tempoDisplay.textContent = `${AppState.tempo} BPM`;
+                }
+                // Restart playback with new tempo
+                stopPlayback();
+                startPlayback();
+            });
+        } else {
+            console.error("Tempo slider not found, cannot add event listener");
+        }
 
         log("Playback started");
     }).catch(error => {
