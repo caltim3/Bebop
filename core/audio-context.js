@@ -1,5 +1,5 @@
-import { log, updateLoadingStatus } from './helpers.js'; // was ../utils/helpers.js
-import { AppState } from './app-state.js'; // was ./app-state.js
+import { log, updateLoadingStatus } from './helpers.js';
+import { AppState } from './app-state.js';
 
 export const AudioContextManager = {
     context: null,
@@ -68,7 +68,7 @@ export const AudioContextManager = {
             const loadedSamples = {};
             for (const [type, file] of Object.entries(kit.samples)) {
                 try {
-                    const response = await fetch(`./${file}`);
+                    const response = await fetch(`/${file}`);
                     const arrayBuffer = await response.arrayBuffer();
                     loadedSamples[type] = await this.context.decodeAudioData(arrayBuffer);
                 } catch (error) {
@@ -116,7 +116,7 @@ export const AudioContextManager = {
             for (const note of notes) {
                 const sampleName = `${note}${octave}.wav`;
                 try {
-                    const response = await fetch(`./${sampleName}`);
+                    const response = await fetch(`/${sampleName}`);
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     const arrayBuffer = await response.arrayBuffer();
                     this.pianoSamples[`${note}${octave}`] = await this.context.decodeAudioData(arrayBuffer);
@@ -130,12 +130,18 @@ export const AudioContextManager = {
     },
 
     async setupReverb() {
-        this.reverbNode = this.context.createConvolver();
-        const response = await fetch('ir_sweep.wav');
-        const arrayBuffer = await response.arrayBuffer();
-        this.reverbNode.buffer = await this.context.decodeAudioData(arrayBuffer);
-        this.reverbNode.connect(this.context.destination);
-        log("Reverb setup complete");
+        this.reverbNode = null; // Initialize as null
+        try {
+            const response = await fetch('/ir_sweep.wav');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const arrayBuffer = await response.arrayBuffer();
+            this.reverbNode = this.context.createConvolver();
+            this.reverbNode.buffer = await this.context.decodeAudioData(arrayBuffer);
+            this.reverbNode.connect(this.context.destination);
+            log("Reverb setup complete");
+        } catch (error) {
+            log(`Failed to load reverb impulse response (ir_sweep.wav): ${error}. Proceeding without reverb.`);
+        }
     },
 
     createDrumSound(type) {
@@ -188,9 +194,8 @@ export const AudioContextManager = {
             source.connect(gainNode);
             if (this.reverbNode) {
                 gainNode.connect(this.reverbNode);
-            } else {
-                gainNode.connect(this.context.destination);
             }
+            gainNode.connect(this.context.destination);
             source.start();
             source.stop(this.context.currentTime + duration);
         });
