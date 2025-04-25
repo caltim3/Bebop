@@ -95,8 +95,15 @@ export function stopMetronome() {
 }
 
 function getTotalBeats() {
-    const timeSignature = parseInt(UI.elements.timeSignature.value) || 4;
-    return timeSignature === 4 ? 8 : timeSignature;
+    let timeSignature;
+    if (UI.elements.timeSignature) {
+        timeSignature = parseInt(UI.elements.timeSignature.value) || 4;
+    } else {
+        console.error("timeSignature element not found in UI.elements, defaulting to 4");
+        timeSignature = 4; // Default to 4/4 if element is missing
+    }
+    const isCompound = [6, 9, 12].includes(timeSignature);
+    return isCompound ? timeSignature : timeSignature * 2; // 4/4 has 8 eighth notes
 }
 
 function updateBeatDisplay(currentBeat) {
