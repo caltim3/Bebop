@@ -1,8 +1,7 @@
 import { UI } from '../core/ui-manager.js';
 import { TUNINGS } from '../utils/constants.js';
 import { createFretboard, updateFretboardNotes } from './fretboard.js';
-import { log, suggestScaleForQuality } from '../utils/helpers.js';
-import { sharpifyNote } from '../utils/helpers.js';  // adjust path as needed
+import { log, suggestScaleForQuality, sharpifyNote } from '../utils/helpers.js';
 
 // Import at the end to avoid circular dependencies
 let AudioContextManager;
@@ -45,7 +44,6 @@ export function initializeFretFlow() {
         const mappedScale = suggestScaleForQuality(scale);
         updateFretboardNotes(fretboard, UI.elements.keySelect.value, mappedScale, tuning);
 
-        // Add tuning change handler
         const tuningSelect = container.querySelector(`#fretflow-tuning-${index}`);
         tuningSelect.addEventListener('change', () => {
             const newTuning = TUNINGS[tuningSelect.value];
@@ -87,8 +85,6 @@ export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) 
 
         // Normalize note: replace '#' with 's', flats 'b' to 's' of previous note
         let sanitizedNote = notePart.toLowerCase().replace('#', 's');
-
-        // Handle flats by converting to equivalent sharp (e.g., Db -> cs)
         if (sanitizedNote.includes('b')) {
             const flatToSharpMap = {
                 'ab': 'gs',
@@ -102,14 +98,13 @@ export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) 
             sanitizedNote = flatToSharpMap[sanitizedNote] || sanitizedNote.replace('b', '');
         }
 
-        // Try to find sample for exact octave, else try octave-1, then octave+1
-        const tryOctaves = [octave, octave - 1, octave + 1];
+        // Limit to available octaves (2 and 3)
+        const tryOctaves = [octave, octave === 3 ? 2 : 3].filter(oct => oct === 2 || oct === 3);
 
         let buffer = null;
         let usedOctave = null;
 
         for (const oct of tryOctaves) {
-            if (oct < 0 || oct > 8) continue; // sanity check octave range
             const sampleKey = `${sanitizedNote}${oct}`;
             buffer = AudioContextManager.pianoSamples[sampleKey];
             if (buffer) {
@@ -119,12 +114,12 @@ export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) 
         }
 
         if (!buffer) {
-            log(`No sample found for ${sanitizedNote} in octaves ${tryOctaves.join(', ')}, skipping`);
+            log(`No sample for ${sanitizedNote} in octaves ${tryOctaves.join(', ')}, skipping`);
             return;
         }
 
         if (usedOctave !== octave) {
-            log(`Fallback: playing ${sanitizedNote}${usedOctave} instead of requested ${sanitizedNote}${octave}`);
+            log(`Fallback: playing ${sanitizedNote}${usedOctave} instead of ${sanitizedNote}${octave}`);
         } else {
             log(`Playing sample for ${sanitizedNote}${octave}`);
         }
@@ -138,6 +133,6 @@ export function playNote(noteName, volume = 0.3, duration = 500, startTime = 0) 
         source.start(startTime);
         setTimeout(() => source.stop(), duration);
     }).catch(error => {
-        log('Error playing note: ' + error);
+        log(`Error playing note: ${error}`);
     });
 }
