@@ -1,3 +1,6 @@
+import { log } from '../utils/helpers.js';
+import { startMetronome, stopMetronome } from '../js/metronome.js';
+
 export const UI = {
     elements: {},
 
