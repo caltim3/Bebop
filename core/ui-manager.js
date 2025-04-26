@@ -1,6 +1,3 @@
-import { log } from '../utils/helpers.js';
-import { startMetronome, stopMetronome } from '../js/metronome.js';
-
 export const UI = {
     elements: {},
 
@@ -58,31 +55,31 @@ export const UI = {
         });
     },
 
-verifyCriticalElements() {
-    const elementsToVerify = [
-        'startStop',
-        'tempoSlider',
-        'tempoDisplay',
-        'chordsEnabled',
-        'keySelect',
-        'progressionSelect',
-        'chordTuning',
-        'fretboardVolume',
-        'metronomeVolume',
-        'soundType',
-        'addMeasureBtn',
-        'chordFretboardSection',
-        'metronomeSection',
-        'measures',
-        'fretboardsGrid',
-    ];
+    verifyCriticalElements() {
+        const elementsToVerify = [
+            'startStop',
+            'tempoSlider',
+            'tempoDisplay',
+            'chordsEnabled',
+            'keySelect',
+            'progressionSelect',
+            'chordTuning',
+            'fretboardVolume',
+            'metronomeVolume',
+            'soundType',
+            'addMeasureBtn',
+            'chordFretboardSection',
+            'metronomeSection',
+            'measures',
+            'fretboardsGrid',
+        ];
 
-    elementsToVerify.forEach(elementKey => {
-        if (this.elements[elementKey]) {
-            log(`Verified UI element: ${elementKey}`); // Changed 'key' to 'elementKey'
-        }
-    });
-}
+        elementsToVerify.forEach(elementKey => {
+            if (this.elements[elementKey]) {
+                log(`Verified UI element: ${elementKey}`);
+            }
+        });
+    },
 
     addListener(elementKey, eventType, callback) {
         const element = this.elements[elementKey];
