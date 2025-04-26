@@ -17,12 +17,7 @@ setTimeout(() => {
     });
 }, 0);
 
-export function initializeFretFlow() {
-    const fretboardsGrid = UI.elements.fretboardsGrid;
-    if (!fretboardsGrid) {
-        log("No .fretboards-grid found!");
-        return;
-    }
+
     const scales = ['major', 'minor', 'dorian', 'mixolydian'];
     const tuning = TUNINGS[UI.elements.chordTuning.value];
     fretboardsGrid.innerHTML = '';
