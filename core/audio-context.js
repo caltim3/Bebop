@@ -39,7 +39,7 @@ export const AudioContextManager = {
                     'kick': 'Kick.wav',
                     'snare': 'Snare.wav',
                     'click': 'Click.wav',
-                    'woodblock': 'Woodblock.wav'
+                    'woodblock': 'woodblock.wav'
                 }
             },
             {
@@ -49,7 +49,7 @@ export const AudioContextManager = {
                     'kick': 'Kick2.wav',
                     'snare': 'Snare2.wav',
                     'click': 'Click.wav',
-                    'woodblock': 'Woodblock.wav'
+                    'woodblock': 'woodblock.wav'
                 }
             },
             {
@@ -59,7 +59,7 @@ export const AudioContextManager = {
                     'kick': 'jazzkick.wav',
                     'snare': 'jazzsnare.wav',
                     'click': 'Click.wav',
-                    'woodblock': 'Woodblock.wav'
+                    'woodblock': 'woodblock.wav'
                 }
             }
         ];
