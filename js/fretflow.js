@@ -10,13 +10,6 @@ export function initializeFretFlow() {
         log("Error: Fretboards grid not found for FretFlow initialization");
         return;
     }
-let AudioContextManager;
-setTimeout(() => {
-    import('../core/audio-context.js').then(mod => {
-        AudioContextManager = mod.AudioContextManager;
-    });
-}, 0);
-
 
     const scales = ['major', 'minor', 'dorian', 'mixolydian'];
     const tuning = TUNINGS[UI.elements.chordTuning.value];
