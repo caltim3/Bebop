@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="app-section" id="chord-fretboard-section">
+    <div class="app-section" id="chord-fretboard-section">
         <h1>BEBOP BLUEPRINT</h1>
         <h3>Fretflow - Dynamic Fretboard with Scales that Move with the Chord Progression</h3>
         <button id="dark-mode-toggle" aria-label="Toggle dark mode">Dark Mode</button>
@@ -73,7 +73,8 @@
         <h3>Create a progression or pick one from the dropdown. Choose which key and scale to go with it.</h3>
         <label for="progression-select">Select Progression:</label>
         <select id="progression-select" aria-label="Select chord progression">
-<option value="I V7">I-V7</option>
+            <option value="none">None</option>
+            <option value="I V7">I-V7</option>
             <option value="jazz_blues">Jazz Blues</option>
             <option value="minor_blues">Minor Blues</option>
             <option value="rhythm_changes">Rhythm Changes</option>
@@ -124,7 +125,8 @@
         <button onclick="addMeasure()" aria-label="Add measure">Add Measure</button>
         <button onclick="removeMeasure()" aria-label="Remove measure">Remove Measure</button>
         <div class="checkbox-wrapper">
-            <button id="chordsEnabled" class="toggle-button active">Chords Enabled</button>
+            <input type="checkbox" id="chordsEnabled" checked>
+            <label for="chordsEnabled">Enable Chords</label>
         </div>
         <div class="volume-control">
             <label for="chord-volume">Chord Volume:</label>
@@ -142,6 +144,6 @@
         <div class="fretboards-grid"></div>
     </div>
 
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="main.js"></script>
 </body>
 </html>
