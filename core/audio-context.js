@@ -68,7 +68,7 @@ export const AudioContextManager = {
             const loadedSamples = {};
             for (const [type, file] of Object.entries(kit.samples)) {
                 try {
-                    const response = await fetch(`/${file}`);
+                    const response = await fetch(`${file}`)
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     const arrayBuffer = await response.arrayBuffer();
                     loadedSamples[type] = await this.context.decodeAudioData(arrayBuffer);
@@ -119,7 +119,7 @@ export const AudioContextManager = {
             for (const note of notes) {
                 const sampleName = `${note}${octave}.wav`;
                 try {
-                    const response = await fetch(`/${sampleName}`);
+                    const response = await fetch(`${sampleName}`)
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     const arrayBuffer = await response.arrayBuffer();
                     this.pianoSamples[`${note}${octave}`] = await this.context.decodeAudioData(arrayBuffer);
@@ -135,7 +135,7 @@ export const AudioContextManager = {
     async setupReverb() {
         this.reverbNode = null;
         try {
-            const response = await fetch('/ir_sweep.wav');
+            const response = await fetch('ir_sweep.wav')`
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const arrayBuffer = await response.arrayBuffer();
             this.reverbNode = this.context.createConvolver();
