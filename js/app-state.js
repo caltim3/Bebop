@@ -1,28 +1,26 @@
-// js/app-state.js
-
 import { log } from '../utils/helpers.js';
 
 export const AppState = {
-    isPlaying: false,
-    currentBeat: 0,
-    currentMeasure: 0,
-    tempo: 120,
-    audioInitialized: false,
-    darkMode: false,
-    metronomeInterval: null,
-    lastTap: null,
+    state: {
+        isPlaying: false,
+        tempo: 120,
+        currentBeat: 0,
+        currentMeasure: 0, // Added for playback.js
+        chordsEnabled: false,
+        fretboardVolume: 1.0,
+        metronomeVolume: 1.0,
+        audioInitialized: false,
+        metronomeInterval: null, // Added for playback.js
+    },
     listeners: [],
 
     updateState(newState) {
-        Object.assign(this, newState);
-        this.notifyListeners();
+        this.state = { ...this.state, ...newState };
+        this.listeners.forEach(listener => listener(this.state));
+        log(`State updated: ${JSON.stringify(this.state)}`);
     },
 
-    addListener(callback) {
-        this.listeners.push(callback);
+    addListener(listener) {
+        this.listeners.push(listener);
     },
-
-    notifyListeners() {
-        this.listeners.forEach(callback => callback(this));
-    }
 };
