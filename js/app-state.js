@@ -1,4 +1,7 @@
 // js/app-state.js
+
+import { log } from '../utils/helpers.js';
+
 export const AppState = {
     isPlaying: false,
     currentBeat: 0,
