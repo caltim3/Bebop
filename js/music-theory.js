@@ -1,8 +1,8 @@
-import { playNote } from './fretflow.js'; // was ./fretflow.js
-import { CHORD_QUALITY_INTERVALS, NOTES, scaleDegrees } from './constants.js'; // was ../utils/constants.js
-import { AudioContextManager } from './audio-context.js'; // was ../core/audio-context.js
-import { UI } from './ui-manager.js'; // was ../core/ui-manager.js
-import { standardizeNoteName, getQualityValue } from './helpers.js'; // was ../utils/helpers.js
+import { playNote } from './fretflow.js';
+import { CHORD_QUALITY_INTERVALS, NOTES, scaleDegrees } from '../utils/constants.js';
+import { AudioContextManager } from '../core/audio-context.js';
+import { UI } from '../core/ui-manager.js';
+import { standardizeNoteName, getQualityValue } from '../utils/helpers.js';
 
 export function getDegreeFromRoman(roman, degreeMap) {
     if (!roman || !degreeMap) return 0;
