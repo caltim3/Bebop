@@ -22,16 +22,23 @@ export const SCALES = {
     // Basic Scales
     major: [0, 2, 4, 5, 7, 9, 11],
     minor: [0, 2, 3, 5, 7, 8, 10],
-    harmonicMinor: [0, 2, 3, 5, 7, 8, 11],
-    melodicMinor: [0, 2, 3, 5, 7, 9, 11],
-    
+
+    // Aliases for modes (so "Ionian" and "Aeolian" work)
+    Ionian: [0, 2, 4, 5, 7, 9, 11],   // same as major
+    Aeolian: [0, 2, 3, 5, 7, 8, 10],  // same as minor
+
     // Modes
     dorian: [0, 2, 3, 5, 7, 9, 10],
+    Dorian: [0, 2, 3, 5, 7, 9, 10],
     phrygian: [0, 1, 3, 5, 7, 8, 10],
+    Phrygian: [0, 1, 3, 5, 7, 8, 10],
     lydian: [0, 2, 4, 6, 7, 9, 11],
+    Lydian: [0, 2, 4, 6, 7, 9, 11],
     mixolydian: [0, 2, 4, 5, 7, 9, 10],
+    Mixolydian: [0, 2, 4, 5, 7, 9, 10],
     locrian: [0, 1, 3, 5, 6, 8, 10],
-    
+    Locrian: [0, 1, 3, 5, 6, 8, 10],
+
     // Jazz Scales
     bebopDominant: [0, 2, 4, 5, 7, 9, 10, 11],
     bebopMajor: [0, 2, 4, 5, 7, 8, 9, 11],
@@ -39,30 +46,30 @@ export const SCALES = {
     bebopPhrygian: [0, 1, 2, 3, 5, 7, 8, 10], // Added Bebop Phrygian
     altered: [0, 1, 3, 4, 6, 8, 10],    // Super Locrian
     lydianDominant: [0, 2, 4, 6, 7, 9, 10],
-    
+
     // Symmetric Scales
     diminishedWH: [0, 2, 3, 5, 6, 8, 9, 11],  // Diminished (Whole-Half)
     diminishedHW: [0, 1, 3, 4, 6, 7, 9, 10],  // Diminished (Half-Whole)
     wholeHalf: [0, 2, 4, 6, 8, 10],    // Whole Tone
-    
+
     // Pentatonic Scales
     pentatonicMajor: [0, 2, 4, 7, 9],
     pentatonicMinor: [0, 3, 5, 7, 10],
-    
+
     // Blues Scales
     blues: [0, 3, 5, 6, 7, 10],
     majorBlues: [0, 2, 3, 4, 7, 9],
-    
+
     // Additional Modern Jazz Scales
     halfWhole: [0, 1, 3, 4, 6, 7, 9, 10],
     harmonicMajor: [0, 2, 4, 5, 7, 8, 11],
     doubleHarmonic: [0, 1, 4, 5, 7, 8, 11],
 
-    'enigmatic': [0, 1, 4, 6, 8, 10, 11],
-    'persian': [0, 1, 4, 5, 6, 8, 11],
-    'arabic': [0, 2, 4, 5, 6, 8, 10],
-    'japanese': [0, 2, 5, 7, 8],
-    'egyptian': [0, 2, 5, 7, 10]
+    enigmatic: [0, 1, 4, 6, 8, 10, 11],
+    persian: [0, 1, 4, 5, 6, 8, 11],
+    arabic: [0, 2, 4, 5, 6, 8, 10],
+    japanese: [0, 2, 5, 7, 8],
+    egyptian: [0, 2, 5, 7, 10]
 };
 
 export const SCALE_NAMES = Object.keys(SCALES);
