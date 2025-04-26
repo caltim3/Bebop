@@ -1,7 +1,6 @@
 import { log, updateLoadingStatus } from '../utils/helpers.js';
 import { AppState } from '../js/app-state.js';
 
-// Rest of the file remains the same (as provided previously)
 export const AudioContextManager = {
     context: null,
     pianoSamples: {},
@@ -181,10 +180,10 @@ export const AudioContextManager = {
             const noteMatch = note.match(/([A-Ga-g][b#]?)(\d+)/);
             if (!noteMatch) return;
 
-            let [, note, octave] = noteMatch;
-            note = note.toLowerCase().replace('#', 's');
+            let [, noteName, octave] = noteMatch; // Renamed 'note' to 'noteName'
+            noteName = noteName.toLowerCase().replace('#', 's'); // Use 'noteName'
 
-            const sampleKey = `${note}${octave}`;
+            const sampleKey = `${noteName}${octave}`;
             const buffer = this.pianoSamples[sampleKey];
             if (!buffer) {
                 log(`No piano sample for ${sampleKey}`);
