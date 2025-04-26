@@ -58,31 +58,31 @@ export const UI = {
         });
     },
 
-    verifyCriticalElements() {
-        const elementsToVerify = [
-            'startStop',
-            'tempoSlider',
-            'tempoDisplay',
-            'chordsEnabled',
-            'keySelect',
-            'progressionSelect',
-            'chordTuning',
-            'fretboardVolume',
-            'metronomeVolume',
-            'soundType',
-            'addMeasureBtn',
-            'chordFretboardSection',
-            'metronomeSection',
-            'measures',
-            'fretboardsGrid',
-        ];
+verifyCriticalElements() {
+    const elementsToVerify = [
+        'startStop',
+        'tempoSlider',
+        'tempoDisplay',
+        'chordsEnabled',
+        'keySelect',
+        'progressionSelect',
+        'chordTuning',
+        'fretboardVolume',
+        'metronomeVolume',
+        'soundType',
+        'addMeasureBtn',
+        'chordFretboardSection',
+        'metronomeSection',
+        'measures',
+        'fretboardsGrid',
+    ];
 
-        elementsToVerify.forEach(elementKey => {
-            if (this.elements[elementKey]) {
-                log(`Verified UI element: ${key}`);
-            }
-        });
-    },
+    elementsToVerify.forEach(elementKey => {
+        if (this.elements[elementKey]) {
+            log(`Verified UI element: ${elementKey}`); // Changed 'key' to 'elementKey'
+        }
+    });
+}
 
     addListener(elementKey, eventType, callback) {
         const element = this.elements[elementKey];
