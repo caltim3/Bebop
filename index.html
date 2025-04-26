@@ -55,12 +55,14 @@
                 <span>Metronome Volume:</span>
                 <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" aria-label="Metronome volume">
             </div>
-            <input type="range" id="tempo" min="40" max="220" value="120" aria-label="Tempo">
+            <!-- FIX: Add missing tempo slider with correct ID -->
+            <input type="range" id="tempoSlider" min="40" max="220" value="120" aria-label="Tempo">
             <span id="tempo-display">120 BPM</span>
             <button id="tap-tempo" aria-label="Tap tempo">Tap Tempo</button>
-            <button id="start-stop" aria-label="Start or stop metronome">Start</button>
+            <button id="startStop" aria-label="Start or stop metronome">Start</button>
         </div>
-        <div class="beats-container"></div>
+        <!-- FIX: Add missing beats container with correct ID -->
+        <div id="beats-container" class="beats-container"></div>
     </div>
 
     <div class="volume-control">
@@ -122,7 +124,8 @@
         <div id="measures">
             <!-- Measures will be populated dynamically -->
         </div>
-        <button onclick="addMeasure()" aria-label="Add measure">Add Measure</button>
+        <!-- FIX: Add missing Add Measure button with correct ID -->
+        <button id="addMeasureBtn" aria-label="Add measure">Add Measure</button>
         <button onclick="removeMeasure()" aria-label="Remove measure">Remove Measure</button>
         <div class="checkbox-wrapper">
             <input type="checkbox" id="chordsEnabled" checked>
