@@ -135,8 +135,8 @@ export const AudioContextManager = {
     async setupReverb() {
         this.reverbNode = null;
         try {
-            const response = await fetch('ir_sweep.wav')`
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const response = await fetch('ir_sweep.wav');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const arrayBuffer = await response.arrayBuffer();
             this.reverbNode = this.context.createConvolver();
             this.reverbNode.buffer = await this.context.decodeAudioData(arrayBuffer);
