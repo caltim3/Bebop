@@ -1,12 +1,14 @@
 // Musical Constants
 export const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    
+
 export const ENHARMONIC_MAP = {
-    'C#': 'Db', 'Db': 'Db',
-    'D#': 'Eb', 'Eb': 'Eb',
-    'F#': 'Gb', 'Gb': 'Gb',
-    'G#': 'Ab', 'Ab': 'Ab',
-    'A#': 'Bb', 'Bb': 'Bb'
+    'C': 'C', 'C#': 'Db', 'Db': 'Db',
+    'D': 'D', 'D#': 'Eb', 'Eb': 'Eb',
+    'E': 'E', 'Fb': 'E', 'E#': 'F',
+    'F': 'F', 'F#': 'Gb', 'Gb': 'Gb',
+    'G': 'G', 'G#': 'Ab', 'Ab': 'Ab',
+    'A': 'A', 'A#': 'Bb', 'Bb': 'Bb',
+    'B': 'B', 'Cb': 'B', 'B#': 'C'
 };
 
 export const FRETBOARD_FREQUENCIES = {
@@ -27,7 +29,7 @@ export const SCALES = {
     Ionian: [0, 2, 4, 5, 7, 9, 11],   // same as major
     Aeolian: [0, 2, 3, 5, 7, 8, 10],  // same as minor
 
-    // Modes
+    // Modes (both lowercase and capitalized for robustness)
     dorian: [0, 2, 3, 5, 7, 9, 10],
     Dorian: [0, 2, 3, 5, 7, 9, 10],
     phrygian: [0, 1, 3, 5, 7, 8, 10],
@@ -43,14 +45,14 @@ export const SCALES = {
     bebopDominant: [0, 2, 4, 5, 7, 9, 10, 11],
     bebopMajor: [0, 2, 4, 5, 7, 8, 9, 11],
     bebopDorian: [0, 2, 3, 4, 5, 7, 9, 10],
-    bebopPhrygian: [0, 1, 2, 3, 5, 7, 8, 10], // Added Bebop Phrygian
-    altered: [0, 1, 3, 4, 6, 8, 10],    // Super Locrian
+    bebopPhrygian: [0, 1, 2, 3, 5, 7, 8, 10],
+    altered: [0, 1, 3, 4, 6, 8, 10],
     lydianDominant: [0, 2, 4, 6, 7, 9, 10],
 
     // Symmetric Scales
-    diminishedWH: [0, 2, 3, 5, 6, 8, 9, 11],  // Diminished (Whole-Half)
-    diminishedHW: [0, 1, 3, 4, 6, 7, 9, 10],  // Diminished (Half-Whole)
-    wholeHalf: [0, 2, 4, 6, 8, 10],    // Whole Tone
+    diminishedWH: [0, 2, 3, 5, 6, 8, 9, 11],
+    diminishedHW: [0, 1, 3, 4, 6, 7, 9, 10],
+    wholeHalf: [0, 2, 4, 6, 8, 10],
 
     // Pentatonic Scales
     pentatonicMajor: [0, 2, 4, 7, 9],
@@ -94,26 +96,28 @@ export const DRUM_PATTERNS = {
 
 export const drumSoundSets = [
     {
-    name: "Drums Drums",
-    snare: "Snare.wav",
-    hihat: "HiHat.wav",
-    kick: "Kick.wav"
+        name: "Drums Drums",
+        snare: "Snare.wav",
+        hihat: "HiHat.wav",
+        kick: "Kick.wav"
     },
     {
-    name: "Makaya Drums",
-    snare: "Snare2.wav",
-    hihat: "HiHat2.wav",
-    kick: "Kick2.wav"
+        name: "Makaya Drums",
+        snare: "Snare2.wav",
+        hihat: "HiHat2.wav",
+        kick: "Kick2.wav"
     },
     {
-    name: "Max Drums",
-    kick: 'jazzkick.wav',
-    snare: 'jazzsnare.wav',
-    hihat: 'jazzhat.wav'
+        name: "Max Drums",
+        kick: 'jazzkick.wav',
+        snare: 'jazzsnare.wav',
+        hihat: 'jazzhat.wav'
     }
 ];
 
+// Add a "none" progression to prevent errors
 export const progressions = {
+     none: { defaultKey: "C", progression: [] },
     "I V7": { defaultKey: "C", progression: ["I", "V7"] },
     "jazz_blues": { defaultKey: "Bb", progression: ["I7", "IV7", "I7", "I7", "IV7", "IV7", "I7", "VI7", "IIm7", "V7", "I7", "V7"] },
     "minor_blues": { defaultKey: "Am", progression: ["im7", "ivm7", "im7", "im7", "ivm7", "ivm7", "im7", "im7", "V7", "V7", "im7", "V7"] },
