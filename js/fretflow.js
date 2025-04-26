@@ -1,10 +1,15 @@
-import { UI } from './ui-manager.js'; // was ../core/ui-manager.js
-import { TUNINGS } from './constants.js'; // was ../utils/constants.js
-import { createFretboard, updateFretboardNotes } from './fretboard.js'; // was ./fretboard.js
-import { log, suggestScaleForQuality, sharpifyNote } from './helpers.js'; // was ../utils/helpers.js
-// Dynamic import of AudioContextManager adjusted to new path
-import('../core/audio-context.js') becomes import('./audio-context.js')
+import { UI } from '../core/ui-manager.js';
+import { TUNINGS } from '../utils/constants.js';
+import { createFretboard, updateFretboardNotes } from './fretboard.js';
+import { log, suggestScaleForQuality, sharpifyNote } from '../utils/helpers.js';
+import { AudioContextManager } from '../core/audio-context.js';
 
+export function initializeFretFlow() {
+    const fretboardsGrid = UI.elements.fretboardsGrid;
+    if (!fretboardsGrid) {
+        log("Error: Fretboards grid not found for FretFlow initialization");
+        return;
+    }
 let AudioContextManager;
 setTimeout(() => {
     import('../core/audio-context.js').then(mod => {
