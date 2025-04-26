@@ -9,6 +9,7 @@ import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatu
 import { TUNINGS } from '../utils/constants.js';
 import { startPlayback, stopPlayback } from './playback.js';
 
+// Rest of the file remains the same (as provided previously)
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeApp();
 });
