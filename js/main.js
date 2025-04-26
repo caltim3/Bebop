@@ -9,6 +9,8 @@ import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatu
 import { TUNINGS } from '../utils/constants.js';
 import { startPlayback, stopPlayback } from './playback.js';
 
+window.AudioContextManager = AudioContextManager;
+
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeApp();
 });
