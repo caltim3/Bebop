@@ -9,7 +9,6 @@ import { log, ensureAudioInitialized, suggestScaleForQuality, updateLoadingStatu
 import { TUNINGS } from '../utils/constants.js';
 import { startPlayback, stopPlayback } from './playback.js';
 
-// Rest of the file remains the same (as provided previously)
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeApp();
 });
@@ -19,11 +18,11 @@ async function initializeApp() {
     await AudioContextManager.initialize();
 
     const chordFretboardSection = UI.elements.chordFretboardSection;
-    const tuning = TUNINGS[UI.elements.chordTuning.value];
+    const tuning = TUNINGS[UI.elements.chordTuning?.value] || TUNINGS['standard'];
     createFretboard(chordFretboardSection, tuning);
     createBeats();
-    updateFretboardNotes(chordFretboardSection, UI.elements.keySelect.value, suggestScaleForQuality('major'), tuning);
-    loadProgression(UI.elements.progressionSelect.value);
+    updateFretboardNotes(chordFretboardSection, UI.elements.keySelect?.value || 'C', suggestScaleForQuality('major'), tuning);
+    loadProgression(UI.elements.progressionSelect?.value || 'I-IV-V');
     initializeFretFlow();
 
     setupEventListeners();
@@ -47,7 +46,7 @@ function setupEventListeners() {
     if (startStopBtn) {
         startStopBtn.addEventListener('click', async () => {
             await AudioContextManager.initialize();
-            if (AppState.isPlaying) {
+            if (AppState.state.isPlaying) {
                 stopPlayback();
             } else {
                 startPlayback();
@@ -59,6 +58,15 @@ function setupEventListeners() {
         tempoSlider.addEventListener('input', () => {
             const tempo = parseInt(tempoSlider.value);
             AppState.updateState({ tempo });
+            const tempoDisplay = UI.elements.tempoDisplay;
+            if (tempoDisplay) {
+                tempoDisplay.textContent = `${tempo} BPM`;
+            }
+            // Restart playback with new tempo if playing
+            if (AppState.state.isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
         });
     }
 
@@ -67,6 +75,7 @@ function setupEventListeners() {
             chordsEnabledBtn.classList.toggle('active');
             const isEnabled = chordsEnabledBtn.classList.contains('active');
             AppState.updateState({ chordsEnabled: isEnabled });
+            log("Chords enabled toggled:", isEnabled);
         });
     }
 
@@ -84,7 +93,7 @@ function setupEventListeners() {
 
     if (chordTuning) {
         chordTuning.addEventListener('change', () => {
-            const newTuning = TUNINGS[chordTuning.value];
+            const newTuning = TUNINGS[chordTuning.value] || TUNINGS['standard'];
             createFretboard(chordFretboardSection, newTuning);
             const currentKey = keySelect ? keySelect.value : 'C';
             updateFretboardNotes(chordFretboardSection, currentKey, suggestScaleForQuality('major'), newTuning);
