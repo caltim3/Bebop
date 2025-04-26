@@ -39,9 +39,9 @@ export function updateProgressionKey(newKey) {
 }
 
 export function loadProgression(progressionName) {
-    const progression = progressions[progressionName];
-    if (!progression) {
-        console.error(`Progression ${progressionName} not found`);
+    const progressions = progressions[progressionName];
+    if (!progressions) {
+        console.error(`Progressions ${progressionName} not found`);
         return;
     }
     
