@@ -42,7 +42,13 @@ export function updateFretboardNotes(container, key, scaleName, tuning = TUNINGS
         return;
     }
 
-    const scale = SCALES[scaleName] || SCALES['Ionian'];
+    log(`updateFretboardNotes called with scaleName: ${scaleName}`);
+
+    let scale = SCALES[scaleName];
+    if (!scale) {
+        log(`Scale not found: ${scaleName}. Falling back to 'major'.`);
+        scale = SCALES['major'];
+    }
     const rootIndex = NOTES.indexOf(standardizeNoteName(key));
     const scaleNotes = scale.map(interval => NOTES[(rootIndex + interval) % 12]);
 
