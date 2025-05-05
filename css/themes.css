@@ -1,0 +1,314 @@
+        body.dark-mode .fretboard-section {
+            background-color: #23272e;
+            border-color: #444;
+            color: #fefae0;
+        }
+        
+        /* Dark Mode 2 */
+        body.dark-mode-2 .fretboard-section {
+            background-color: #001f54;
+            border-color: #1282a2;
+            color: #fefcfb;
+        }
+        
+        /* Dark Mode 3 */
+        body.dark-mode-3 .fretboard-section {
+            background-color: #a5a58d;
+            border-color: #cb997e;
+            color: #ffe8d6;
+        }
+        
+        /* Dark Mode 1 */
+        body.dark-mode .fretboard-section {
+            background-color: #23272e;
+            border-color: #444;
+            color: #fefae0;
+        }
+        
+        /* Dark Mode 2 */
+        body.dark-mode-2 .fretboard-section {
+            background-color: #001f54;
+            border-color: #1282a2;
+            color: #fefcfb;
+        }
+        
+        /* Dark Mode 3 */
+        body.dark-mode-3 .fretboard-section {
+            background-color: #a5a58d;
+            border-color: #cb997e;
+            color: #ffe8d6;
+        }
+        .fretboard-controls {
+            background-color: #283618;
+            color: #fefae0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .dark-mode .app-section {
+            background: linear-gradient(145deg, #283618, #606c38);
+            color: #fefae0;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .dark-mode .fretboard-container {
+            background-color: #606c38;
+            border: 1px solid #dda15e;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .dark-mode .fretboard {
+            background-color: #dda15e;
+            border: 2px solid #4b4b4b;
+            border-radius: 5px;
+        }
+        .dark-mode .note {
+            background-color: #dda15e;
+            color: #283618;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .dark-mode .note:hover {
+            transform: scale(1.2);
+            background-color: #bc6c25;
+        }
+        .dark-mode .scale-display {
+            color: #fefae0;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        .dark-mode button {
+            background-color: #dda15e;
+            color: #283618;
+            border: 1px solid #bc6c25;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .dark-mode button:hover {
+            background-color: #bc6c25;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+        .dark-mode select {
+            background-color: #dda15e;
+            color: #283618;
+            border: 1px solid #bc6c25;
+        }
+        .dark-mode select:hover {
+            background-color: #bc6c25;
+        }
+        .dark-mode .measure {
+            background-color: #606c38;
+            color: #fefae0;
+            border: 1px solid #dda15e;
+        }
+        .dark-mode .measure.active {
+            background-color: #dda15e;
+            border-color: #bc6c25;
+        }
+        .dark-mode .beat {
+            background-color: #dda15e;
+            color: #283618;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .dark-mode .beat.active {
+            background-color: #bc6c25;
+            transform: translateY(-5px);
+        }
+        .dark-mode .volume-control {
+            color: #fefae0;
+        }
+        .dark-mode .volume-control input[type="range"] {
+            background: #606c38;
+        }
+        .dark-mode .volume-control input[type="range"]::-webkit-slider-thumb {
+            background: #dda15e;
+            border: 1px solid #bc6c25;
+        }
+            background-color: #0a1128;
+            color: #fefcfb;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .dark-mode-2 .app-section {
+            background: linear-gradient(145deg, #001f54, #034078);
+            color: #fefcfb;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark-mode-2 .fretboard-container {
+            background-color: #034078;
+            border: 1px solid #1282a2;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .dark-mode-2 .fretboard {
+            background-color: #001f54;
+            border: 2px solid #1282a2;
+            border-radius: 5px;
+        }
+        
+        .dark-mode-2 .note {
+            background-color: #1282a2;
+            color: #fefcfb;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark-mode-2 .scale-display {
+            color: #fefcfb;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .dark-mode-2 button {
+            background-color: #1282a2;
+            color: #fefcfb;
+            border: 1px solid #034078;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark-mode-2 select {
+            background-color: #034078;
+            color: #fefcfb;
+            border: 1px solid #1282a2;
+        }
+        
+        .dark-mode-2 .measure {
+            background-color: #034078;
+            color: #fefcfb;
+            border: 1px solid #1282a2;
+        }
+        
+        .dark-mode-2 .measure.active {
+            background-color: #1282a2;
+            border-color: #fefcfb;
+        }
+        
+        .dark-mode-2 .beat {
+            background-color: #1282a2;
+            color: #fefcfb;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark-mode-2 .beat.active {
+            background-color: #034078;
+            transform: translateY(-5px);
+        }
+
+        /* Add these to your existing dark mode CSS sections */
+        .dark-mode #fretflow-section {
+            background: linear-gradient(145deg, #283618, #606c38);
+            color: #fefae0;
+        }
+        
+        .dark-mode-2 #fretflow-section {
+            background: linear-gradient(145deg, #001f54, #034078);
+            color: #fefcfb;
+        }
+        
+        .dark-mode-3 #fretflow-section {
+            background: linear-gradient(145deg, #6b705c, #a5a58d);
+            color: #ffe8d6;
+        }
+        
+                .toggle-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-button.active {
+            background: #4CAF50;
+        }
+        
+        .toggle-button:not(.active) {
+            background: #9E9E9E;
+        }
+        
+        #dark-mode-toggle.active-2 {
+            background-color: #1282a2;
+            color: #fefcfb;
+            border: 1px solid #034078;
+        }
+        
+        .dark-mode-3 {
+            background-color: #6b705c;
+            color: #ffe8d6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .dark-mode-3 .app-section {
+            background: linear-gradient(145deg, #6b705c, #a5a58d);
+            color: #ffe8d6;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark-mode-3 .fretboard-container {
+            background-color: #606c38;
+            border: 1px solid #cb997e;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .dark-mode-3 .fretboard {
+            background-color: #cb997e;
+            border: 2px solid #6b705c;
+            border-radius: 5px;
+        }
+        
+        .dark-mode-3 .note {
+            background-color: #b7b7a4;
+            color: #6b705c;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark-mode-3 .scale-display {
+            color: #ffe8d6;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .dark-mode-3 button {
+            background-color: #cb997e;
+            color: #ffe8d6;
+            border: 1px solid #6b705c;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark-mode-3 select {
+            background-color: #ddbea9;
+            color: #6b705c;
+            border: 1px solid #cb997e;
+        }
+        
+        .dark-mode-3 .measure {
+            background-color: #a5a58d;
+            color: #ffe8d6;
+            border: 1px solid #cb997e;
+        }
+        
+        .dark-mode-3 .measure.active {
+            background-color: #ddbea9;
+            border-color: #cb997e;
+        }
+        
+        .dark-mode-3 .beat {
+            background-color: #ddbea9;
+            color: #6b705c;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark-mode-3 .beat.active {
+            background-color: #cb997e;
+            transform: translateY(-5px);
+        }
+        
+        .dark-mode-3 .volume-control {
+            color: #ffe8d6;
+        }
+        
+        #dark-mode-toggle.active-3 {
+            background-color: #cb997e;
+            color: #ffe8d6;
+            border: 1px solid #6b705c;
+        }
+        
