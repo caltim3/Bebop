@@ -1,0 +1,790 @@
+body {
+    font-family: 'Lato', sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: var(--bg-color, #f0f0f0); /* Lighter default background */
+    color: var(--text-color, #333);
+
+    /* Light Theme (Default) Guide Tone Colors */
+    --guide-tone-bg-color: #007bff;       /* Bright Blue */
+    --guide-tone-text-color: white;
+    --guide-tone-border-color: #0056b3;    /* Darker Blue */
+    --root-highlight-border-color: #c82333; /* Default for root highlight border */
+
+    /* Item 1: Song Title Color */
+    --song-title-fretboard-color: #0056b3; /* Darker blue for light mode */
+
+    /* NEW: Subsection styling variables for Light Mode */
+    --subsection-bg-color: #e9ecef;
+    --subsection-border-color: #ced4da;
+    --subsection-title-color: inherit;
+}
+.app-section {
+    background: var(--section-bg-color, white);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    color: var(--section-text-color, inherit);
+}
+
+/* NEW: Subsection styling */
+.app-subsection {
+    background-color: var(--subsection-bg-color, #e9ecef);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid var(--subsection-border-color, #ced4da);
+}
+.song-setup-controls h4 { /* Specific for the song setup title */
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--subsection-title-color, var(--text-color));
+}
+
+
+.fretboards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+.fretboard-container {
+    background: var(--fretboard-container-bg, white);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid var(--fretboard-container-border, transparent);
+}
+/* Song Info Display Styling (Item 1) */
+#song-info-display-fretboard {
+    margin-bottom: 10px; /* Space before scale display */
+}
+#song-info-display-fretboard #current-song-title-fretboard {
+    text-align: left;
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 1.3em; /* Slightly larger */
+    font-weight: bold; /* Bolder */
+    color: var(--song-title-fretboard-color); /* Themed color */
+}
+#song-info-display-fretboard p {
+    text-align: left;
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: var(--song-info-p-color, #555);
+    font-style: italic;
+}
+
+.scale-display {
+    font-size: 1.2em;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 5px; /* Reduced margin */
+    color: var(--scale-display-color, #333);
+    min-height: 1.5em; /* Reserve space */
+}
+/* Next Chord Display Styling */
+.next-chord-display {
+    font-size: 0.95em; /* Slightly smaller than scale display */
+    font-style: italic;
+    text-align: center;
+    color: var(--next-chord-color, #6c757d); /* Muted gray color */
+    margin-top: -5px; /* Pull it up slightly */
+    margin-bottom: 15px; /* Space below before controls */
+    height: auto; /* Allow multiple lines */
+    min-height: 1.2em; /* Reserve space to prevent layout shift for single line */
+    line-height: 1.2em;
+}
+.controls, .top-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+/* MODIFIED: .top-controls for global panel */
+.top-controls {
+    justify-content: flex-start; /* Align items to the start */
+}
+
+.controls-container { display: flex; gap: 20px; margin-bottom: 20px; }
+.control-group { display: flex; align-items: center; gap: 10px; }
+.control-group label { font-weight: bold; }
+.control-group select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+
+.fretboard {
+    position: relative;
+    height: 200px;
+    background-color: var(--fretboard-bg, #FFCF79);
+    border-radius: 5px;
+    margin-bottom: 30px;
+    border: 2px solid var(--fretboard-border, #4A3B31);
+    overflow: visible;
+}
+.fret-line { position: absolute; top: 0; height: 100%; width: 2px; background: #A0A0A0; border-right: 1px solid rgba(0,0,0,0.1); z-index: 1; }
+.string-line { position: absolute; left: 0; width: 100%; height: 1px; background: #C0C0C0; border-bottom: 1px solid rgba(0,0,0,0.1); z-index: 0; }
+.fret-number { position: absolute; bottom: -25px; font-size: 14px; color: #555; transform: translateX(-50%); font-weight: bold; z-index: 2; width: 20px; text-align: center; }
+.fret-marker { position: absolute; width: 10px; height: 10px; background-color: #5A4F46; border-radius: 50%; transform: translate(-50%, -50%); z-index: 1; }
+
+.note {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--note-text-color, white); /* Default note text color */
+    z-index: 3;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.2s ease, color 0.2s ease, outline 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    /* background-color is set by JS for regular notes */
+}
+
+/* UPDATED GUIDE TONE STYLING (Item 3) */
+.note.guide-tone-highlight, .note.root-highlight-for-guides {
+    outline: 3px solid var(--guide-tone-border-color) !important;
+    box-shadow: 0 0 8px 2px var(--guide-tone-border-color) !important;
+    transform: translate(-50%, -50%) scale(0.95) !important; /* Make them slightly smaller */
+    z-index: 10 !important;
+    font-weight: bold !important;
+    border-radius: 50%;
+}
+.note.guide-tone-highlight {
+    background-color: var(--guide-tone-bg-color) !important;
+    color: var(--guide-tone-text-color) !important;
+}
+.note.root-highlight-for-guides {
+    /* Retains its original background and text color from the scale drawing logic */
+    /* Specific border for root if needed, defaults to guide tone border */
+     outline-color: var(--root-highlight-border-color) !important;
+     box-shadow: 0 0 8px 2px var(--root-highlight-border-color) !important;
+}
+
+.note:hover {
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+.note.guide-tone-highlight:hover, .note.root-highlight-for-guides:hover {
+    transform: translate(-50%, -50%) scale(1.1) !important; /* Slightly larger hover for highlighted notes */
+}
+
+
+.beat { width: 40px; height: 80px; background: #9E9E9E; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: white; font-weight: bold; transition: all 0.2s ease; font-size: 14px; margin: 0 2px; }
+.beats-container { display: flex; justify-content: center; gap: 8px; margin: 20px 0; flex-wrap: nowrap; overflow-x: auto; }
+.beat.active { transform: translateY(-10px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+#measures { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+
+.measure { 
+    position: relative; 
+    background-color: var(--measure-bg, #e9ecef); 
+    padding: 10px; /* Reduced padding slightly */
+    border-radius: 4px; 
+    transition: opacity 0.2s ease, background-color 0.2s ease, border 0.2s ease; 
+    border: 2px solid transparent; 
+    cursor: pointer; 
+    color: var(--measure-text-color, #333); 
+    display: flex; /* For split measure layout */
+    flex-direction: column; /* Default: Stack parts or part + button */
+    gap: 8px; /* Gap between parts or part and button */
+}
+.measure.split-active {
+    /* Styles for when measure is split, parts might go side-by-side */
+    flex-direction: row; /* Arrange parts side by side */
+    align-items: flex-start; /* Align items at the top */
+}
+.measure-part {
+    flex: 1; /* Each part takes equal space if side-by-side */
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* Gap between controls within a part */
+    padding: 5px;
+    border: 1px dashed var(--measure-part-border-color, #ccc);
+    border-radius: 3px;
+}
+.measure.split-active .measure-part {
+    min-width: 120px; /* Ensure controls don't get too squished */
+}
+
+.measure-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+.measure-number { 
+    font-size: 12px; 
+    color: var(--measure-text-color, #333);
+    background-color: rgba(255,255,255,0.7); 
+    padding: 2px 4px; 
+    border-radius: 3px; 
+}
+.split-measure-button {
+    padding: 3px 6px;
+    font-size: 0.8em;
+    align-self: flex-end; /* Position button appropriately */
+    margin-top: 5px;
+}
+.measure.split-active .split-measure-button {
+    /* Adjust button position if measure content is row-based */
+    /* This might need to be outside the measure-part flow */
+}
+ .measure-footer { /* Container for buttons at the bottom of a measure */
+    display: flex;
+    justify-content: flex-end; /* Align button to the right */
+    margin-top: auto; /* Pushes to the bottom if measure is flex-column */
+}
+ .measure.split-active .measure-footer {
+    width: 100%; /* Make footer span across if measure becomes row for parts */
+    justify-content: center; /* Center button if parts are side-by-side */
+    padding-top: 10px;
+}
+
+
+.measure.loop-selected { border: 2px solid var(--measure-loop-border, #007bff); background-color: var(--measure-loop-bg, #e6f2ff); }
+.measure.active .measure-part.part-active { background-color: var(--measure-active-bg, #c3e6cb); border: 1px solid var(--measure-active-border, #28a745); }
+.measure.active .measure-part:not(.part-active) { /* Slightly dim inactive part */
+    opacity: 0.7;
+}
+
+
+.chord-controls, .scale-controls { display: flex; gap: 5px; margin-bottom: 5px; flex-wrap: wrap;}
+.chord-controls select, .scale-controls select { flex: 1; min-width: 60px; }
+
+
+.fretboard-section { border: 1px solid #ccc; padding: 15px; border-radius: 8px; background-color: #f9f9f9; }
+body.dark-mode .fretboard-section { background-color: #3a441e; border-color: #606c38; color: #fefae0; }
+body.dark-mode-2 .fretboard-section { background-color: #001f54; border-color: #1282a2; color: #fefcfb; }
+body.dark-mode-3 .fretboard-section { background-color: #a5a58d; border-color: #cb997e; color: #ffe8d6; }
+.fretboard-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 5px 0;
+    color: var(--volume-control-text-color, inherit);
+}
+#metronome-volume-controls-stack {
+    display: flex; /* Initially flex, JS will toggle to none/flex */
+    flex-direction: column;
+    gap: 8px;
+    max-width: 400px;
+    margin: 15px auto 20px auto;
+}
+#metronome-volume-controls-stack .volume-control {
+    width: 100%;
+    justify-content: space-between; 
+}
+#metronome-volume-controls-stack .volume-control label,
+#metronome-volume-controls-stack .volume-control span {
+    margin-right: 10px;
+    white-space: nowrap;
+    flex-shrink: 0; 
+}
+#metronome-volume-controls-stack .volume-control input[type="range"] {
+    flex-grow: 1;
+    min-width: 150px;
+    max-width: 250px;
+}
+
+/* NEW: Collapsible Section Styling */
+.collapsible-section {
+    margin-bottom: 15px;
+}
+.collapsible-toggle {
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.collapsible-toggle .toggle-icon {
+    font-weight: bold;
+    transition: transform 0.2s ease-in-out;
+}
+.collapsible-toggle[aria-expanded="true"] .toggle-icon {
+    transform: rotate(45deg);
+}
+.collapsible-content {
+    border-top: 1px solid var(--subsection-border-color, #ced4da);
+    padding-top: 10px;
+}
+
+
+button, .button-like { padding: 10px 15px; border: none; border-radius: 5px; background: var(--button-bg, #4CAF50); color: var(--button-text-color, white); cursor: pointer; font-size: 0.9em; transition: background-color 0.2s ease; }
+button:hover, .button-like:hover { background: var(--button-hover-bg, #45a049); }
+button.secondary { background-color: var(--button-secondary-bg, #007bff); }
+button.secondary:hover { background-color: var(--button-secondary-hover-bg, #0056b3); }
+button.danger { background-color: var(--button-danger-bg, #6b705c); }
+button.danger:hover { background-color: var(--button-danger-hover-bg, #c82333); }
+select { padding: 8px 10px; margin: 5px; border-radius: 5px; border: 1px solid var(--select-border-color, #ddd); background-color: var(--select-bg-color, white); color: var(--select-text-color, inherit); }
+#tempo-display { font-size: 1.2em; font-weight: bold; margin: 0 10px; min-width: 70px; text-align: center; }
+#loading-indicator { position: fixed; top: 20px; right: 20px; padding: 10px 15px; background: rgba(0,0,0,0.8); color: white; border-radius: 5px; z-index: 1000; font-size: 0.9em; display: none; }
+.checkbox-wrapper { margin-top: 10px; margin-left: 0; display: flex; align-items: center; }
+.control-button { padding: 8px 12px; font-size: 0.9em; }
+#chordsEnabled { margin-bottom: 10px; }
+
+#start-stop {
+    padding: 12px 25px !important;
+    font-size: 1.1em !important;
+    font-weight: bold !important;
+    background-color: var(--start-stop-bg, #28a745) !important;
+    border: 2px solid var(--start-stop-border, #1e7e34) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+    color: var(--start-stop-text-color, white) !important;
+}
+#start-stop:hover {
+    background-color: var(--start-stop-hover-bg, #218838) !important;
+    border-color: var(--start-stop-hover-border, #1c6c2e) !important;
+}
+
+/* --- Dark Mode 1 --- */
+body.dark-mode {
+    --bg-color: #283618;
+    --text-color: #fefae0;
+    --section-bg-color: linear-gradient(145deg, #283618, #606c38);
+    --section-text-color: #fefae0;
+    --fretboard-container-bg: #606c38;
+    --fretboard-container-border: #dda15e;
+    /* Item 1 */ --song-title-fretboard-color: #dda15e; /* Goldish for DM1 */
+    --song-info-h4-color: #fefae0;
+    --song-info-p-color: #e0daca;
+    --fretboard-bg: #dda15e;
+    --fretboard-border: #4b4b4b;
+    --note-text-color: #283618; /* Note text on fretboard */
+    --scale-display-color: #fefae0;
+    --button-bg: #dda15e;
+    --button-text-color: #283618;
+    --button-hover-bg: #bc6c25;
+    --button-secondary-bg: #a17d40;
+    --button-secondary-hover-bg: #8a6930;
+    --button-danger-bg: #6b705c;
+    --button-danger-hover-bg: #d73744;
+    --start-stop-bg: #fca311;
+    --start-stop-border: #e79002;
+    --start-stop-text-color: #283618;
+    --start-stop-hover-bg: #e79002;
+    --start-stop-hover-border: #c87800;
+    --select-bg-color: #dda15e;
+    --select-text-color: #283618;
+    --select-border-color: #bc6c25;
+    --measure-bg: #606c38;
+    --measure-text-color: #fefae0;
+    --measure-border: #dda15e; /* Default border for measure */
+    --measure-active-bg: #dda15e;
+    --measure-active-border: #bc6c25;
+    --measure-loop-bg: #7d6830;
+    --measure-loop-border: #ffc107;
+    --beat-bg: #dda15e;
+    --beat-text-color: #283618;
+    --beat-active-bg: #bc6c25;
+    --volume-control-text-color: #fefae0;
+    --next-chord-color: #fefae0;
+    --measure-part-border-color: #dda15e;
+
+    /* NEW: Subsection styling variables for Dark Mode 1 */
+    --subsection-bg-color: #2c3e1a;
+    --subsection-border-color: #4a5a2a;
+    --subsection-title-color: #fefae0;
+
+    /* Dark Mode 1 Guide Tone Colors */
+    --guide-tone-bg-color: #61dafb;      /* Light Cyan/Aqua */
+    --guide-tone-text-color: #0a1128;    /* Very Dark Blue/Black */
+    --guide-tone-border-color: #4ac9e8;   /* Slightly Darker Cyan */
+    --root-highlight-border-color: #ffc107; /* Gold for root highlight */
+}
+.dark-mode .app-section { box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+.dark-mode .scale-display { text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+.dark-mode .beat.active { transform: translateY(-5px); }
+#dark-mode-toggle.active { background-color: #283618; color: #fefae0; border: 1px solid #dda15e; }
+
+/* --- Dark Mode 2 --- */
+body.dark-mode-2 {
+    --bg-color: #0a1128;
+    --text-color: #fefcfb;
+    --section-bg-color: linear-gradient(145deg, #001f54, #034078);
+    --section-text-color: #fefcfb;
+    --fretboard-container-bg: #034078;
+    --fretboard-container-border: #1282a2;
+    /* Item 1 */ --song-title-fretboard-color: #61dafb; /* Cyan for DM2 */
+    --song-info-h4-color: #fefcfb;
+    --song-info-p-color: #e0e0df;
+    --fretboard-bg: #001f54;
+    --fretboard-border: #1282a2;
+    --note-text-color: #fefcfb; /* Note text on fretboard */
+    --scale-display-color: #fefcfb;
+    --button-bg: #1282a2;
+    --button-text-color: #fefcfb;
+    --button-hover-bg: #0e6c89;
+    --button-secondary-bg: #0c5f7d;
+    --button-secondary-hover-bg: #094b61;
+    --button-danger-bg: #6b705c;
+    --button-danger-hover-bg: #e83838;
+    --start-stop-bg: #61dafb;
+    --start-stop-border: #4ac9e8;
+    --start-stop-text-color: #0a1128;
+    --start-stop-hover-bg: #4ac9e8;
+    --start-stop-hover-border: #32b6d4;
+    --select-bg-color: #034078;
+    --select-text-color: #fefcfb;
+    --select-border-color: #1282a2;
+    --measure-bg: #034078;
+    --measure-text-color: #fefcfb;
+    --measure-border: #1282a2;
+    --measure-active-bg: #1282a2;
+    --measure-active-border: #fefcfb;
+    --measure-loop-bg: #01325A;
+    --measure-loop-border: #61dafb;
+    --beat-bg: #1282a2;
+    --beat-text-color: #fefcfb;
+    --beat-active-bg: #034078;
+    --volume-control-text-color: #fefcfb;
+    --next-chord-color: #fefcfb;
+    --measure-part-border-color: #1282a2;
+
+    /* NEW: Subsection styling variables for Dark Mode 2 */
+    --subsection-bg-color: #001844;
+    --subsection-border-color: #022c60;
+    --subsection-title-color: #fefcfb;
+
+    /* Dark Mode 2 Guide Tone Colors */
+    --guide-tone-bg-color: #fca311;      /* Bright Orange/Yellow */
+    --guide-tone-text-color: #001f54;    /* Dark Blue (contrasts with bg) */
+    --guide-tone-border-color: #e79002;   /* Darker Orange */
+    --root-highlight-border-color: #61dafb; /* Cyan for root highlight */
+}
+#dark-mode-toggle.active-2 { background-color: #1282a2; color: #fefcfb; border: 1px solid #034078; }
+
+/* --- Dark Mode 3 --- */
+body.dark-mode-3 {
+    --bg-color: #2A2F20; /* Very Dark Olive */
+    --text-color: #F0EFEB; /* Warm Off-White */
+    --section-bg-color: linear-gradient(145deg, #3A4030, #4A5040); /* Muted Olive/Khaki */
+    --section-text-color: #F0EFEB;
+    
+    --fretboard-container-bg: #4A5040; /* Slightly Lighter Olive from gradient */
+    --fretboard-container-border: #8A9A5B; /* Sage Green Accent */
+
+    /* Song Title Color */
+    --song-title-fretboard-color: #D97904; /* Burnt Orange/Ochre for pop */
+    --song-info-h4-color: #F0EFEB;
+    --song-info-p-color: #C8C3BF; /* Lighter grey for less emphasis */
+
+    --fretboard-bg: #A98B73; /* Muted Wood Brown */
+    --fretboard-border: #2A2F20; /* Match body background */
+    
+    /* Note Text on Fretboard */
+    --note-text-color: #2A2F20; /* Dark text on lighter fretboard notes */
+
+    --scale-display-color: #F0EFEB;
+    
+    /* Buttons */
+    --button-bg: #D97904; /* Primary Accent - Pop */
+    --button-text-color: #2A2F20; /* Dark text for contrast on orange */
+    --button-hover-bg: #B46504; /* Darker orange */
+
+    --button-secondary-bg: #8A9A5B; /* Sage Green Accent */
+    --button-secondary-hover-bg: #6B7A47; /* Darker Sage */
+
+    --button-danger-bg: #705c5c; /* Muted Desaturated Red/Brown for danger */
+    --button-danger-text-color: #F0EFEB;
+    --button-danger-hover-bg: #8c3333; /* Darker Muted Red */
+
+    /* Start/Stop Button */
+    --start-stop-bg: #D97904 !important; /* Pop color */
+    --start-stop-border: #B46504 !important;
+    --start-stop-text-color: #2A2F20 !important; /* Dark text */
+    --start-stop-hover-bg: #E7A002 !important; /* Slightly Brighter/Golden Orange */
+    --start-stop-hover-border: #D97904 !important;
+
+    /* Selects */
+    --select-bg-color: #4A5040; /* Mid Khaki from section */
+    --select-text-color: #F0EFEB;
+    --select-border-color: #8A9A5B; /* Sage Accent */
+
+    /* Measures */
+    --measure-bg: #3A4030; /* Darker Khaki from section gradient */
+    --measure-text-color: #F0EFEB;
+    --measure-border: #8A9A5B; /* Sage for inactive measure (subtle) */
+    --measure-active-bg: #5F7365; /* Muted Teal-Green for active measure */
+    --measure-active-border: #D97904; /* Orange pop for active border */
+    --measure-loop-bg: #505A45; /* Darker, desaturated green for loop */
+    --measure-loop-border: #E7A002; /* Gold for loop border */
+    --measure-part-border-color: #6B7A47; /* Darker Sage for dashed line */ /* Corrected: only one definition */
+
+    /* Beats */
+    --beat-bg: #8A9A5B; /* Sage Green */
+    --beat-text-color: #2A2F20; /* Dark Text */
+    --beat-active-bg: #D97904; /* Orange Pop for active beat */
+
+    --volume-control-text-color: #F0EFEB;
+    --next-chord-color: #C8C3BF; /* Lighter grey */
+
+    /* Subsection specific theming */
+    --subsection-bg-color: #31372B; /* Darker Khaki */
+    --subsection-border-color: #4A5040;
+    --subsection-title-color: #F0EFEB;
+
+    /* Guide Tones */
+    --guide-tone-bg-color: #E7A002;      /* Muted Gold/Yellow */
+    --guide-tone-text-color: #2A2F20;    /* Dark text */
+    --guide-tone-border-color: #D97904;   /* Burnt Orange */
+    --root-highlight-border-color: #D9534F; /* Muted Red for root highlight (distinct) */
+}
+
+body.dark-mode-3 button.danger { color: var(--button-danger-text-color, white); } 
+body.dark-mode-3 #dark-mode-toggle.active-3 { 
+    background-color: var(--button-bg); 
+    color: var(--button-text-color); 
+    border: 1px solid var(--button-hover-bg); 
+}
+
+/* Fretflow Section Theming - ensure these are after main theme blocks */
+/* Dark Mode 1 - Unchanged */
+.dark-mode #fretflow-section { background: linear-gradient(145deg, #283618, #606c38); color: #fefae0; }
+/* Dark Mode 2 - Unchanged */
+.dark-mode-2 #fretflow-section { background: linear-gradient(145deg, #001f54, #034078); color: #fefcfb; }
+/* Dark Mode 3 - UPDATED */
+body.dark-mode-3 #fretflow-section { 
+    background: var(--section-bg-color); 
+    color: var(--text-color); 
+    border-color: var(--fretboard-container-border);
+}
+
+/* Toggle button styling for DM3 */
+body.dark-mode-3 .toggle-button.active {
+    background: var(--button-bg); 
+    color: var(--button-text-color);
+}
+body.dark-mode-3 .toggle-button:not(.active) {
+    background: var(--button-secondary-bg); 
+    color: var(--text-color); 
+}
+
+/* Optional Font for DM3 Headings */
+body.dark-mode-3 h1, body.dark-mode-3 h2, body.dark-mode-3 h3, body.dark-mode-3 h4 {
+    font-family: 'Georgia', serif; 
+}
+
+/* Note Styling for DM3 */
+body.dark-mode-3 .fretboard .note {
+    color: #2A2F20; /* Dark text on note circles */
+}
+body.dark-mode-3 .fretboard .note.guide-tone-highlight {
+    background-color: var(--guide-tone-bg-color) !important; 
+    color: var(--guide-tone-text-color) !important; 
+}
+    /* ====== ADD THESE RESPONSIVE STYLES AT THE END OF YOUR EXISTING CSS ====== */
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    .app-section, .fretboard-container {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    .app-subsection {
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    h1 { font-size: 1.6em; }
+    h2 { font-size: 1.4em; }
+    h3 { font-size: 1.1em; }
+    h4 { font-size: 1.0em; }
+
+    .top-controls {
+        flex-direction: column; /* Stack global controls */
+        align-items: flex-start;
+    }
+    .top-controls button, .top-controls select {
+        width: auto; /* Allow them to size naturally initially */
+        margin-bottom: 8px;
+    }
+
+    .fretboards-grid {
+        grid-template-columns: 1fr; /* Stack FretFlow fretboards */
+        gap: 15px;
+    }
+
+    .fretboard {
+        height: 160px; /* Slightly reduce height */
+    }
+    .note {
+        width: 22px; /* Ensure tappability */
+        height: 22px;
+        font-size: 11px;
+    }
+    .note.guide-tone-highlight, .note.root-highlight-for-guides {
+        outline-width: 2px;
+    }
+
+    #measures {
+        grid-template-columns: 1fr; /* Single column for measures */
+        gap: 15px;
+    }
+    .measure.split-active {
+        flex-direction: column; /* Stack split measure parts */
+    }
+     .measure.split-active .measure-part {
+        min-width: unset; /* Allow full width */
+    }
+
+    .controls, .top-controls, .fretboard-controls, .song-setup-controls .controls, #user-songs-section .controls {
+        gap: 8px;
+    }
+    .controls select, .controls button, .top-controls select, .top-controls button {
+        padding: 8px 10px; /* Slightly smaller padding on controls */
+        font-size: 0.85em;
+    }
+    #tempo-display {
+        font-size: 1em;
+        min-width: 60px;
+    }
+    #start-stop {
+        padding: 10px 20px !important;
+        font-size: 1em !important;
+    }
+
+    #metronome-volume-controls-stack .volume-control {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    #metronome-volume-controls-stack .volume-control label,
+    #metronome-volume-controls-stack .volume-control span {
+        margin-bottom: 5px;
+    }
+    #metronome-volume-controls-stack .volume-control input[type="range"] {
+        width: 100%; /* Full width for sliders in stack */
+        max-width: none;
+    }
+
+    .song-setup-controls h4 {
+        font-size: 1.1em;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+    .app-section, .fretboard-container {
+        padding: 10px;
+    }
+    .app-subsection {
+        padding: 8px;
+    }
+
+    h1 { font-size: 1.4em; }
+    h2 { font-size: 1.2em; }
+    h3 { font-size: 1.0em; }
+    h4 { font-size: 0.9em; }
+
+    #song-info-display-fretboard #current-song-title-fretboard {
+        font-size: 1.1em;
+    }
+    #song-info-display-fretboard p {
+        font-size: 0.8em;
+    }
+    .scale-display { font-size: 1em; }
+    .next-chord-display { font-size: 0.85em; }
+
+
+    /* General controls stacking */
+    .controls, .fretboard-controls, .song-setup-controls .controls, #user-songs-section .controls,
+    .top-controls /* Already column from 768px */ {
+        flex-direction: column; /* Ensure stacking */
+        align-items: stretch; /* Make children take full available width */
+    }
+    .controls > *, .fretboard-controls > *, .song-setup-controls .controls > *, #user-songs-section .controls > *,
+    .top-controls > * { /* Target direct children */
+        width: 100%; /* Full width for inputs/buttons in stacked controls */
+        margin-bottom: 8px;
+        box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    }
+    .controls select, .controls button, /* Already targeted by > * */
+    .control-group select, .control-group button, .control-group input {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .control-group label { margin-bottom: 3px; }
+
+
+    .fretboard {
+        height: 130px; /* Further reduce height */
+        margin-bottom: 20px;
+    }
+    .fret-number { font-size: 10px; bottom: -20px; }
+    .note {
+        width: 20px;
+        height: 20px;
+        font-size: 9px;
+    }
+
+    .beats-container {
+        margin: 10px 0;
+        gap: 5px;
+    }
+    .beat {
+        width: 35px;
+        height: 70px;
+        font-size: 12px;
+    }
+
+    .chord-controls select, .scale-controls select {
+        min-width: 50px; /* Further reduce min-width */
+        font-size: 0.8em;
+        padding: 5px;
+    }
+    .measure-header .measure-number { font-size: 10px; }
+    .split-measure-button { font-size: 0.7em; padding: 2px 4px;}
+
+
+    #tempo { width: calc(100% - 110px); /* Adjust if tap tempo or display changes significantly */}
+    #tempo-display { margin: 0 5px; }
+
+    #start-stop {
+        padding: 8px 15px !important;
+        font-size: 0.9em !important;
+    }
+
+    /* Make sure individual volume control stacks correctly */
+    .volume-control {
+        flex-direction: column; /* Stack label and input */
+        align-items: flex-start; /* Align label to start */
+        gap: 5px;
+    }
+    .volume-control input[type="range"] {
+        width: 100%; /* Full width for range inputs */
+    }
+    .control-group {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .control-group #reverb-dial {
+        width: 100%;
+    }
+
+    /* Collapsible sections */
+    .collapsible-toggle {
+        padding: 6px 10px;
+        font-size: 0.9em;
+    }
+}
+
+/* Minor fix for select dropdowns on dark mode for better visibility with potential width:100% */
+body.dark-mode select, body.dark-mode-2 select, body.dark-mode-3 select {
+    /* If you set width: 100% on selects, ensure their text is readable and they don't look too out of place */
+    /* This is mostly fine, but could add specific padding if needed */
+}
