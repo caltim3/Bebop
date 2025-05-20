@@ -294,8 +294,8 @@ export const progressions = {
     progression: [
       "Am7", "Am7", "E7",  "E7",
       "Am7", "Am7", "Dm7", "Am7",
-      "Dm7", "Am7", "E7",  "Am7 (E7alt for repeat)",
-      "Am7", "Am7", "E7", "E7" // User had a 13th bar "Am7", common is 16 bars.
+      "Dm7", "Am7", "E7",  "Am7",
+      "Am7", "Am7", "E7", "E7", // User had a 13th bar "Am7", common is 16 bars.
       // Correcting to a more standard 16 bar blues-like form:
       // Am | Am | E7 | E7 |
       // Am | Am | Dm | Am |
@@ -314,7 +314,7 @@ export const progressions = {
       // Am7 | Am7 | Am7| Am7 (16) - if assuming the last "Am7" was meant for a whole line.
       // Or simpler for a 16 bar: repeat the first line at the end (or a variation)
       // For this version, let's use a 16-bar structure closer to common blues forms:
-      "Dm7", "Am7", "E7", "Am7 (E7alt)" // This makes it 16 bars if each is a measure.
+      "Dm7", "Am7", "E7", "Am7" // This makes it 16 bars if each is a measure.
     ],
     description: "A sultry, soulful progression from Gershwin's opera, perfect for laid-back grooves."
   },
