@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bebop Blueprint</title>
+    <link rel="icon" type="image/png" href="main/icons/jazzmaster.png">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- MODIFIED: Top Controls / Global Panel -->
+    <div class="top-controls app-section">
+        <button id="dark-mode-toggle" aria-label="Toggle dark mode">Dark Mode</button>
+        <!-- Placeholder for future global controls -->
+        <button id="swing-toggle" class="toggle-button" style="display: none;">Swing Off</button>
+        <select id="note-naming-convention" style="display: none; margin-left: 10px;">
+            <option value="default">Note Names: Default</option>
+            <option value="sharps">Note Names: Sharps</option>
+            <option value="flats">Note Names: Flats</option>
+        </select>
+    </div>
+
+    <div class="app-section" id="chord-fretboard-section">
+        <h1>BEBOP BLUEPRINT</h1>
+        <h3>Fretflow - Dynamic Fretboard with Scales that Move with the Chord Progression</h3>
+        <div class="volume-control">
+            <span>Fretboard Volume:</span>
+            <input type="range" id="chord-fretboard-volume" min="0" max="1" step="0.1" value="0.3">
+        </div>
+        <div class="fretboard-container">
+            <div id="song-info-display-fretboard">
+                <h4 id="current-song-title-fretboard"></h4>
+                <p id="current-song-description-fretboard"></p>
+            </div>
+            <div class="scale-display" id="scale-display">Select a progression and key.</div>
+            <div class="next-chord-display" id="next-chord-display"></div>
+            <div class="controls">
+                <select class="tuning-select" id="chord-tuning" aria-label="Select guitar tuning">
+                    <option value="standard">Standard (EADGBE)</option>
+                    <option value="dropD">Drop D (DADGBE)</option>
+                    <option value="openG">Open G (DGDGBD)</option>
+                    <option value="DADGAD">DADGAD</option>
+                    <option value="openE">Open E (EBEG#BE)</option>
+                </select>
+                <button id="guide-tones-toggle" class="toggle-button" aria-label="Toggle guide tones">Guide Tones Off</button>
+            </div>
+            <div id="chord-fretboard" class="fretboard"></div>
+        </div>
+    </div>
+
+    <div class="app-section" id="metronome-section">
+        <h2>BeatForge Metronome</h2>
+        <h3>Click to accent strong beats</h3>
+        <div class="controls"> 
+            <select id="time-signature" aria-label="Select time signature">
+                <option value="2">2/4</option> <option value="3">3/4</option> <option value="4" selected>4/4</option>
+                <option value="6">6/8</option> <option value="7">7/8</option> <option value="8">8/8</option> <option value="12">12/8</option>
+            </select>
+            <select id="sound-type" aria-label="Select metronome sound">
+                <option value="click">Click</option> <option value="woodblock">Woodblock</option> <option value="drums">Drums</option>
+            </select>
+            <!-- NEW Rhythmic Style Dropdown -->
+            <div id="rhythmic-style-container" style="display: none;">
+                <label for="rhythmic-style-select">Style:</label>
+                <select id="rhythmic-style-select" aria-label="Select rhythmic style">
+                    <option value="quarterNotes">Quarter Notes</option>
+                    <option value="standardSwing">Standard Swing</option>
+                    <option value="freddieGreen">Freddie Green</option>
+                    <option value="charleston">Charleston</option>
+                    <option value="bossaNova">Bossa Nova</option>
+                    <option value="sonClave32">Son Clave (3:2)</option>
+                </select>
+            </div>
+            <button id="drumSetToggleBtn" class="control-button" style="display: none;">Drums</button> 
+            <input type="range" id="tempo" min="40" max="220" value="120" aria-label="Tempo">
+            <span id="tempo-display">120 BPM</span>
+            <button id="tap-tempo" aria-label="Tap tempo">Tap Tempo</button>
+            <button id="start-stop" aria-label="Start or stop metronome">Start</button>
+        </div>
+
+        <!-- MODIFIED: Collapsible Metronome Volume Controls -->
+        <div class="collapsible-section">
+            <button class="collapsible-toggle button-like secondary" aria-expanded="false" aria-controls="metronome-volume-controls-stack">
+                Advanced Volume Controls <span class="toggle-icon">+</span>
+            </button>
+            <div id="metronome-volume-controls-stack" class="collapsible-content" style="display: none;">
+                <div class="volume-control" id="metronome-master-volume-container">
+                    <span>Metronome Volume:</span>
+                    <input type="range" id="metronome-volume" min="0" max="1" step="0.1" value="0.25" aria-label="Metronome volume">
+                </div>
+                <div class="volume-control" id="kick-volume-container" style="display: none;">
+                    <label for="kick-volume">Kick Volume:</label>
+                    <input type="range" id="kick-volume" min="0" max="1" step="0.05" value="1.0" aria-label="Kick volume">
+                </div>
+                <div class="volume-control" id="snare-volume-container" style="display: none;">
+                    <label for="snare-volume">Snare Volume:</label>
+                    <input type="range" id="snare-volume" min="0" max="1" step="0.05" value="0.7" aria-label="Snare volume">
+                </div>
+                <div class="volume-control" id="hihat-volume-container" style="display: none;">
+                    <label for="hihat-volume">Hi-hat Volume:</label>
+                    <input type="range" id="hihat-volume" min="0" max="1" step="0.05" value="0.8" aria-label="Hi-hat volume">
+                </div>
+                <div class="volume-control" id="accent-intensity-container">
+                    <label for="accent-intensity">Accent Intensity:</label>
+                    <input type="range" id="accent-intensity" min="1" max="2" step="0.1" value="1.5" aria-label="Accent intensity">
+                </div>
+            </div>
+        </div>
+
+        <div class="beats-container"></div>
+    </div>
+
+    <!-- MODIFIED: Chord Progression Practice Section -->
+    <div class="app-section" id="chord-progression-section">
+        <h2>Chord Progression Practice</h2>
+        <div id="song-info-display" style="display: none;">
+            <h4 id="current-song-title"></h4>
+            <p id="current-song-description"></p>
+        </div>
+        <h3>Create a progression or pick one from the dropdown. Choose which key and scale to go with it.</h3>
+
+        <!-- NEW "Song Setup" Area -->
+        <div class="song-setup-controls app-subsection">
+            <h4>Song Setup</h4>
+            <div class="controls">
+                <label for="progression-select">Select Progression:</label>
+                <select id="progression-select" aria-label="Select chord progression">
+                    <optgroup label="Practice Progressions">
+                        <option value="I V7">I-V7</option>
+                        <option value="2_5_1">II-V-I</option>
+                        <option value="6_2_5_1">VI-II-V-I</option>
+                        <option value="minor_2_5_1">Minor iim-V7-im</option>
+                        <option value="jazz_blues">Jazz Blues</option>
+                        <option value="minor_blues">Minor Blues</option>
+                        <option value="bird_blues">Bird Blues (Parker Blues)</option>
+                        <option value="nows_the_time">Now's The Time (Parker F Blues)</option>
+                        <option value="tenor_madness">Tenor Madness (Rollins Bb Blues)</option>
+                        <option value="blue_monk">Blue Monk</option>
+                        <option value="straight_no_chaser">Straight, No Chaser</option>
+                        <option value="rhythm_changes">Rhythm Changes (Standard)</option>
+                        <option value="rhythm_changes_bebop">Rhythm Changes (Bebop)</option>
+                        <option value="oleo">Oleo (Rhythm Changes)</option>
+                    </optgroup>
+                    <optgroup label="Easy Jazz Standards">
+                        <option value="all_of_me">All of Me</option>
+                        <option value="autumn_leaves">Autumn Leaves</option>
+                        <option value="blue_bossa">Blue Bossa</option>
+                        <option value="embraceable_you">Embraceable You</option>
+                        <option value="girl_from_ipanema">Girl From Ipanema (Authentic Bossa)</option>
+                        <option value="girl_from_ipanema_jazz">Girl From Ipanema (Jazz Variant)</option>
+                        <option value="in_a_sentimental_mood">In a Sentimental Mood</option>
+                        <option value="just_friends">Just Friends</option>
+                        <option value="misty">Misty</option>
+                        <option value="my_funny_valentine">My Funny Valentine</option>
+                        <option value="someday_my_prince_will_come">Someday My Prince Will Come</option>
+                        <option value="summertime">Summertime</option>
+                        <option value="take_the_a_train">Take the "A" Train</option>
+                        <option value="there_will_never_be_another_you">There Will Never Be Another You</option>
+                    </optgroup>
+                    <optgroup label="Gypsy Jazz Standards">
+                        <option value="after_youve_gone_gypsy">After You've Gone (Gypsy)</option>
+                        <option value="belleville_gypsy">Belleville (Gypsy)</option>
+                        <option value="dark_eyes">Dark Eyes</option>
+                        <option value="djangology">Djangology</option>
+                        <option value="douce_ambiance_gypsy">Douce Ambiance (Gypsy)</option>
+                        <option value="ill_see_you_in_my_dreams">I'll See You In My Dreams (Django)</option>
+                        <option value="ill_see_you_in_my_dreams_alternate">I'll See You In My Dreams (Django Alt.)</option>
+                        <option value="jattendrai_gypsy">J'attendrai (Gypsy)</option>
+                        <option value="limehouse_blues_gypsy">Limehouse Blues (Gypsy)</option>
+                        <option value="minor_swing">Minor Swing</option>
+                        <option value="nuages">Nuages</option>
+                        <option value="rose_room_django">Rose Room (Django)</option>
+                        <option value="sweet_georgia_brown_gypsy">Sweet Georgia Brown (Gypsy)</option>
+                        <option value="swing_42_gypsy">Swing 42 (Gypsy)</option>
+                    </optgroup>
+                    <optgroup label="More Complex Jazz Standards">
+                        <option value="a_night_in_tunisia">A Night in Tunisia</option>
+                        <option value="all_the_things_you_are">All The Things You Are</option>
+                        <option value="black_orpheus">Black Orpheus (Manhã de Carnaval)</option>
+                        <option value="body_and_soul">Body and Soul</option>
+                        <option value="caravan">Caravan</option>
+                        <option value="cherokee">Cherokee</option>
+                        <option value="coltrane_changes">Coltrane Changes (Giant Steps Cycle)</option>
+                        <option value="confirmation">Confirmation</option>
+                        <option value="days_of_wine_and_roses">Days of Wine and Roses</option>
+                        <option value="dolphin_dance">Dolphin Dance (Main 16-bar theme)</option>
+                        <option value="donna_lee">Donna Lee</option>
+                        <option value="footprints">Footprints (12-bar modal blues)</option>
+                        <option value="how_high_the_moon">How High the Moon</option>
+                        <option value="impressions">Impressions</option>
+                        <option value="moments_notice">Moment's Notice (Main 16-bar theme)</option>
+                        <option value="on_green_dolphin_street">On Green Dolphin Street</option>
+                        <option value="recorda_me">Recorda Me (Main 16-bar theme)</option>
+                        <option value="rose_room">Rose Room (Traditional)</option>
+                        <option value="so_what">So What</option>
+                        <option value="solar">Solar</option>
+                        <option value="stella_by_starlight">Stella By Starlight</option>
+                    </optgroup>
+                </select>
+                <label for="keySelect">Select Key:</label>
+                <select id="keySelect" aria-label="Select key">
+                  <option value="C">C</option> <option value="Cm">Cm</option> <option value="Db">Db</option> <option value="Dbm">Dbm</option> <option value="D">D</option> <option value="Dm">Dm</option> <option value="Eb">Eb</option> <option value="Ebm">Ebm</option> <option value="E">E</option> <option value="Em">Em</option> <option value="F">F</option> <option value="Fm">Fm</option> <option value="Gb">Gb</option> <option value="Gbm">Gbm</option> <option value="G">G</option> <option value="Gm">Gm</option> <option value="Ab">Ab</option> <option value="Abm">Abm</option> <option value="A">A</option> <option value="Am">Am</option> <option value="Bb">Bb</option> <option value="Bbm">Bbm</option> <option value="B">B</option> <option value="Bm">Bm</option>
+                </select>
+                <button id="loop-selected-toggle" class="toggle-button" aria-label="Toggle measure looping">Looping Off</button>
+            </div>
+        </div>
+
+        <div id="user-songs-section" class="controls">
+            <label for="user-progression-select">Your Saved Songs:</label>
+            <select id="user-progression-select" aria-label="Select your saved chord progression">
+                <option value="">-- Select a saved song --</option>
+            </select>
+            <button id="delete-user-song-button" class="danger">Delete Selected Song</button>
+        </div>
+
+        <div id="measures"></div>
+
+        <div class="controls">
+            <button id="add-measure-button" aria-label="Add measure">Add Measure</button>
+            <button id="remove-measure-button" aria-label="Remove measure">Remove Last Measure</button>
+            <button id="save-progression-button" class="secondary" aria-label="Save current progression">Save Current Progression</button>
+            <button id="chordsEnabled" class="toggle-button active">Chords Enabled</button>
+        </div>
+        <div class="volume-control">
+            <label for="chord-volume">Chord Volume:</label>
+            <input type="range" id="chord-volume" min="0" max="1" step="0.1" value="0.5" aria-label="Chord volume">
+        </div>
+        <div class="control-group">
+              <label for="reverb-dial">Reverb</label>
+              <input type="range" id="reverb-dial" min="0" max="100" value="20" style="width: 120px;">
+              <span id="reverb-dial-value">20</span>%
+         </div>
+    </div>
+
+    <div class="app-section" id="fretflow-section">
+        <h2>FretFlow</h2>
+        <h3>Multiple scale workout</h3>
+        <div class="fretboards-grid"></div>
+    </div>
+
+    <div id="loading-indicator"></div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
