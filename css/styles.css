@@ -1,3 +1,5 @@
+/* css/style.css */
+
 body {
     font-family: 'Lato', sans-serif;
     max-width: 1200px;
@@ -182,15 +184,15 @@ body {
 .beat.active { transform: translateY(-10px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
 #measures { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
 
-.measure { 
-    position: relative; 
-    background-color: var(--measure-bg, #e9ecef); 
+.measure {
+    position: relative;
+    background-color: var(--measure-bg, #e9ecef);
     padding: 10px; /* Reduced padding slightly */
-    border-radius: 4px; 
-    transition: opacity 0.2s ease, background-color 0.2s ease, border 0.2s ease; 
-    border: 2px solid transparent; 
-    cursor: pointer; 
-    color: var(--measure-text-color, #333); 
+    border-radius: 4px;
+    transition: opacity 0.2s ease, background-color 0.2s ease, border 0.2s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+    color: var(--measure-text-color, #333);
     display: flex; /* For split measure layout */
     flex-direction: column; /* Default: Stack parts or part + button */
     gap: 8px; /* Gap between parts or part and button */
@@ -219,12 +221,12 @@ body {
     align-items: center;
     margin-bottom: 5px;
 }
-.measure-number { 
-    font-size: 12px; 
+.measure-number {
+    font-size: 12px;
     color: var(--measure-text-color, #333);
-    background-color: rgba(255,255,255,0.7); 
-    padding: 2px 4px; 
-    border-radius: 3px; 
+    background-color: rgba(255,255,255,0.7);
+    padding: 2px 4px;
+    border-radius: 3px;
 }
 .split-measure-button {
     padding: 3px 6px;
@@ -281,13 +283,13 @@ body.dark-mode-3 .fretboard-section { background-color: #a5a58d; border-color: #
 }
 #metronome-volume-controls-stack .volume-control {
     width: 100%;
-    justify-content: space-between; 
+    justify-content: space-between;
 }
 #metronome-volume-controls-stack .volume-control label,
 #metronome-volume-controls-stack .volume-control span {
     margin-right: 10px;
     white-space: nowrap;
-    flex-shrink: 0; 
+    flex-shrink: 0;
 }
 #metronome-volume-controls-stack .volume-control input[type="range"] {
     flex-grow: 1;
@@ -325,8 +327,8 @@ button, .button-like { padding: 10px 15px; border: none; border-radius: 5px; bac
 button:hover, .button-like:hover { background: var(--button-hover-bg, #45a049); }
 button.secondary { background-color: var(--button-secondary-bg, #007bff); }
 button.secondary:hover { background-color: var(--button-secondary-hover-bg, #0056b3); }
-button.danger { background-color: var(--button-danger-bg, #6b705c); }
-button.danger:hover { background-color: var(--button-danger-hover-bg, #c82333); }
+button.danger { background-color: var(--button-danger-bg, #6b705c); } /* Changed default to be less alarming initially */
+button.danger:hover { background-color: var(--button-danger-hover-bg, #c82333); } /* Standard red on hover */
 select { padding: 8px 10px; margin: 5px; border-radius: 5px; border: 1px solid var(--select-border-color, #ddd); background-color: var(--select-bg-color, white); color: var(--select-text-color, inherit); }
 #tempo-display { font-size: 1.2em; font-weight: bold; margin: 0 10px; min-width: 70px; text-align: center; }
 #loading-indicator { position: fixed; top: 20px; right: 20px; padding: 10px 15px; background: rgba(0,0,0,0.8); color: white; border-radius: 5px; z-index: 1000; font-size: 0.9em; display: none; }
@@ -471,7 +473,7 @@ body.dark-mode-3 {
     --text-color: #F0EFEB; /* Warm Off-White */
     --section-bg-color: linear-gradient(145deg, #3A4030, #4A5040); /* Muted Olive/Khaki */
     --section-text-color: #F0EFEB;
-    
+
     --fretboard-container-bg: #4A5040; /* Slightly Lighter Olive from gradient */
     --fretboard-container-border: #8A9A5B; /* Sage Green Accent */
 
@@ -482,12 +484,12 @@ body.dark-mode-3 {
 
     --fretboard-bg: #A98B73; /* Muted Wood Brown */
     --fretboard-border: #2A2F20; /* Match body background */
-    
+
     /* Note Text on Fretboard */
     --note-text-color: #2A2F20; /* Dark text on lighter fretboard notes */
 
     --scale-display-color: #F0EFEB;
-    
+
     /* Buttons */
     --button-bg: #D97904; /* Primary Accent - Pop */
     --button-text-color: #2A2F20; /* Dark text for contrast on orange */
@@ -520,7 +522,7 @@ body.dark-mode-3 {
     --measure-active-border: #D97904; /* Orange pop for active border */
     --measure-loop-bg: #505A45; /* Darker, desaturated green for loop */
     --measure-loop-border: #E7A002; /* Gold for loop border */
-    --measure-part-border-color: #6B7A47; /* Darker Sage for dashed line */ /* Corrected: only one definition */
+    --measure-part-border-color: #6B7A47; /* Darker Sage for dashed line */
 
     /* Beats */
     --beat-bg: #8A9A5B; /* Sage Green */
@@ -542,38 +544,38 @@ body.dark-mode-3 {
     --root-highlight-border-color: #D9534F; /* Muted Red for root highlight (distinct) */
 }
 
-body.dark-mode-3 button.danger { color: var(--button-danger-text-color, white); } 
-body.dark-mode-3 #dark-mode-toggle.active-3 { 
-    background-color: var(--button-bg); 
-    color: var(--button-text-color); 
-    border: 1px solid var(--button-hover-bg); 
+body.dark-mode-3 button.danger { color: var(--button-danger-text-color, white); }
+body.dark-mode-3 #dark-mode-toggle.active-3 {
+    background-color: var(--button-bg);
+    color: var(--button-text-color);
+    border: 1px solid var(--button-hover-bg);
 }
 
 /* Fretflow Section Theming - ensure these are after main theme blocks */
 /* Dark Mode 1 - Unchanged */
-.dark-mode #fretflow-section { background: linear-gradient(145deg, #283618, #606c38); color: #fefae0; }
+body.dark-mode #fretflow-section { background: linear-gradient(145deg, #283618, #606c38); color: #fefae0; }
 /* Dark Mode 2 - Unchanged */
-.dark-mode-2 #fretflow-section { background: linear-gradient(145deg, #001f54, #034078); color: #fefcfb; }
+body.dark-mode-2 #fretflow-section { background: linear-gradient(145deg, #001f54, #034078); color: #fefcfb; }
 /* Dark Mode 3 - UPDATED */
-body.dark-mode-3 #fretflow-section { 
-    background: var(--section-bg-color); 
-    color: var(--text-color); 
+body.dark-mode-3 #fretflow-section {
+    background: var(--section-bg-color);
+    color: var(--text-color);
     border-color: var(--fretboard-container-border);
 }
 
 /* Toggle button styling for DM3 */
 body.dark-mode-3 .toggle-button.active {
-    background: var(--button-bg); 
+    background: var(--button-bg);
     color: var(--button-text-color);
 }
 body.dark-mode-3 .toggle-button:not(.active) {
-    background: var(--button-secondary-bg); 
-    color: var(--text-color); 
+    background: var(--button-secondary-bg);
+    color: var(--text-color);
 }
 
 /* Optional Font for DM3 Headings */
 body.dark-mode-3 h1, body.dark-mode-3 h2, body.dark-mode-3 h3, body.dark-mode-3 h4 {
-    font-family: 'Georgia', serif; 
+    font-family: 'Georgia', serif;
 }
 
 /* Note Styling for DM3 */
@@ -581,10 +583,10 @@ body.dark-mode-3 .fretboard .note {
     color: #2A2F20; /* Dark text on note circles */
 }
 body.dark-mode-3 .fretboard .note.guide-tone-highlight {
-    background-color: var(--guide-tone-bg-color) !important; 
-    color: var(--guide-tone-text-color) !important; 
+    background-color: var(--guide-tone-bg-color) !important;
+    color: var(--guide-tone-text-color) !important;
 }
-    /* ====== ADD THESE RESPONSIVE STYLES AT THE END OF YOUR EXISTING CSS ====== */
+    /* ====== RESPONSIVE STYLES ====== */
 
 @media (max-width: 768px) {
     body {
@@ -713,7 +715,7 @@ body.dark-mode-3 .fretboard .note.guide-tone-highlight {
         margin-bottom: 8px;
         box-sizing: border-box; /* Include padding and border in the element's total width and height */
     }
-    .controls select, .controls button, /* Already targeted by > * */
+    /* .controls select, .controls button, Already targeted by > * */
     .control-group select, .control-group button, .control-group input {
         width: 100%;
         box-sizing: border-box;
