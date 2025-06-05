@@ -3,7 +3,7 @@ import { UI, createBeats, updateFretboardNotes, loadProgression, initializeFretF
 import { _toggleLoopingMode, _toggleGuideTones } from './ui.js'; // Import renamed UI interaction functions
 import { AudioContextManager, ensureAudioInitializedUserInteraction } from './audio.js';
 import { startPlayback, stopPlayback } from './playback.js';
-import { TUNINGS, drumSoundSets } from './constants.js';
+import { TUNINGS, drumSoundSets, progressions } from './constants.js';
 import { log, safeAddEventListener } from './utils.js';
 
 
